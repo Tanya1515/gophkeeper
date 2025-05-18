@@ -1,7 +1,7 @@
 package filestorage
 
 type FileStorage interface {
-	Connect()
+	Connect() error
 
 	CreateUserFileStorage(bucketName string) error 
 

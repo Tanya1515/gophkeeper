@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -27,8 +28,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GophkeeperClient interface {
-	LoginUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Status, error)
-	RegisterUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Status, error)
+	LoginUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	RegisterUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type gophkeeperClient struct {
@@ -39,9 +40,9 @@ func NewGophkeeperClient(cc grpc.ClientConnInterface) GophkeeperClient {
 	return &gophkeeperClient{cc}
 }
 
-func (c *gophkeeperClient) LoginUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Status, error) {
+func (c *gophkeeperClient) LoginUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Status)
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, Gophkeeper_LoginUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -49,9 +50,9 @@ func (c *gophkeeperClient) LoginUser(ctx context.Context, in *User, opts ...grpc
 	return out, nil
 }
 
-func (c *gophkeeperClient) RegisterUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Status, error) {
+func (c *gophkeeperClient) RegisterUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Status)
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, Gophkeeper_RegisterUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -63,8 +64,8 @@ func (c *gophkeeperClient) RegisterUser(ctx context.Context, in *User, opts ...g
 // All implementations must embed UnimplementedGophkeeperServer
 // for forward compatibility.
 type GophkeeperServer interface {
-	LoginUser(context.Context, *User) (*Status, error)
-	RegisterUser(context.Context, *User) (*Status, error)
+	LoginUser(context.Context, *User) (*emptypb.Empty, error)
+	RegisterUser(context.Context, *User) (*emptypb.Empty, error)
 	mustEmbedUnimplementedGophkeeperServer()
 }
 
@@ -75,10 +76,10 @@ type GophkeeperServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGophkeeperServer struct{}
 
-func (UnimplementedGophkeeperServer) LoginUser(context.Context, *User) (*Status, error) {
+func (UnimplementedGophkeeperServer) LoginUser(context.Context, *User) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoginUser not implemented")
 }
-func (UnimplementedGophkeeperServer) RegisterUser(context.Context, *User) (*Status, error) {
+func (UnimplementedGophkeeperServer) RegisterUser(context.Context, *User) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterUser not implemented")
 }
 func (UnimplementedGophkeeperServer) mustEmbedUnimplementedGophkeeperServer() {}

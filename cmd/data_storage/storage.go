@@ -1,9 +1,11 @@
 package datastorage
 
+import "context"
+
 type DataStorage interface {
 	Connect() error
 
-	LoginUser() error
+	LoginUser(ctx context.Context, login, password string) (string, error)
 
-	RegisterUser() error
+	RegisterUser(ctx context.Context, login, password, email string) error
 }

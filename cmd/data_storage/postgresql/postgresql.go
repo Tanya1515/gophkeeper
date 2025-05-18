@@ -29,5 +29,20 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 	if err != nil {
 		return
 	}
+
+	_, err = pg.dbConn.Exec(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`)
+	if err != nil {
+		return fmt.Errorf("error while creating extension pgcrypto: %w", err)
+	}
+
+	_, err = pg.dbConn.Exec(`CREATE TABLE IF NOT EXISTS Users (Id BIGSERIAL PRIMARY KEY,
+												userLogin VARCHAR(100) NOT NULL UNIQUE,
+												userPassword VARCHAR(100) NOT NULL,
+												userEmail VARCHAR(100) NOT NULL UNIQUE);`)
+	
+	if err != nil {
+		return fmt.Errorf("error while creating table Users: %w", err)
+	}
+
 	return
 }

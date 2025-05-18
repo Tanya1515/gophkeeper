@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package github.com.Tanya1515.gophkeeper.git.proto;
 
+import "google/protobuf/empty.proto";
+
 option go_package = "cmd/proto";
 
 message User {
@@ -10,11 +12,8 @@ message User {
     string email = 3;
 }
 
-message Status {
-    string status = 1;
-}
 
 service Gophkeeper {
-  rpc LoginUser(User) returns (Status);
-  rpc RegisterUser(User) returns (Status);
+  rpc LoginUser(User) returns (google.protobuf.Empty) {};
+  rpc RegisterUser(User) returns (google.protobuf.Empty) {};
 }

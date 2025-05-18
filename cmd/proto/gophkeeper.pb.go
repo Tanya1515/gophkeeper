@@ -9,6 +9,7 @@ package proto
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -81,65 +82,19 @@ func (x *User) GetEmail() string {
 	return ""
 }
 
-type Status struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Status) Reset() {
-	*x = Status{}
-	mi := &file_gophkeeper_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Status) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Status) ProtoMessage() {}
-
-func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Status.ProtoReflect.Descriptor instead.
-func (*Status) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Status) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
 var File_gophkeeper_proto protoreflect.FileDescriptor
 
 const file_gophkeeper_proto_rawDesc = "" +
 	"\n" +
-	"\x10gophkeeper.proto\x12)github.com.Tanya1515.gophkeeper.git.proto\"N\n" +
+	"\x10gophkeeper.proto\x12)github.com.Tanya1515.gophkeeper.git.proto\x1a\x1bgoogle/protobuf/empty.proto\"N\n" +
 	"\x04User\x12\x14\n" +
 	"\x05login\x18\x01 \x01(\tR\x05login\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\" \n" +
-	"\x06Status\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2\xf1\x01\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email2\xbf\x01\n" +
 	"\n" +
-	"Gophkeeper\x12o\n" +
-	"\tLoginUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a1.github.com.Tanya1515.gophkeeper.git.proto.Status\x12r\n" +
-	"\fRegisterUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a1.github.com.Tanya1515.gophkeeper.git.proto.StatusB\vZ\tcmd/protob\x06proto3"
+	"Gophkeeper\x12V\n" +
+	"\tLoginUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a\x16.google.protobuf.Empty\"\x00\x12Y\n" +
+	"\fRegisterUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a\x16.google.protobuf.Empty\"\x00B\vZ\tcmd/protob\x06proto3"
 
 var (
 	file_gophkeeper_proto_rawDescOnce sync.Once
@@ -153,16 +108,16 @@ func file_gophkeeper_proto_rawDescGZIP() []byte {
 	return file_gophkeeper_proto_rawDescData
 }
 
-var file_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_gophkeeper_proto_goTypes = []any{
-	(*User)(nil),   // 0: github.com.Tanya1515.gophkeeper.git.proto.User
-	(*Status)(nil), // 1: github.com.Tanya1515.gophkeeper.git.proto.Status
+	(*User)(nil),          // 0: github.com.Tanya1515.gophkeeper.git.proto.User
+	(*emptypb.Empty)(nil), // 1: google.protobuf.Empty
 }
 var file_gophkeeper_proto_depIdxs = []int32{
 	0, // 0: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
 	0, // 1: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
-	1, // 2: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Status
-	1, // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Status
+	1, // 2: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> google.protobuf.Empty
+	1, // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> google.protobuf.Empty
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -181,7 +136,7 @@ func file_gophkeeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gophkeeper_proto_rawDesc), len(file_gophkeeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
