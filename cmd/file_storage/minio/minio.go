@@ -33,18 +33,24 @@ func (m *MinioStorage) Connect() {
 	m.minioClient = minioClient
 }
 
-func (m *MinioStorage) GetFile() {
+func (m *MinioStorage) GetFile(bucketName string, fileName string) error {
 
+	return nil
 }
 
-func (m *MinioStorage) UploadFile() {
-
+func (m *MinioStorage) UploadFile(bucketName string, fileName string) error {
+	return nil
 }
 
-func (m *MinioStorage) DeleteFile() {
-
+func (m *MinioStorage) DeleteFile(bucketName string, fileName string) error {
+	return nil
 }
 
-func (m *MinioStorage) CreateUserFileStorage() {
+func (m *MinioStorage) CreateUserFileStorage(bucketName string) error {
 
+	err := m.minioClient.MakeBucket(bucketName, minio.MakeBucketOptions{Region: location})
+	if err != nil {
+		return fmt.Errorf("Error, while creating bucket with name %s: %w", bucketName, err)
+	}
+	return nil
 }

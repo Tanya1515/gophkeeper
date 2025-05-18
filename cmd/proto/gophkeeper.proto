@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package github.com.Tanya1515.gophkeeper.git.proto;
+
+option go_package = "cmd/proto";
+
+message User {
+    string login = 1;
+    string password = 2;
+    string email = 3;
+}
+
+message Status {
+    string status = 1;
+}
+
+service Gophkeeper {
+  rpc LoginUser(User) returns (Status);
+  rpc RegisterUser(User) returns (Status);
+}
