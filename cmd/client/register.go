@@ -18,6 +18,7 @@ var registerCmd = &cobra.Command{
 		var login string
 		var password string
 		var email string
+		var oneTimePassword string
 
 		fmt.Print("Login: ")
 		fmt.Fscan(os.Stdin, &login)
@@ -32,7 +33,7 @@ var registerCmd = &cobra.Command{
 		}
 
 		clientGRPC := pb.NewGophkeeperClient(connection)
-		status, err := clientGRPC.RegisterUser(context.Background(), &pb.User{
+		_, err = clientGRPC.RegisterUser(context.Background(), &pb.User{
 			Login:    login,
 			Password: password,
 			Email:    email,
@@ -40,9 +41,25 @@ var registerCmd = &cobra.Command{
 
 		if err != nil {
 			fmt.Println("Error while sending request to grpc server ", err)
+			return
 		}
 
-		fmt.Println(status)
+		fmt.Print("Please enter one-time password: ")
+		fmt.Fscan(os.Stdin, &oneTimePassword)
+		_, err = clientGRPC.VerificationApprove(context.Background(), &pb.Verify{
+			Login:       login,
+			OneTimePass: oneTimePassword,
+		})
+
+		if err != nil {
+			fmt.Println("Error while checking if OTP is correct")
+		}
+
+		// err = SaveJWT(result.JWTtoken, login)
+		// if err != nil {
+		// 	fmt.Printf("Error while saving user %s JWTToken %s", login, err)
+		// }
+		fmt.Println("%s has been successfully registered!", login)
 		defer connection.Close()
 	},
 }

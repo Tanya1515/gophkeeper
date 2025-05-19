@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -18,23 +19,26 @@ import (
 )
 
 type GophkeeperServer struct {
-	
-	DataStorage dataStorage.DataStorage// DataStorage saves all user sensetive data
+	DataStorage dataStorage.DataStorage // DataStorage saves all user sensetive data
 
-	FileStorage fileStorage.FileStorage// FileStorage saves all user files 
+	FileStorage fileStorage.FileStorage // FileStorage saves all user files
 
 	Logger zap.SugaredLogger // Logger saves all server info
-	
+
+	UserOTP map[string]string // UserOTP saves all one-time passwords for users
+
+	Mutex *sync.Mutex // Mutex for synchronization
+
 	pb.UnimplementedGophkeeperServer // type pb.Unimplemented<TypeName> is used for backward compatibility
 }
 
 func generateTLSCreds() (credentials.TransportCredentials, error) {
-	certFile, err := filepath.Abs("../../certs/server.crt")
+	certFile, err := filepath.Abs("./certs/server.crt")
 	if err != nil {
 		fmt.Println("Error while searching for server.crt ", err)
 		return nil, err
 	}
-	keyFile, err := filepath.Abs("../../certs/server.key")
+	keyFile, err := filepath.Abs("./certs/server.key")
 	if err != nil {
 		fmt.Println("Error while searching for server.key ", err)
 		return nil, err
@@ -45,7 +49,7 @@ func generateTLSCreds() (credentials.TransportCredentials, error) {
 
 func main() {
 	var s *grpc.Server
-	address := "localhost:3200"
+	address := "0.0.0.0:3200"
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -61,7 +65,7 @@ func main() {
 		loggerApp.Errorln("Error while getting postgreSQL address")
 		return
 	}
-	
+
 	accessKeyID, envExists := os.LookupEnv("MINIO_ROOT_USER")
 	if !(envExists) {
 		loggerApp.Errorln("Error while getting access key id for Minio")
@@ -75,6 +79,10 @@ func main() {
 	}
 
 	minioStorage := minio.NewMinioStorage(endpoint, accessKeyID, secretAccessKey, true)
+	err = minioStorage.Connect()
+	if err != nil {
+		loggerApp.Errorln("Error while connecting to Minio: ", err)
+	}
 
 	host, envExists := os.LookupEnv("POSTGRES_HOST")
 	if !(envExists) {
@@ -101,21 +109,31 @@ func main() {
 	}
 
 	postgreSQL := postgresql.NewPostgreSQLConnection(host, userName, password, dbName)
+	err = postgreSQL.Connect()
+	if err != nil {
+		loggerApp.Errorln("Error while connecting to postgreSQL: ", err)
+	}
 
 	listen, err := net.Listen("tcp", address)
 	if err != nil {
 		loggerApp.Errorln("Error while openning connection on address ", address, " : ", err)
 	}
+
 	credsTLS, err := generateTLSCreds()
 	if err != nil {
 		loggerApp.Errorln("Error while getting certificates for GRPC server ", err)
 	}
 	s = grpc.NewServer(grpc.Creds(credsTLS))
-	
 
 	gophkeeper := &GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
+
+	gophkeeper.UserOTP = make(map[string]string, 100)
+
+	var mutex sync.Mutex
+	gophkeeper.Mutex = &mutex
 	pb.RegisterGophkeeperServer(s, gophkeeper)
 	if err := s.Serve(listen); err != nil {
-		fmt.Println("Error, while trying to start grpc server: ", err)
+		loggerApp.Errorln("Error, while trying to start grpc server: ", err)
 	}
+	loggerApp.Infoln("GRPC server for Gopherkeeper successfully started")
 }

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: gophkeeper.proto
+// source: proto/gophkeeper.proto
 
 package proto
 
@@ -20,8 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Gophkeeper_LoginUser_FullMethodName    = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/LoginUser"
-	Gophkeeper_RegisterUser_FullMethodName = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/RegisterUser"
+	Gophkeeper_LoginUser_FullMethodName           = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/LoginUser"
+	Gophkeeper_RegisterUser_FullMethodName        = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/RegisterUser"
+	Gophkeeper_VerificationApprove_FullMethodName = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/VerificationApprove"
 )
 
 // GophkeeperClient is the client API for Gophkeeper service.
@@ -30,6 +31,7 @@ const (
 type GophkeeperClient interface {
 	LoginUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RegisterUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	VerificationApprove(ctx context.Context, in *Verify, opts ...grpc.CallOption) (*Result, error)
 }
 
 type gophkeeperClient struct {
@@ -60,12 +62,23 @@ func (c *gophkeeperClient) RegisterUser(ctx context.Context, in *User, opts ...g
 	return out, nil
 }
 
+func (c *gophkeeperClient) VerificationApprove(ctx context.Context, in *Verify, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, Gophkeeper_VerificationApprove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GophkeeperServer is the server API for Gophkeeper service.
 // All implementations must embed UnimplementedGophkeeperServer
 // for forward compatibility.
 type GophkeeperServer interface {
 	LoginUser(context.Context, *User) (*emptypb.Empty, error)
 	RegisterUser(context.Context, *User) (*emptypb.Empty, error)
+	VerificationApprove(context.Context, *Verify) (*Result, error)
 	mustEmbedUnimplementedGophkeeperServer()
 }
 
@@ -81,6 +94,9 @@ func (UnimplementedGophkeeperServer) LoginUser(context.Context, *User) (*emptypb
 }
 func (UnimplementedGophkeeperServer) RegisterUser(context.Context, *User) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterUser not implemented")
+}
+func (UnimplementedGophkeeperServer) VerificationApprove(context.Context, *Verify) (*Result, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerificationApprove not implemented")
 }
 func (UnimplementedGophkeeperServer) mustEmbedUnimplementedGophkeeperServer() {}
 func (UnimplementedGophkeeperServer) testEmbeddedByValue()                    {}
@@ -139,6 +155,24 @@ func _Gophkeeper_RegisterUser_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gophkeeper_VerificationApprove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Verify)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).VerificationApprove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gophkeeper_VerificationApprove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).VerificationApprove(ctx, req.(*Verify))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gophkeeper_ServiceDesc is the grpc.ServiceDesc for Gophkeeper service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -154,7 +188,11 @@ var Gophkeeper_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "RegisterUser",
 			Handler:    _Gophkeeper_RegisterUser_Handler,
 		},
+		{
+			MethodName: "VerificationApprove",
+			Handler:    _Gophkeeper_VerificationApprove_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "gophkeeper.proto",
+	Metadata: "proto/gophkeeper.proto",
 }

@@ -8,10 +8,10 @@ import (
 func (pg *PostgreSQLConnection) LoginUser(ctx context.Context, login, password string) (string, error) {
 	ok := false
 	var email string
-	row := pg.dbConn.QueryRowContext(ctx, `SELECT email, (password = crypt($1, password)) 
+	row := pg.dbConn.QueryRowContext(ctx, `SELECT userEmail, (userPassword = crypt($1, userPassword)) 
 								AS password_match
 								FROM Users
-								WHERE login = $2;`, password, login)
+								WHERE userLogin = $2;`, password, login)
 
 	err := row.Scan(&email, &ok)
 	if err != nil {

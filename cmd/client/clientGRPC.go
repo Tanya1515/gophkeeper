@@ -21,7 +21,7 @@ func ClientConnection() (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	conn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(credsTLS))
+	conn, err := grpc.NewClient("localhost:3200", grpc.WithTransportCredentials(credsTLS))
 	if err != nil {
 		fmt.Println("Error while openning connection to server: ", err)
 		return nil, err

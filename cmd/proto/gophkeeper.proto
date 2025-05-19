@@ -12,8 +12,19 @@ message User {
     string email = 3;
 }
 
+message Result {
+    string status = 1;
+    string JWTtoken = 2;
+}
+
+message Verify {
+    string oneTimePass = 1;
+    string login = 2;
+
+}
 
 service Gophkeeper {
   rpc LoginUser(User) returns (google.protobuf.Empty) {};
   rpc RegisterUser(User) returns (google.protobuf.Empty) {};
+  rpc VerificationApprove(Verify) returns (Result);
 }

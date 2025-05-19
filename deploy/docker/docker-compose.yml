@@ -25,9 +25,16 @@ services:
   
   app: 
     container_name: gophkeeper
-    image: gophkeeper
+    image: gopherkeeper:latest
     env_file: .env
     environment: 
       POSTGRES_HOST: data_storage_postgres
       MINIO_HOST: minio
-
+    ports: 
+      - "3200:3200"
+    depends_on:
+      data-storage-postgres:
+        condition: service_healthy
+networks: 
+  default: 
+    name: gopherkeeper-network

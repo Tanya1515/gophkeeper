@@ -30,5 +30,9 @@ func init() {
 }
 
 func main() {
+	err := CreateJWTPath()
+	if err != nil {
+		fmt.Println("Error while file for JWT initialization: ", err)
+	}
 	Execute()
 }
