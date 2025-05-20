@@ -123,9 +123,10 @@ func main() {
 	if err != nil {
 		loggerApp.Errorln("Error while getting certificates for GRPC server ", err)
 	}
-	s = grpc.NewServer(grpc.Creds(credsTLS))
 
 	gophkeeper := &GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
+
+	s = grpc.NewServer(grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
 
 	gophkeeper.UserOTP = make(map[string]string, 100)
 

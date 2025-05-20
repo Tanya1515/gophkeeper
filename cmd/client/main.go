@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
 var rootCmd = &cobra.Command{
@@ -30,7 +32,7 @@ func init() {
 }
 
 func main() {
-	err := CreateJWTPath()
+	err := ut.CreateJWTPath()
 	if err != nil {
 		fmt.Println("Error while file for JWT initialization: ", err)
 	}

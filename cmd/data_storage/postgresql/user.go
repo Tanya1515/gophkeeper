@@ -34,3 +34,16 @@ func (pg *PostgreSQLConnection) RegisterUser(ctx context.Context, login, passwor
 
 	return nil
 }
+
+func (pg *PostgreSQLConnection) CheckUserJWT(ctx context.Context, userLogin string) (userID string, err error) {
+
+	row := pg.dbConn.QueryRowContext(ctx, "SELECT ID FROM Users WHERE userLogin=$1", userLogin)
+
+	err = row.Scan(&userID)
+
+	if err != nil {
+		return "", fmt.Errorf("error while getting user %s ID: %w", userLogin, err)
+	}
+
+	return
+}

@@ -59,7 +59,8 @@ var registerCmd = &cobra.Command{
 		// if err != nil {
 		// 	fmt.Printf("Error while saving user %s JWTToken %s", login, err)
 		// }
-		fmt.Println("%s has been successfully registered!", login)
+
+		fmt.Println(login, " has been successfully registered!")
 		defer connection.Close()
 	},
 }
