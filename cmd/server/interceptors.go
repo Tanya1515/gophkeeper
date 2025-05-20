@@ -21,7 +21,7 @@ const LogginKey contextKey = "userID"
 // and user is authorized.
 func (s *GophkeeperServer) InterceptorCheckJWTtoken(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 
-	if strings.Split(info.FullMethod, "/")[2] != "RegisterUser" || strings.Split(info.FullMethod, "/")[2] != "LoginUser" || strings.Split(info.FullMethod, "/")[2] != "RegisterUser" {
+	if (strings.Split(info.FullMethod, "/")[2] != "RegisterUser") && (strings.Split(info.FullMethod, "/")[2] != "LoginUser") && (strings.Split(info.FullMethod, "/")[2] != "VerificationApprove") {
 		md, ok := metadata.FromIncomingContext(ctx)
 
 		if ok {
