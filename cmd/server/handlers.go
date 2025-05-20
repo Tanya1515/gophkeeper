@@ -47,16 +47,16 @@ func (s *GophkeeperServer) LoginUser(ctx context.Context, in *pb.User) (*emptypb
 
 func (s *GophkeeperServer) RegisterUser(ctx context.Context, in *pb.User) (*emptypb.Empty, error) {
 
-	// err := s.FileStorage.CreateUserFileStorage(in.Login)
-	// if err != nil {
-	// 	s.Logger.Errorln(err)
-	// 	return nil, err
-	// }
+	err := s.FileStorage.CreateUserFileStorage(in.Login)
+	if err != nil {
+		s.Logger.Errorln(err)
+		return nil, err
+	}
 
 	ctxDB, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := s.DataStorage.RegisterUser(ctxDB, in.Login, in.Password, in.Email)
+	err = s.DataStorage.RegisterUser(ctxDB, in.Login, in.Password, in.Email)
 	if err != nil {
 		return nil, err
 	}

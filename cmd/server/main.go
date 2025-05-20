@@ -65,7 +65,8 @@ func main() {
 		loggerApp.Errorln("Error while getting postgreSQL address")
 		return
 	}
-
+	
+	endpoint = endpoint + ":9000"
 	accessKeyID, envExists := os.LookupEnv("MINIO_ROOT_USER")
 	if !(envExists) {
 		loggerApp.Errorln("Error while getting access key id for Minio")
@@ -78,7 +79,7 @@ func main() {
 		return
 	}
 
-	minioStorage := minio.NewMinioStorage(endpoint, accessKeyID, secretAccessKey, true)
+	minioStorage := minio.NewMinioStorage(endpoint, accessKeyID, secretAccessKey, false)
 	err = minioStorage.Connect()
 	if err != nil {
 		loggerApp.Errorln("Error while connecting to Minio: ", err)
