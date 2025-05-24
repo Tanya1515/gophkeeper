@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"time"
 
@@ -12,8 +13,7 @@ import (
 
 type Claims struct {
 	jwt.RegisteredClaims
-	UserLogin    string
-	UserPassword string
+	UserLogin string
 }
 
 const TokenExp = time.Hour
@@ -52,22 +52,21 @@ func ProcessJWTToken(JWTToken string) (userLogin string, err error) {
 }
 
 func SaveJWT(JWTToken, userLogin string) error {
-	file, err := os.OpenFile(".configs/configJWT.json", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return err
-	}
 
+	var err error
 	var userJWTByte []byte
 	userJWT := make(map[string]string)
 
-	_, err = file.Read(userJWTByte)
+	userJWTByte, err = os.ReadFile(".configs/configJWT.json")
 	if err != nil {
 		return fmt.Errorf("error while reading user JWT tokens from file: %w", err)
 	}
 
-	err = json.Unmarshal(userJWTByte, &userJWT)
-	if err != nil {
-		return err
+	if len(userJWTByte) != 0 {
+		err = json.Unmarshal(userJWTByte, &userJWT)
+		if err != nil {
+			return fmt.Errorf("error while unmarhalling data: %w", err)
+		}
 	}
 
 	_, exists := userJWT[userLogin]
@@ -79,7 +78,7 @@ func SaveJWT(JWTToken, userLogin string) error {
 			return err
 		}
 
-		_, err = file.Write(userJWTByte)
+		err = os.WriteFile(".configs/configJWT.json", userJWTByte, fs.ModeAppend)
 		if err != nil {
 			return err
 		}
@@ -92,43 +91,36 @@ func SaveJWT(JWTToken, userLogin string) error {
 	if err != nil {
 		return err
 	}
-	// перезатереть содержимое файла ?
-	_, err = file.Write(userJWTByte)
+
+	err = os.WriteFile(".configs/configJWT.json", userJWTByte, fs.ModeAppend)
 	if err != nil {
 		return err
 	}
 
-	defer file.Close()
 	return nil
 }
 
 func GetJWT(userLogin string) (JWTToken string, err error) {
 
-	file, err := os.OpenFile(".configs/configJWT.json", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return
-	}
-
 	var userJWTByte []byte
 	userJWT := make(map[string]string)
 
-	_, err = file.Read(userJWTByte)
+	userJWTByte, err = os.ReadFile(".configs/configJWT.json")
 	if err != nil {
-		return
+		return "", fmt.Errorf("error while reading file with JWT tokens: %w", err)
 	}
 
 	err = json.Unmarshal(userJWTByte, &userJWT)
 	if err != nil {
-		return
+		return "", fmt.Errorf("error while unmarshalling data from file: %w", err)
 	}
 
 	JWTToken, exists := userJWT[userLogin]
 
 	if exists {
-		return
+		return "", fmt.Errorf("jwttoken for user %s does not exist, please login or register", userLogin)
 	}
 
-	defer file.Close()
 	return
 }
 

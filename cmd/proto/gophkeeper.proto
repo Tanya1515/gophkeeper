@@ -20,11 +20,33 @@ message Result {
 message Verify {
     string oneTimePass = 1;
     string login = 2;
+}
 
+message UploadPasswordMessage {
+    string password = 1;
+    string application = 2;
+    string metaData = 3;
+}
+
+message UploadFileMessage {
+    string fileName = 1;
+    bytes content = 2;
+    string metaData = 3;
+}
+
+message UploadBankCardMessage {
+    string cardNumber = 1;
+    string cvcCode = 2;
+    string data = 3; 
+    string bank = 4;
+    string metadata = 5;
 }
 
 service Gophkeeper {
   rpc LoginUser(User) returns (google.protobuf.Empty) {};
   rpc RegisterUser(User) returns (google.protobuf.Empty) {};
   rpc VerificationApprove(Verify) returns (Result);
-}
+  rpc UploadPassword(UploadPasswordMessage) returns (google.protobuf.Empty) {};
+  rpc UploadBankCard(UploadBankCardMessage) returns (google.protobuf.Empty) {};
+  rpc UploadFile(stream UploadFileMessage) returns (google.protobuf.Empty) {};
+} 

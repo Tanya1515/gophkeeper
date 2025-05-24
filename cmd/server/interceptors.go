@@ -13,10 +13,6 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
-type contextKey string
-
-const LogginKey contextKey = "userID"
-
 // InterceptorCheckJWTtoken - function for checking if JWT token of incoming request is correct
 // and user is authorized.
 func (s *GophkeeperServer) InterceptorCheckJWTtoken(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
@@ -41,7 +37,7 @@ func (s *GophkeeperServer) InterceptorCheckJWTtoken(ctx context.Context, req any
 				return "", fmt.Errorf("error while user identification: %w", err)
 			}
 
-			reqCTX := context.WithValue(ctx, LogginKey, id)
+			reqCTX := context.WithValue(ctx, ut.LogginKey, id)
 
 			return handler(reqCTX, req)
 		} else {

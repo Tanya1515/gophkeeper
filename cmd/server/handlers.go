@@ -8,10 +8,12 @@ import (
 
 	"math/rand/v2"
 
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	utils "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+
 )
 
 func (s *GophkeeperServer) LoginUser(ctx context.Context, in *pb.User) (*emptypb.Empty, error) {
@@ -92,7 +94,7 @@ func (s *GophkeeperServer) VerificationApprove(ctx context.Context, in *pb.Verif
 	s.Mutex.Unlock()
 
 	if recievedOTP == in.OneTimePass {
-		result.JWTtoken, err = utils.GenerateToken(in.Login)
+		result.JWTtoken, err = ut.GenerateToken(in.Login)
 		if err != nil {
 			return nil, err
 		}
@@ -102,4 +104,34 @@ func (s *GophkeeperServer) VerificationApprove(ctx context.Context, in *pb.Verif
 	}
 
 	return &result, nil
+}
+
+func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.UploadPasswordMessage) (*emptypb.Empty, error) {
+	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err := s.DataStorage.UploadPassword(ctxDB, passwordData.Password, passwordData.Application, passwordData.MetaData)
+	if err != nil {
+		s.Logger.Errorf("error while uploading password for user %s for application %s: %s", ctx.Value(ut.LogginKey), passwordData.Application, err)
+		return nil, fmt.Errorf("error while uploading password for user %s for application %s: %w", ctx.Value(ut.LogginKey), passwordData.Application, err)
+	}
+
+	return nil, nil
+}
+
+func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.UploadBankCardMessage) (*emptypb.Empty, error) {
+	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err := s.DataStorage.UploadBankCard(ctxDB, bankCardData.CardNumber, bankCardData.CvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata)
+	if err != nil {
+		s.Logger.Errorf("error while uploading bank card data for user %s for card number %s: %s", ctx.Value(ut.LogginKey), bankCardData.CardNumber, err)
+		return nil, fmt.Errorf("error while uploading bank card data for user %s for card number %s: %w", ctx.Value(ut.LogginKey), bankCardData.CardNumber, err)
+	}
+
+	return nil, nil
+}
+
+func (s *GophkeeperServer) UploadFile(in grpc.ClientStreamingServer[pb.UploadFileMessage, emptypb.Empty]) error {
+	return nil
 }

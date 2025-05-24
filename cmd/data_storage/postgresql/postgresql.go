@@ -46,7 +46,7 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 
 	_, err = pg.dbConn.Exec(`CREATE TABLE IF NOT EXISTS BankCards (ID BIGSERIAL PRIMARY KEY,
 															userID BIGINT REFERENCES Users (id) ON DELETE CASCADE,
-															cardNumber VARCHAR(100) NOT NULL, 
+															cardNumber VARCHAR(100) NOT NULL UNIQUE, 
 															cvcCode VARCHAR(100) NOT NULL,
 															date DATE NOT NULL,
 															bank VARCHAR(100), 
@@ -59,7 +59,7 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 	_, err = pg.dbConn.Exec(`CREATE TABLE IF NOT EXISTS Credentials (ID BIGSERIAL PRIMARY KEY,
 																userID BIGINT REFERENCES Users (id) ON DELETE CASCADE,
 																password VARCHAR(100) NOT NULL,
-																application VARCHAR(100) NOT NULL, 
+																application VARCHAR(100) NOT NULL UNIQUE, 
 																metaData TEXT);`)
 
 	if err != nil {

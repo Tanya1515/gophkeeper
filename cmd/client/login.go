@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
 var loginCmd = &cobra.Command{
@@ -41,8 +42,8 @@ var loginCmd = &cobra.Command{
 
 		fmt.Print("Please enter one-time password: ")
 		fmt.Fscan(os.Stdin, &oneTimePassword)
-		_, err = clientGRPC.VerificationApprove(context.Background(), &pb.Verify{
-			Login: login, 
+		result, err := clientGRPC.VerificationApprove(context.Background(), &pb.Verify{
+			Login:       login,
 			OneTimePass: oneTimePassword,
 		})
 
@@ -50,10 +51,10 @@ var loginCmd = &cobra.Command{
 			fmt.Println("Error while checking if OTP is correct")
 		}
 
-		// err = SaveJWT(result.JWTtoken, login)
-		// if err != nil {
-		// 	fmt.Printf("Error while saving user %s JWTToken %s", login, err)
-		// }
+		err = ut.SaveJWT(result.JWTtoken, login)
+		if err != nil {
+			fmt.Printf("Error while saving user %s JWTToken %s", login, err)
+		}
 
 		defer connection.Close()
 	},

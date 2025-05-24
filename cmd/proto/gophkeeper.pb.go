@@ -186,6 +186,202 @@ func (x *Verify) GetLogin() string {
 	return ""
 }
 
+type UploadPasswordMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	Application   string                 `protobuf:"bytes,2,opt,name=application,proto3" json:"application,omitempty"`
+	MetaData      string                 `protobuf:"bytes,3,opt,name=metaData,proto3" json:"metaData,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadPasswordMessage) Reset() {
+	*x = UploadPasswordMessage{}
+	mi := &file_proto_gophkeeper_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadPasswordMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadPasswordMessage) ProtoMessage() {}
+
+func (x *UploadPasswordMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gophkeeper_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadPasswordMessage.ProtoReflect.Descriptor instead.
+func (*UploadPasswordMessage) Descriptor() ([]byte, []int) {
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *UploadPasswordMessage) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *UploadPasswordMessage) GetApplication() string {
+	if x != nil {
+		return x.Application
+	}
+	return ""
+}
+
+func (x *UploadPasswordMessage) GetMetaData() string {
+	if x != nil {
+		return x.MetaData
+	}
+	return ""
+}
+
+type UploadFileMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FileName      string                 `protobuf:"bytes,1,opt,name=fileName,proto3" json:"fileName,omitempty"`
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	MetaData      string                 `protobuf:"bytes,3,opt,name=metaData,proto3" json:"metaData,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadFileMessage) Reset() {
+	*x = UploadFileMessage{}
+	mi := &file_proto_gophkeeper_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadFileMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadFileMessage) ProtoMessage() {}
+
+func (x *UploadFileMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gophkeeper_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadFileMessage.ProtoReflect.Descriptor instead.
+func (*UploadFileMessage) Descriptor() ([]byte, []int) {
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UploadFileMessage) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *UploadFileMessage) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+func (x *UploadFileMessage) GetMetaData() string {
+	if x != nil {
+		return x.MetaData
+	}
+	return ""
+}
+
+type UploadBankCardMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CardNumber    string                 `protobuf:"bytes,1,opt,name=cardNumber,proto3" json:"cardNumber,omitempty"`
+	CvcCode       string                 `protobuf:"bytes,2,opt,name=cvcCode,proto3" json:"cvcCode,omitempty"`
+	Data          string                 `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Bank          string                 `protobuf:"bytes,4,opt,name=bank,proto3" json:"bank,omitempty"`
+	Metadata      string                 `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadBankCardMessage) Reset() {
+	*x = UploadBankCardMessage{}
+	mi := &file_proto_gophkeeper_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadBankCardMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadBankCardMessage) ProtoMessage() {}
+
+func (x *UploadBankCardMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gophkeeper_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadBankCardMessage.ProtoReflect.Descriptor instead.
+func (*UploadBankCardMessage) Descriptor() ([]byte, []int) {
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UploadBankCardMessage) GetCardNumber() string {
+	if x != nil {
+		return x.CardNumber
+	}
+	return ""
+}
+
+func (x *UploadBankCardMessage) GetCvcCode() string {
+	if x != nil {
+		return x.CvcCode
+	}
+	return ""
+}
+
+func (x *UploadBankCardMessage) GetData() string {
+	if x != nil {
+		return x.Data
+	}
+	return ""
+}
+
+func (x *UploadBankCardMessage) GetBank() string {
+	if x != nil {
+		return x.Bank
+	}
+	return ""
+}
+
+func (x *UploadBankCardMessage) GetMetadata() string {
+	if x != nil {
+		return x.Metadata
+	}
+	return ""
+}
+
 var File_proto_gophkeeper_proto protoreflect.FileDescriptor
 
 const file_proto_gophkeeper_proto_rawDesc = "" +
@@ -200,12 +396,32 @@ const file_proto_gophkeeper_proto_rawDesc = "" +
 	"\bJWTtoken\x18\x02 \x01(\tR\bJWTtoken\"@\n" +
 	"\x06Verify\x12 \n" +
 	"\voneTimePass\x18\x01 \x01(\tR\voneTimePass\x12\x14\n" +
-	"\x05login\x18\x02 \x01(\tR\x05login2\xbc\x02\n" +
+	"\x05login\x18\x02 \x01(\tR\x05login\"q\n" +
+	"\x15UploadPasswordMessage\x12\x1a\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\x12 \n" +
+	"\vapplication\x18\x02 \x01(\tR\vapplication\x12\x1a\n" +
+	"\bmetaData\x18\x03 \x01(\tR\bmetaData\"e\n" +
+	"\x11UploadFileMessage\x12\x1a\n" +
+	"\bfileName\x18\x01 \x01(\tR\bfileName\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\x12\x1a\n" +
+	"\bmetaData\x18\x03 \x01(\tR\bmetaData\"\x95\x01\n" +
+	"\x15UploadBankCardMessage\x12\x1e\n" +
+	"\n" +
+	"cardNumber\x18\x01 \x01(\tR\n" +
+	"cardNumber\x12\x18\n" +
+	"\acvcCode\x18\x02 \x01(\tR\acvcCode\x12\x12\n" +
+	"\x04data\x18\x03 \x01(\tR\x04data\x12\x12\n" +
+	"\x04bank\x18\x04 \x01(\tR\x04bank\x12\x1a\n" +
+	"\bmetadata\x18\x05 \x01(\tR\bmetadata2\x80\x05\n" +
 	"\n" +
 	"Gophkeeper\x12V\n" +
 	"\tLoginUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a\x16.google.protobuf.Empty\"\x00\x12Y\n" +
 	"\fRegisterUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a\x16.google.protobuf.Empty\"\x00\x12{\n" +
-	"\x13VerificationApprove\x121.github.com.Tanya1515.gophkeeper.git.proto.Verify\x1a1.github.com.Tanya1515.gophkeeper.git.proto.ResultB\vZ\tcmd/protob\x06proto3"
+	"\x13VerificationApprove\x121.github.com.Tanya1515.gophkeeper.git.proto.Verify\x1a1.github.com.Tanya1515.gophkeeper.git.proto.Result\x12l\n" +
+	"\x0eUploadPassword\x12@.github.com.Tanya1515.gophkeeper.git.proto.UploadPasswordMessage\x1a\x16.google.protobuf.Empty\"\x00\x12l\n" +
+	"\x0eUploadBankCard\x12@.github.com.Tanya1515.gophkeeper.git.proto.UploadBankCardMessage\x1a\x16.google.protobuf.Empty\"\x00\x12f\n" +
+	"\n" +
+	"UploadFile\x12<.github.com.Tanya1515.gophkeeper.git.proto.UploadFileMessage\x1a\x16.google.protobuf.Empty\"\x00(\x01B\vZ\tcmd/protob\x06proto3"
 
 var (
 	file_proto_gophkeeper_proto_rawDescOnce sync.Once
@@ -219,22 +435,31 @@ func file_proto_gophkeeper_proto_rawDescGZIP() []byte {
 	return file_proto_gophkeeper_proto_rawDescData
 }
 
-var file_proto_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_gophkeeper_proto_goTypes = []any{
-	(*User)(nil),          // 0: github.com.Tanya1515.gophkeeper.git.proto.User
-	(*Result)(nil),        // 1: github.com.Tanya1515.gophkeeper.git.proto.Result
-	(*Verify)(nil),        // 2: github.com.Tanya1515.gophkeeper.git.proto.Verify
-	(*emptypb.Empty)(nil), // 3: google.protobuf.Empty
+	(*User)(nil),                  // 0: github.com.Tanya1515.gophkeeper.git.proto.User
+	(*Result)(nil),                // 1: github.com.Tanya1515.gophkeeper.git.proto.Result
+	(*Verify)(nil),                // 2: github.com.Tanya1515.gophkeeper.git.proto.Verify
+	(*UploadPasswordMessage)(nil), // 3: github.com.Tanya1515.gophkeeper.git.proto.UploadPasswordMessage
+	(*UploadFileMessage)(nil),     // 4: github.com.Tanya1515.gophkeeper.git.proto.UploadFileMessage
+	(*UploadBankCardMessage)(nil), // 5: github.com.Tanya1515.gophkeeper.git.proto.UploadBankCardMessage
+	(*emptypb.Empty)(nil),         // 6: google.protobuf.Empty
 }
 var file_proto_gophkeeper_proto_depIdxs = []int32{
 	0, // 0: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
 	0, // 1: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
 	2, // 2: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:input_type -> github.com.Tanya1515.gophkeeper.git.proto.Verify
-	3, // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> google.protobuf.Empty
-	3, // 4: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> google.protobuf.Empty
-	1, // 5: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Result
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	3, // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.UploadPasswordMessage
+	5, // 4: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:input_type -> github.com.Tanya1515.gophkeeper.git.proto.UploadBankCardMessage
+	4, // 5: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.UploadFileMessage
+	6, // 6: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> google.protobuf.Empty
+	6, // 7: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> google.protobuf.Empty
+	1, // 8: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Result
+	6, // 9: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:output_type -> google.protobuf.Empty
+	6, // 10: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:output_type -> google.protobuf.Empty
+	6, // 11: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:output_type -> google.protobuf.Empty
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -251,7 +476,7 @@ func file_proto_gophkeeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_gophkeeper_proto_rawDesc), len(file_proto_gophkeeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

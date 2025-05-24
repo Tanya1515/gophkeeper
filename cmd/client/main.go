@@ -26,9 +26,20 @@ func Execute() {
 	}
 }
 
+var user string
+
 func init() {
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(registerCmd)
+	rootCmd.AddCommand(sendPassword)
+	sendPassword.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	sendPassword.MarkFlagRequired("user")
+	rootCmd.AddCommand(sendBankCard)
+	sendBankCard.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	sendBankCard.MarkFlagRequired("user")
+	rootCmd.AddCommand(sendFile)
+	sendFile.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	sendFile.MarkFlagRequired("user")
 }
 
 func main() {
