@@ -55,3 +55,17 @@ var getFile = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 	},
 }
+
+var updateFile = &cobra.Command{
+	Use:   "file",
+	Short: "Update existing file with sensetive data in gophkeeper",
+	Run: func(cmd *cobra.Command, args []string) {
+	},
+}
+
+var deleteFile = &cobra.Command{
+	Use:   "file",
+	Short: "Delete existing file with sensetive data in gophkeeper",
+	Run: func(cmd *cobra.Command, args []string) {
+	},
+}

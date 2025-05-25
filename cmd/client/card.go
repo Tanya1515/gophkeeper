@@ -144,7 +144,21 @@ var sendBankCard = &cobra.Command{
 //доделать
 var getCard = &cobra.Command{
 	Use:   "card",
-	Short: "Get description of all user sensetive data",
+	Short: "Get bank card credentials",
+	Run: func(cmd *cobra.Command, args []string) {
+	},
+}
+
+var deleteCard = &cobra.Command{
+	Use:   "card",
+	Short: "Delete bank card credentials",
+	Run: func(cmd *cobra.Command, args []string) {
+	},
+}
+
+var updateCard = &cobra.Command{
+	Use:   "card",
+	Short: "Update bank card credentials",
 	Run: func(cmd *cobra.Command, args []string) {
 	},
 }

@@ -29,11 +29,28 @@ var saveCmd = &cobra.Command{
 
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Get commands give an opportunity to get sensetive data from gopherkeeper",
+	Short: "Get commands give an opportunity to get sensetive data from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Welcome to client get interface! Use --help for usage.")
 	},
 }
+
+var deleteCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Delete commands give an opportunity to delete sensetive data from gophkeeper",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Welcome to client get interface! Use --help for usage.")
+	},
+}
+
+var updateCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Update commands give an opportunity to update sensetive data in gophkeeper",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Welcome to client get interface! Use --help for usage.")
+	},
+}
+
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -72,6 +89,28 @@ func init() {
 	getCmd.AddCommand(getUserData)
 	getUserData.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
 	getUserData.MarkFlagRequired("user")
+
+	rootCmd.AddCommand(deleteCmd)
+	deleteCmd.AddCommand(deleteFile)
+	deleteFile.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	deleteFile.MarkFlagRequired("user")
+	deleteCmd.AddCommand(deleteCard)
+	deleteCard.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	deleteCard.MarkFlagRequired("user")
+	deleteCmd.AddCommand(deletePassword)
+	deletePassword.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	deletePassword.MarkFlagRequired("user")
+
+	rootCmd.AddCommand(updateCmd)
+	updateCmd.AddCommand(updateFile)
+	updateFile.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	updateFile.MarkFlagRequired("user")
+	updateCmd.AddCommand(updateCard)
+	updateCard.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	updateCard.MarkFlagRequired("user")
+	updateCmd.AddCommand(updatePassword)
+	updatePassword.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	updatePassword.MarkFlagRequired("user")
 }
 
 func main() {

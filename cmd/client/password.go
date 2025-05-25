@@ -64,7 +64,21 @@ var sendPassword = &cobra.Command{
 // доделать 
 var getPassword = &cobra.Command{
 	Use:   "password",
-	Short: "Get password of the application from gopherkeeper",
+	Short: "Get password of the application from gophkeeper",
+	Run: func(cmd *cobra.Command, args []string) {
+	},
+}
+
+var deletePassword = &cobra.Command{
+	Use:   "password",
+	Short: "Delete password of the application from gophkeeper",
+	Run: func(cmd *cobra.Command, args []string) {
+	},
+}
+
+var updatePassword = &cobra.Command{
+	Use:   "password",
+	Short: "Update password of the application from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 	},
 }
