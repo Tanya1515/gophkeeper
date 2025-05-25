@@ -36,7 +36,7 @@ func GenerateToken(userLogin string) (JWTtoken string, err error) {
 }
 
 func ProcessJWTToken(JWTToken string) (userLogin string, err error) {
-	claims := Claims{}
+	claims := &Claims{}
 
 	jwt.ParseWithClaims(JWTToken, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte("secretKey"), nil
@@ -46,6 +46,8 @@ func ProcessJWTToken(JWTToken string) (userLogin string, err error) {
 	if err != nil {
 		return "", err
 	}
+
+	fmt.Println(claims.UserLogin)
 
 	return claims.UserLogin, err
 
@@ -117,7 +119,7 @@ func GetJWT(userLogin string) (JWTToken string, err error) {
 
 	JWTToken, exists := userJWT[userLogin]
 
-	if exists {
+	if !exists {
 		return "", fmt.Errorf("jwttoken for user %s does not exist, please login or register", userLogin)
 	}
 
@@ -142,7 +144,6 @@ func CreateJWTPath() error {
 			return err
 		}
 
-		file.WriteString("File for saving user JWT tokens in format: user:JWTtoken\n")
 		defer file.Close()
 	}
 	return nil

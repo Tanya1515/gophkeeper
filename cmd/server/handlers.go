@@ -13,7 +13,6 @@ import (
 
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
-
 )
 
 func (s *GophkeeperServer) LoginUser(ctx context.Context, in *pb.User) (*emptypb.Empty, error) {
@@ -29,7 +28,7 @@ func (s *GophkeeperServer) LoginUser(ctx context.Context, in *pb.User) (*emptypb
 
 	rnd := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano())+1))
 
-	generatedOTP := strconv.Itoa(rnd.IntN(6))
+	generatedOTP := strconv.Itoa(rnd.IntN(1000000))
 
 	err = sendOTP(email, generatedOTP)
 	if err != nil {
@@ -65,7 +64,7 @@ func (s *GophkeeperServer) RegisterUser(ctx context.Context, in *pb.User) (*empt
 
 	rnd := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano())+1))
 
-	generatedOTP := strconv.Itoa(rnd.IntN(6))
+	generatedOTP := strconv.Itoa(rnd.IntN(1000000))
 
 	err = sendOTP(in.Email, generatedOTP)
 	if err != nil {

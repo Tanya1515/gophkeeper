@@ -23,6 +23,7 @@ func (s *GophkeeperServer) InterceptorCheckJWTtoken(ctx context.Context, req any
 		if ok {
 			userJWT := md.Get("Authorization")
 			userLogin, err := ut.ProcessJWTToken(userJWT[0])
+			s.Logger.Infoln(userLogin)
 			if err != nil {
 				s.Logger.Errorln("Error while processing JWT token: %s", err)
 				return "", fmt.Errorf("error while processing JWT token: %w", err)
