@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: proto/gophkeeper.proto
+// source: gophkeeper.proto
 
 package proto
 
@@ -20,12 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Gophkeeper_LoginUser_FullMethodName           = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/LoginUser"
-	Gophkeeper_RegisterUser_FullMethodName        = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/RegisterUser"
-	Gophkeeper_VerificationApprove_FullMethodName = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/VerificationApprove"
-	Gophkeeper_UploadPassword_FullMethodName      = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/UploadPassword"
-	Gophkeeper_UploadBankCard_FullMethodName      = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/UploadBankCard"
-	Gophkeeper_UploadFile_FullMethodName          = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/UploadFile"
+	Gophkeeper_LoginUser_FullMethodName                 = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/LoginUser"
+	Gophkeeper_RegisterUser_FullMethodName              = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/RegisterUser"
+	Gophkeeper_VerificationApprove_FullMethodName       = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/VerificationApprove"
+	Gophkeeper_UploadPassword_FullMethodName            = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/UploadPassword"
+	Gophkeeper_UploadBankCard_FullMethodName            = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/UploadBankCard"
+	Gophkeeper_UploadFile_FullMethodName                = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/UploadFile"
+	Gophkeeper_DeletePassword_FullMethodName            = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/DeletePassword"
+	Gophkeeper_DeleteFile_FullMethodName                = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/DeleteFile"
+	Gophkeeper_DeleteBankCardCredentials_FullMethodName = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/DeleteBankCardCredentials"
+	Gophkeeper_GetPassword_FullMethodName               = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/GetPassword"
+	Gophkeeper_GetBankCardCredentials_FullMethodName    = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/GetBankCardCredentials"
+	Gophkeeper_GetFile_FullMethodName                   = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/GetFile"
 )
 
 // GophkeeperClient is the client API for Gophkeeper service.
@@ -35,9 +41,15 @@ type GophkeeperClient interface {
 	LoginUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RegisterUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	VerificationApprove(ctx context.Context, in *Verify, opts ...grpc.CallOption) (*Result, error)
-	UploadPassword(ctx context.Context, in *UploadPasswordMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	UploadBankCard(ctx context.Context, in *UploadBankCardMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadFileMessage, emptypb.Empty], error)
+	UploadPassword(ctx context.Context, in *PasswordMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UploadBankCard(ctx context.Context, in *BankCardMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileMessage, emptypb.Empty], error)
+	DeletePassword(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeleteFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeleteBankCardCredentials(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetPassword(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*PasswordMessage, error)
+	GetBankCardCredentials(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*BankCardMessage, error)
+	GetFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*FileMessage, error)
 }
 
 type gophkeeperClient struct {
@@ -78,7 +90,7 @@ func (c *gophkeeperClient) VerificationApprove(ctx context.Context, in *Verify, 
 	return out, nil
 }
 
-func (c *gophkeeperClient) UploadPassword(ctx context.Context, in *UploadPasswordMessage, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *gophkeeperClient) UploadPassword(ctx context.Context, in *PasswordMessage, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, Gophkeeper_UploadPassword_FullMethodName, in, out, cOpts...)
@@ -88,7 +100,7 @@ func (c *gophkeeperClient) UploadPassword(ctx context.Context, in *UploadPasswor
 	return out, nil
 }
 
-func (c *gophkeeperClient) UploadBankCard(ctx context.Context, in *UploadBankCardMessage, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *gophkeeperClient) UploadBankCard(ctx context.Context, in *BankCardMessage, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, Gophkeeper_UploadBankCard_FullMethodName, in, out, cOpts...)
@@ -98,18 +110,78 @@ func (c *gophkeeperClient) UploadBankCard(ctx context.Context, in *UploadBankCar
 	return out, nil
 }
 
-func (c *gophkeeperClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadFileMessage, emptypb.Empty], error) {
+func (c *gophkeeperClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileMessage, emptypb.Empty], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &Gophkeeper_ServiceDesc.Streams[0], Gophkeeper_UploadFile_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[UploadFileMessage, emptypb.Empty]{ClientStream: stream}
+	x := &grpc.GenericClientStream[FileMessage, emptypb.Empty]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Gophkeeper_UploadFileClient = grpc.ClientStreamingClient[UploadFileMessage, emptypb.Empty]
+type Gophkeeper_UploadFileClient = grpc.ClientStreamingClient[FileMessage, emptypb.Empty]
+
+func (c *gophkeeperClient) DeletePassword(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Gophkeeper_DeletePassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophkeeperClient) DeleteFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Gophkeeper_DeleteFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophkeeperClient) DeleteBankCardCredentials(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Gophkeeper_DeleteBankCardCredentials_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophkeeperClient) GetPassword(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*PasswordMessage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PasswordMessage)
+	err := c.cc.Invoke(ctx, Gophkeeper_GetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophkeeperClient) GetBankCardCredentials(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*BankCardMessage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BankCardMessage)
+	err := c.cc.Invoke(ctx, Gophkeeper_GetBankCardCredentials_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophkeeperClient) GetFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*FileMessage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FileMessage)
+	err := c.cc.Invoke(ctx, Gophkeeper_GetFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 // GophkeeperServer is the server API for Gophkeeper service.
 // All implementations must embed UnimplementedGophkeeperServer
@@ -118,9 +190,15 @@ type GophkeeperServer interface {
 	LoginUser(context.Context, *User) (*emptypb.Empty, error)
 	RegisterUser(context.Context, *User) (*emptypb.Empty, error)
 	VerificationApprove(context.Context, *Verify) (*Result, error)
-	UploadPassword(context.Context, *UploadPasswordMessage) (*emptypb.Empty, error)
-	UploadBankCard(context.Context, *UploadBankCardMessage) (*emptypb.Empty, error)
-	UploadFile(grpc.ClientStreamingServer[UploadFileMessage, emptypb.Empty]) error
+	UploadPassword(context.Context, *PasswordMessage) (*emptypb.Empty, error)
+	UploadBankCard(context.Context, *BankCardMessage) (*emptypb.Empty, error)
+	UploadFile(grpc.ClientStreamingServer[FileMessage, emptypb.Empty]) error
+	DeletePassword(context.Context, *SensetiveDataMessage) (*emptypb.Empty, error)
+	DeleteFile(context.Context, *SensetiveDataMessage) (*emptypb.Empty, error)
+	DeleteBankCardCredentials(context.Context, *SensetiveDataMessage) (*emptypb.Empty, error)
+	GetPassword(context.Context, *SensetiveDataMessage) (*PasswordMessage, error)
+	GetBankCardCredentials(context.Context, *SensetiveDataMessage) (*BankCardMessage, error)
+	GetFile(context.Context, *SensetiveDataMessage) (*FileMessage, error)
 	mustEmbedUnimplementedGophkeeperServer()
 }
 
@@ -140,14 +218,32 @@ func (UnimplementedGophkeeperServer) RegisterUser(context.Context, *User) (*empt
 func (UnimplementedGophkeeperServer) VerificationApprove(context.Context, *Verify) (*Result, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerificationApprove not implemented")
 }
-func (UnimplementedGophkeeperServer) UploadPassword(context.Context, *UploadPasswordMessage) (*emptypb.Empty, error) {
+func (UnimplementedGophkeeperServer) UploadPassword(context.Context, *PasswordMessage) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadPassword not implemented")
 }
-func (UnimplementedGophkeeperServer) UploadBankCard(context.Context, *UploadBankCardMessage) (*emptypb.Empty, error) {
+func (UnimplementedGophkeeperServer) UploadBankCard(context.Context, *BankCardMessage) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadBankCard not implemented")
 }
-func (UnimplementedGophkeeperServer) UploadFile(grpc.ClientStreamingServer[UploadFileMessage, emptypb.Empty]) error {
+func (UnimplementedGophkeeperServer) UploadFile(grpc.ClientStreamingServer[FileMessage, emptypb.Empty]) error {
 	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
+}
+func (UnimplementedGophkeeperServer) DeletePassword(context.Context, *SensetiveDataMessage) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeletePassword not implemented")
+}
+func (UnimplementedGophkeeperServer) DeleteFile(context.Context, *SensetiveDataMessage) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteFile not implemented")
+}
+func (UnimplementedGophkeeperServer) DeleteBankCardCredentials(context.Context, *SensetiveDataMessage) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteBankCardCredentials not implemented")
+}
+func (UnimplementedGophkeeperServer) GetPassword(context.Context, *SensetiveDataMessage) (*PasswordMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPassword not implemented")
+}
+func (UnimplementedGophkeeperServer) GetBankCardCredentials(context.Context, *SensetiveDataMessage) (*BankCardMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBankCardCredentials not implemented")
+}
+func (UnimplementedGophkeeperServer) GetFile(context.Context, *SensetiveDataMessage) (*FileMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFile not implemented")
 }
 func (UnimplementedGophkeeperServer) mustEmbedUnimplementedGophkeeperServer() {}
 func (UnimplementedGophkeeperServer) testEmbeddedByValue()                    {}
@@ -225,7 +321,7 @@ func _Gophkeeper_VerificationApprove_Handler(srv interface{}, ctx context.Contex
 }
 
 func _Gophkeeper_UploadPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadPasswordMessage)
+	in := new(PasswordMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -237,13 +333,13 @@ func _Gophkeeper_UploadPassword_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: Gophkeeper_UploadPassword_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophkeeperServer).UploadPassword(ctx, req.(*UploadPasswordMessage))
+		return srv.(GophkeeperServer).UploadPassword(ctx, req.(*PasswordMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Gophkeeper_UploadBankCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadBankCardMessage)
+	in := new(BankCardMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -255,17 +351,125 @@ func _Gophkeeper_UploadBankCard_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: Gophkeeper_UploadBankCard_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophkeeperServer).UploadBankCard(ctx, req.(*UploadBankCardMessage))
+		return srv.(GophkeeperServer).UploadBankCard(ctx, req.(*BankCardMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Gophkeeper_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(GophkeeperServer).UploadFile(&grpc.GenericServerStream[UploadFileMessage, emptypb.Empty]{ServerStream: stream})
+	return srv.(GophkeeperServer).UploadFile(&grpc.GenericServerStream[FileMessage, emptypb.Empty]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Gophkeeper_UploadFileServer = grpc.ClientStreamingServer[UploadFileMessage, emptypb.Empty]
+type Gophkeeper_UploadFileServer = grpc.ClientStreamingServer[FileMessage, emptypb.Empty]
+
+func _Gophkeeper_DeletePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SensetiveDataMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).DeletePassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gophkeeper_DeletePassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).DeletePassword(ctx, req.(*SensetiveDataMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gophkeeper_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SensetiveDataMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).DeleteFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gophkeeper_DeleteFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).DeleteFile(ctx, req.(*SensetiveDataMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gophkeeper_DeleteBankCardCredentials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SensetiveDataMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).DeleteBankCardCredentials(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gophkeeper_DeleteBankCardCredentials_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).DeleteBankCardCredentials(ctx, req.(*SensetiveDataMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gophkeeper_GetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SensetiveDataMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).GetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gophkeeper_GetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).GetPassword(ctx, req.(*SensetiveDataMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gophkeeper_GetBankCardCredentials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SensetiveDataMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).GetBankCardCredentials(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gophkeeper_GetBankCardCredentials_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).GetBankCardCredentials(ctx, req.(*SensetiveDataMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gophkeeper_GetFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SensetiveDataMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).GetFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gophkeeper_GetFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).GetFile(ctx, req.(*SensetiveDataMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 // Gophkeeper_ServiceDesc is the grpc.ServiceDesc for Gophkeeper service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -294,6 +498,30 @@ var Gophkeeper_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "UploadBankCard",
 			Handler:    _Gophkeeper_UploadBankCard_Handler,
 		},
+		{
+			MethodName: "DeletePassword",
+			Handler:    _Gophkeeper_DeletePassword_Handler,
+		},
+		{
+			MethodName: "DeleteFile",
+			Handler:    _Gophkeeper_DeleteFile_Handler,
+		},
+		{
+			MethodName: "DeleteBankCardCredentials",
+			Handler:    _Gophkeeper_DeleteBankCardCredentials_Handler,
+		},
+		{
+			MethodName: "GetPassword",
+			Handler:    _Gophkeeper_GetPassword_Handler,
+		},
+		{
+			MethodName: "GetBankCardCredentials",
+			Handler:    _Gophkeeper_GetBankCardCredentials_Handler,
+		},
+		{
+			MethodName: "GetFile",
+			Handler:    _Gophkeeper_GetFile_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -302,5 +530,5 @@ var Gophkeeper_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "proto/gophkeeper.proto",
+	Metadata: "gophkeeper.proto",
 }

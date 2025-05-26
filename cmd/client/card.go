@@ -125,7 +125,7 @@ var sendBankCard = &cobra.Command{
 		md := metadata.New(map[string]string{"Authorization": JWTToken})
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
-		_, err = clientGRPC.UploadBankCard(ctx, &pb.UploadBankCardMessage{
+		_, err = clientGRPC.UploadBankCard(ctx, &pb.BankCardMessage{
 			CardNumber: cardNumber,
 			CvcCode:    cvc,
 			Data:       date,
@@ -141,11 +141,54 @@ var sendBankCard = &cobra.Command{
 	},
 }
 
-//доделать
+// доделать
 var getCard = &cobra.Command{
 	Use:   "card",
 	Short: "Get bank card credentials",
 	Run: func(cmd *cobra.Command, args []string) {
+		var cardNumber string
+
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		fmt.Print("Please enter card number: ")
+		fmt.Fscan(os.Stdin, &cardNumber)
+
+		ok := CheckCardNumber(cardNumber)
+		for !ok {
+			fmt.Print("Card number is incorrect, please enter again: ")
+			fmt.Fscan(os.Stdin, &cardNumber)
+			ok = CheckCardNumber(cardNumber)
+		}
+
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		bankCard, err := clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+			Identificator: cardNumber,
+		})
+
+		if err != nil {
+			fmt.Printf("Error while getting bank card %s: %s", cardNumber, err)
+			return 
+		}
+		fmt.Printf("Card number: %s\n", cardNumber)
+		fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
+		fmt.Printf("Card date: %s\n", bankCard.Data)
+		fmt.Printf("Card bank: %s\n", bankCard.Bank)
+		fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
 	},
 }
 
@@ -153,6 +196,44 @@ var deleteCard = &cobra.Command{
 	Use:   "card",
 	Short: "Delete bank card credentials",
 	Run: func(cmd *cobra.Command, args []string) {
+		var cardNumber string
+
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		fmt.Print("Please enter card number, that is going to be deleted: ")
+		fmt.Fscan(os.Stdin, &cardNumber)
+		ok := CheckCardNumber(cardNumber)
+		for !ok {
+			fmt.Print("Card number is incorrect, please enter again: ")
+			fmt.Fscan(os.Stdin, &cardNumber)
+			ok = CheckCardNumber(cardNumber)
+		}
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+			Identificator: cardNumber,
+		})
+
+		if err != nil {
+			fmt.Printf("Error while removing sensetive data regarding the bank card %s: %s", cardNumber, err)
+			return
+		}
+		
+		fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper", cardNumber)
 	},
 }
 

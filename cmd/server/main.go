@@ -127,7 +127,7 @@ func main() {
 
 	gophkeeper := &GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
 
-	s = grpc.NewServer(grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
+	s = grpc.NewServer(grpc.ChainStreamInterceptor(gophkeeper.StreamInterceptorLogger, gophkeeper.StreamInterceptorCheckJWTToken),grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
 
 	gophkeeper.UserOTP = make(map[string]string, 100)
 

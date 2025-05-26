@@ -68,7 +68,7 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 
 	_, err = pg.dbConn.Exec(`CREATE TABLE IF NOT EXISTS UserFiles (ID BIGSERIAL PRIMARY KEY,
 																userID BIGINT REFERENCES Users (id) ON DELETE CASCADE,
-																fileName VARCHAR(100) NOT NULL,
+																fileName VARCHAR(100) NOT NULL UNIQUE,
 																metaData TEXT);`)
 
 	if err != nil {

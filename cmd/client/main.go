@@ -36,7 +36,7 @@ var getCmd = &cobra.Command{
 }
 
 var deleteCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "delete",
 	Short: "Delete commands give an opportunity to delete sensetive data from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Welcome to client get interface! Use --help for usage.")
@@ -44,7 +44,7 @@ var deleteCmd = &cobra.Command{
 }
 
 var updateCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "update",
 	Short: "Update commands give an opportunity to update sensetive data in gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Welcome to client get interface! Use --help for usage.")

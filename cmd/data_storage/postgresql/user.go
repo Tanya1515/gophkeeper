@@ -24,15 +24,16 @@ func (pg *PostgreSQLConnection) LoginUser(ctx context.Context, login, password s
 	return email, nil
 }
 
-func (pg *PostgreSQLConnection) RegisterUser(ctx context.Context, login, password, email string) error {
+func (pg *PostgreSQLConnection) RegisterUser(ctx context.Context, login, password, email string) (string, error) {
+	var userID string
+	row := pg.dbConn.QueryRowContext(ctx, "INSERT INTO Users (userLogin, userPassword, userEmail) VALUES($1,crypt($2, gen_salt('xdes')),$3) RETURNING ID", login, password, email)
 
-	_, err := pg.dbConn.ExecContext(ctx, "INSERT INTO Users (userLogin, userPassword, userEmail) VALUES($1,crypt($2, gen_salt('xdes')),$3)", login, password, email)
-
+	err := row.Scan(&userID)
 	if err != nil {
-		return fmt.Errorf("error while inserting user with login %s: %w", login, err)
+		return "", fmt.Errorf("error while inserting user with login %s: %w", login, err)
 	}
 
-	return nil
+	return userID, nil
 }
 
 func (pg *PostgreSQLConnection) CheckUserJWT(ctx context.Context, userLogin string) (userID string, err error) {

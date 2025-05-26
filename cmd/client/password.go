@@ -28,6 +28,7 @@ var sendPassword = &cobra.Command{
 			return
 		} else if err != nil {
 			fmt.Print("Internal error")
+			return
 		}
 
 		fmt.Print("Please enter password to save: ")
@@ -47,7 +48,7 @@ var sendPassword = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-		_, err = clientGRPC.UploadPassword(ctx, &pb.UploadPasswordMessage{
+		_, err = clientGRPC.UploadPassword(ctx, &pb.PasswordMessage{
 			Password:    password,
 			Application: application,
 			MetaData:    metadataPassword,
@@ -61,11 +62,45 @@ var sendPassword = &cobra.Command{
 	},
 }
 
-// доделать 
+// доделать
 var getPassword = &cobra.Command{
 	Use:   "password",
 	Short: "Get password of the application from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
+		var application string
+
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		fmt.Print("Please enter appplication, that password belongs to: ")
+		fmt.Fscan(os.Stdin, &application)
+
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		passwordApp, err := clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
+			Identificator: application,
+		})
+
+		if err != nil {
+			fmt.Printf("Error while getting password for application %s: %s", application, err)
+			return
+		}
+		fmt.Printf("Application: %s\n", application)
+		fmt.Printf("Password: %s\n", passwordApp.Password)
+		fmt.Printf("Additioanl information: %s\n", passwordApp.MetaData)
 	},
 }
 
@@ -73,6 +108,39 @@ var deletePassword = &cobra.Command{
 	Use:   "password",
 	Short: "Delete password of the application from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
+		var application string
+
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		fmt.Print("Please enter appplication, that password belongs to: ")
+		fmt.Fscan(os.Stdin, &application)
+
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
+			Identificator: application,
+		})
+
+		if err != nil {
+			fmt.Printf("Error while removing sensetive data regarding the application %s: %s", application, err)
+			return
+		}
+
+		fmt.Printf("All sensetive data regarding to application %s was successfully removed from gophkeeper", application)
 	},
 }
 

@@ -22,19 +22,19 @@ message Verify {
     string login = 2;
 }
 
-message UploadPasswordMessage {
+message PasswordMessage {
     string password = 1;
     string application = 2;
     string metaData = 3;
 }
 
-message UploadFileMessage {
+message FileMessage {
     string fileName = 1;
     bytes content = 2;
     string metaData = 3;
 }
 
-message UploadBankCardMessage {
+message BankCardMessage {
     string cardNumber = 1;
     string cvcCode = 2;
     string data = 3; 
@@ -42,11 +42,24 @@ message UploadBankCardMessage {
     string metadata = 5;
 }
 
+message SensetiveDataMessage {
+    string identificator = 1;
+}
+
 service Gophkeeper {
   rpc LoginUser(User) returns (google.protobuf.Empty) {};
   rpc RegisterUser(User) returns (google.protobuf.Empty) {};
   rpc VerificationApprove(Verify) returns (Result);
-  rpc UploadPassword(UploadPasswordMessage) returns (google.protobuf.Empty) {};
-  rpc UploadBankCard(UploadBankCardMessage) returns (google.protobuf.Empty) {};
-  rpc UploadFile(stream UploadFileMessage) returns (google.protobuf.Empty) {};
+
+  rpc UploadPassword(PasswordMessage) returns (google.protobuf.Empty) {};
+  rpc UploadBankCard(BankCardMessage) returns (google.protobuf.Empty) {};
+  rpc UploadFile(stream FileMessage) returns (google.protobuf.Empty) {};
+
+  rpc DeletePassword(SensetiveDataMessage) returns (google.protobuf.Empty) {};
+  rpc DeleteFile(SensetiveDataMessage) returns (google.protobuf.Empty) {};
+  rpc DeleteBankCardCredentials(SensetiveDataMessage) returns (google.protobuf.Empty) {};
+
+  rpc GetPassword(SensetiveDataMessage) returns (PasswordMessage);
+  rpc GetBankCardCredentials(SensetiveDataMessage) returns (BankCardMessage);
+  rpc GetFile(SensetiveDataMessage) returns (FileMessage);
 } 

@@ -2,4 +2,5 @@ package utils
 
 type contextKey string
 
-const LogginKey contextKey = "userID"
+const LoginKey contextKey = "userLogin"
+const IDKey contextKey = "userID"

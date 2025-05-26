@@ -8,7 +8,6 @@ import (
 
 	"math/rand/v2"
 
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
@@ -48,17 +47,18 @@ func (s *GophkeeperServer) LoginUser(ctx context.Context, in *pb.User) (*emptypb
 
 func (s *GophkeeperServer) RegisterUser(ctx context.Context, in *pb.User) (*emptypb.Empty, error) {
 
-	err := s.FileStorage.CreateUserFileStorage(in.Login)
-	if err != nil {
-		s.Logger.Errorln(err)
-		return nil, err
-	}
-
 	ctxDB, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = s.DataStorage.RegisterUser(ctxDB, in.Login, in.Password, in.Email)
+	_, err := s.DataStorage.RegisterUser(ctxDB, in.Login, in.Password, in.Email)
 	if err != nil {
+		return nil, err
+	}
+	ctxStore, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err = s.FileStorage.CreateUserFileStorage(ctxStore, in.Login)
+	if err != nil {
+		s.Logger.Errorln(err)
 		return nil, err
 	}
 
@@ -103,34 +103,4 @@ func (s *GophkeeperServer) VerificationApprove(ctx context.Context, in *pb.Verif
 	}
 
 	return &result, nil
-}
-
-func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.UploadPasswordMessage) (*emptypb.Empty, error) {
-	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	err := s.DataStorage.UploadPassword(ctxDB, passwordData.Password, passwordData.Application, passwordData.MetaData)
-	if err != nil {
-		s.Logger.Errorf("error while uploading password for user %s for application %s: %s", ctx.Value(ut.LogginKey), passwordData.Application, err)
-		return nil, fmt.Errorf("error while uploading password for user %s for application %s: %w", ctx.Value(ut.LogginKey), passwordData.Application, err)
-	}
-
-	return nil, nil
-}
-
-func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.UploadBankCardMessage) (*emptypb.Empty, error) {
-	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	err := s.DataStorage.UploadBankCard(ctxDB, bankCardData.CardNumber, bankCardData.CvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata)
-	if err != nil {
-		s.Logger.Errorf("error while uploading bank card data for user %s for card number %s: %s", ctx.Value(ut.LogginKey), bankCardData.CardNumber, err)
-		return nil, fmt.Errorf("error while uploading bank card data for user %s for card number %s: %w", ctx.Value(ut.LogginKey), bankCardData.CardNumber, err)
-	}
-
-	return nil, nil
-}
-
-func (s *GophkeeperServer) UploadFile(in grpc.ClientStreamingServer[pb.UploadFileMessage, emptypb.Empty]) error {
-	return nil
 }

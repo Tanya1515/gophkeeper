@@ -1,13 +1,15 @@
 package filestorage
 
+import "context"
+
 type FileStorage interface {
 	Connect() error
 
-	CreateUserFileStorage(bucketName string) error 
+	CreateUserFileStorage(ctx context.Context, bucketName string) error
 
-	GetFile(bucketName string, fileName string) error
+	GetFile(ctx context.Context, fileName string) error
 
-	UploadFile(bucketName string, fileName string) error
+	UploadFile(ctx context.Context, fileName, absolutePath string) error
 
-	DeleteFile(bucketName string, fileName string) error
+	DeleteFile(ctx context.Context, fileName string) error
 }
