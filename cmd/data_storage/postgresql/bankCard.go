@@ -3,9 +3,10 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"time"
 
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
 func (pg *PostgreSQLConnection) UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string) error {
@@ -25,14 +26,26 @@ func (pg *PostgreSQLConnection) DeleteBankCard(ctx context.Context, cardNumber s
 
 	_, err = pg.dbConn.Exec("DELETE FROM BankCards WHERE cardNumber=$1", cardNumber)
 
-	return 
+	return
 }
 
-func (pg *PostgreSQLConnection) GetBankCardCredentials(ctx context.Context, cardNumber string) (cardCreds pb.BankCardMessage, err error) {
-
+func (pg *PostgreSQLConnection) GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, error) {
+	var date string
+	var err error
+	var cardCreds pb.BankCardMessage
 	row := pg.dbConn.QueryRowContext(ctx, "SELECT cvcCode, date, bank, metadata FROM BankCards WHERE cardNumber=$1", cardNumber)
 
-	err = row.Scan(&cardCreds.CvcCode, &cardCreds.Data, &cardCreds.Bank, &cardCreds.Metadata)
+	err = row.Scan(&cardCreds.CvcCode, &date, &cardCreds.Bank, &cardCreds.Metadata)
+	if err != nil {
+		return &cardCreds, err
+	}
 
-	return
+	t, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		return &cardCreds, fmt.Errorf("error while parsing date to format MM/YY: %w", err)
+	}
+
+	cardCreds.Data = t.Format("01/06")
+
+	return &cardCreds, err
 }

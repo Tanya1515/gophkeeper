@@ -16,6 +16,7 @@ import (
 	fileStorage "github.com/Tanya1515/gophkeeper.git/cmd/file_storage"
 	minio "github.com/Tanya1515/gophkeeper.git/cmd/file_storage/minio"
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
 type GophkeeperServer struct {
@@ -28,6 +29,8 @@ type GophkeeperServer struct {
 	UserOTP map[string]string // UserOTP saves all one-time passwords for users
 
 	Mutex *sync.Mutex // Mutex for synchronization
+
+	InitVect []byte // InitVect is used for encryption/decryption sensetive data
 
 	pb.UnimplementedGophkeeperServer // type pb.Unimplemented<TypeName> is used for backward compatibility
 }
@@ -65,7 +68,7 @@ func main() {
 		loggerApp.Errorln("Error while getting postgreSQL address")
 		return
 	}
-	
+
 	endpoint = endpoint + ":9000"
 	accessKeyID, envExists := os.LookupEnv("MINIO_ROOT_USER")
 	if !(envExists) {
@@ -127,7 +130,13 @@ func main() {
 
 	gophkeeper := &GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
 
-	s = grpc.NewServer(grpc.ChainStreamInterceptor(gophkeeper.StreamInterceptorLogger, gophkeeper.StreamInterceptorCheckJWTToken),grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
+	gophkeeper.InitVect, err = ut.CreateInitVector()
+	if err != nil {
+		loggerApp.Errorln("Error while generating initialization vector: %s", err)
+		return
+	}
+
+	s = grpc.NewServer(grpc.ChainStreamInterceptor(gophkeeper.StreamInterceptorLogger, gophkeeper.StreamInterceptorCheckJWTToken), grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
 
 	gophkeeper.UserOTP = make(map[string]string, 100)
 

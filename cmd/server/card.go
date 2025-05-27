@@ -7,8 +7,8 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
 func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.BankCardMessage) (*emptypb.Empty, error) {
@@ -46,6 +46,5 @@ func (s *GophkeeperServer) GetBankCardCredentials(ctx context.Context, bankCardC
 		s.Logger.Errorln("Error while getting bank credentials for card %s: %s", bankCardCredentials.Identificator, err)
 		return nil, err
 	}
-	return &bankCardCreds, nil
+	return bankCardCreds, nil
 }
-

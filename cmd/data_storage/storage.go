@@ -29,5 +29,5 @@ type DataStorage interface {
 
 	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, error)
 
-	GetBankCardCredentials(ctx context.Context, cardNumber string) (pb.BankCardMessage, error)
+	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, error)
 }

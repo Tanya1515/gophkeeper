@@ -37,16 +37,17 @@ func (s *GophkeeperServer) DeletePassword(ctx context.Context, passwordData *pb.
 	return nil, nil
 }
 
-func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.SensetiveDataMessage) (passwordApp *pb.PasswordMessage, err error) {
-
+func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.SensetiveDataMessage) (*pb.PasswordMessage, error) {
+	var err error
+	var passwordApp pb.PasswordMessage
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	*passwordApp, err = s.DataStorage.GetPassword(ctxDB, passwordData.Identificator)
+	passwordApp, err = s.DataStorage.GetPassword(ctxDB, passwordData.Identificator)
 	if err != nil {
 		s.Logger.Errorln("Error while getting bank credentials for card %s: %s", passwordData.Identificator, err)
 		return nil, err
 	}
 
-	return
+	return &passwordApp, err
 }
