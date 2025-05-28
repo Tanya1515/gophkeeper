@@ -46,6 +46,12 @@ message SensetiveDataMessage {
     string identificator = 1;
 }
 
+message DataMessage {
+    repeated PasswordMessage passwords = 1;
+    repeated BankCardMessage bankCards = 2;
+    repeated FileMessage files = 3;
+}
+
 service Gophkeeper {
   rpc LoginUser(User) returns (google.protobuf.Empty) {};
   rpc RegisterUser(User) returns (google.protobuf.Empty) {};
@@ -62,4 +68,6 @@ service Gophkeeper {
   rpc GetPassword(SensetiveDataMessage) returns (PasswordMessage);
   rpc GetBankCardCredentials(SensetiveDataMessage) returns (BankCardMessage);
   rpc GetFile(SensetiveDataMessage) returns (FileMessage);
+
+  rpc GetInfoData(google.protobuf.Empty) returns (DataMessage);
 } 
