@@ -67,7 +67,7 @@ service Gophkeeper {
 
   rpc GetPassword(SensetiveDataMessage) returns (PasswordMessage);
   rpc GetBankCardCredentials(SensetiveDataMessage) returns (BankCardMessage);
-  rpc GetFile(SensetiveDataMessage) returns (FileMessage);
+  rpc GetFile(SensetiveDataMessage) returns (stream FileMessage);
 
   rpc GetInfoData(google.protobuf.Empty) returns (DataMessage);
 } 

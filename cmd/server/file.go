@@ -102,3 +102,41 @@ func (s *GophkeeperServer) DeleteFile(ctx context.Context, fileData *pb.Sensetiv
 
 	return nil, nil
 }
+
+// *"github.com/Tanya1515/gophkeeper.git/cmd/proto".SensetiveDataMessage, grpc.ServerStreamingServer["github.com/Tanya1515/gophkeeper.git/cmd/proto".FileMessage]
+
+func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStream grpc.ServerStreamingServer[pb.FileMessage]) error {
+	const chunkSize = 64 * 1024
+
+	buffer := make([]byte, chunkSize)
+
+	ctx := fileStream.Context()
+	ctxStore, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	fileName := dataMessage.Identificator
+
+	fileMessage := pb.FileMessage{
+		FileName: fileName,
+	}
+
+	fileByte, err := s.FileStorage.GetFile(ctxStore, fileName)
+	if err != nil {
+		s.Logger.Errorf("Error while getting file %s from Minio: %s\n", fileName, err)
+		return err
+	}
+	amount := len(fileByte) % 1024
+
+	for i := 0; i < amount; i++ {
+		buffer = fileByte[i : i+1024]
+		s.Logger.Infoln("send data: %s", string(buffer))
+		fileMessage.Content = buffer
+		err = fileStream.Send(&fileMessage)
+		if err != nil {
+			s.Logger.Errorf("Error while sending file %s chunk: %s\n", fileName, err)
+			return err
+		}
+	}
+
+	return nil
+}

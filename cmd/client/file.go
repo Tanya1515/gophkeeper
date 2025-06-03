@@ -95,9 +95,69 @@ var sendFile = &cobra.Command{
 // доделать
 var getFile = &cobra.Command{
 	Use:   "file",
-	Short: "Get description of all user sensetive data",
+	Short: "Get file from Gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
+		var fileName string
+		var filePath string
 
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		fmt.Print("Please enter file to get from gophkeeper: ")
+		fmt.Fscan(os.Stdin, &fileName)
+		fmt.Print("Please enter path for saving file from gophkeeper: ")
+		fmt.Fscan(os.Stdin, &filePath)
+
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		fileGetter, err := clientGRPC.GetFile(ctx, &pb.SensetiveDataMessage{
+			Identificator: fileName,
+		})
+
+		if err != nil {
+			fmt.Printf("Error while getting file %s: %s\n", fileName, err)
+			return
+		}
+		fileToSave, err := os.Create(filePath)
+		if err != nil {
+			fmt.Printf("Error while creating file with path %s: %s\n", filePath, err)
+			return
+		}
+		var chunkFile *pb.FileMessage
+		for {
+			chunkFile, err = fileGetter.Recv()
+			if err != nil && err == io.EOF {
+				fmt.Printf("Error while recieving new data portion of file %s: %s\n", fileName, err)
+				break
+			}
+
+			_, err = fileToSave.Write(chunkFile.Content)
+			if err != nil {
+				fmt.Printf("Error while writting chunk of file %s: %s\n", fileName, err)
+				return
+			}
+		}
+
+		err = fileToSave.Close()
+		if err != nil {
+			fmt.Printf("Error while closing file with path %s: %s\n", filePath, err)
+			return
+		}
+
+		fmt.Printf("File %s was successfully recieved!\n", fileName)
 	},
 }
 

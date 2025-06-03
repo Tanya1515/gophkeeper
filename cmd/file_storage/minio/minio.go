@@ -3,9 +3,10 @@ package minio
 import (
 	"context"
 	"fmt"
+	"io"
 
-	"github.com/minio/minio-go"
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	"github.com/minio/minio-go"
 )
 
 type MinioStorage struct {
@@ -36,9 +37,26 @@ func (m *MinioStorage) Connect() (err error) {
 	return
 }
 
-func (m *MinioStorage) GetFile(ctx context.Context, fileName string) error {
+func (m *MinioStorage) GetFile(ctx context.Context, fileName string) ([]byte, error) {
 
-	return nil
+	minioFile, err := m.minioClient.GetObject(ctx.Value(ut.LoginKey).(string), fileName, minio.GetObjectOptions{})
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("error while getting file %s from Minio: %w", fileName, err)
+	}
+
+	fileInfo, err := minioFile.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("error while getting file %s info from Minio object: %w", fileName, err)
+	}
+
+	resFile := make([]byte, fileInfo.Size)
+
+	_, err = minioFile.Read(resFile)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("error while reading file %s from Minio: %w", fileName, err)
+	}
+
+	return resFile, nil
 }
 
 func (m *MinioStorage) UploadFile(ctx context.Context, fileName, absolutePath string) error {

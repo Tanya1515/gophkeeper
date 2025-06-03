@@ -7,7 +7,7 @@ type FileStorage interface {
 
 	CreateUserFileStorage(ctx context.Context, bucketName string) error
 
-	GetFile(ctx context.Context, fileName string) error
+	GetFile(ctx context.Context, fileName string) ([]byte, error)
 
 	UploadFile(ctx context.Context, fileName, absolutePath string) error
 

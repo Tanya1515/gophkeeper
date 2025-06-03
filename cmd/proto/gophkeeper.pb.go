@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
-// source: gophkeeper.proto
+// source: proto/gophkeeper.proto
 
 package proto
 
@@ -33,7 +33,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_gophkeeper_proto_msgTypes[0]
+	mi := &file_proto_gophkeeper_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +45,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[0]
+	mi := &file_proto_gophkeeper_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,7 +58,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{0}
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *User) GetLogin() string {
@@ -92,7 +92,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_gophkeeper_proto_msgTypes[1]
+	mi := &file_proto_gophkeeper_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -104,7 +104,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[1]
+	mi := &file_proto_gophkeeper_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -117,7 +117,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{1}
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Result) GetStatus() string {
@@ -144,7 +144,7 @@ type Verify struct {
 
 func (x *Verify) Reset() {
 	*x = Verify{}
-	mi := &file_gophkeeper_proto_msgTypes[2]
+	mi := &file_proto_gophkeeper_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +156,7 @@ func (x *Verify) String() string {
 func (*Verify) ProtoMessage() {}
 
 func (x *Verify) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[2]
+	mi := &file_proto_gophkeeper_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +169,7 @@ func (x *Verify) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Verify.ProtoReflect.Descriptor instead.
 func (*Verify) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{2}
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Verify) GetOneTimePass() string {
@@ -197,7 +197,7 @@ type PasswordMessage struct {
 
 func (x *PasswordMessage) Reset() {
 	*x = PasswordMessage{}
-	mi := &file_gophkeeper_proto_msgTypes[3]
+	mi := &file_proto_gophkeeper_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -209,7 +209,7 @@ func (x *PasswordMessage) String() string {
 func (*PasswordMessage) ProtoMessage() {}
 
 func (x *PasswordMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[3]
+	mi := &file_proto_gophkeeper_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,7 +222,7 @@ func (x *PasswordMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PasswordMessage.ProtoReflect.Descriptor instead.
 func (*PasswordMessage) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{3}
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PasswordMessage) GetPassword() string {
@@ -257,7 +257,7 @@ type FileMessage struct {
 
 func (x *FileMessage) Reset() {
 	*x = FileMessage{}
-	mi := &file_gophkeeper_proto_msgTypes[4]
+	mi := &file_proto_gophkeeper_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -269,7 +269,7 @@ func (x *FileMessage) String() string {
 func (*FileMessage) ProtoMessage() {}
 
 func (x *FileMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[4]
+	mi := &file_proto_gophkeeper_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -282,7 +282,7 @@ func (x *FileMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileMessage.ProtoReflect.Descriptor instead.
 func (*FileMessage) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{4}
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *FileMessage) GetFileName() string {
@@ -319,7 +319,7 @@ type BankCardMessage struct {
 
 func (x *BankCardMessage) Reset() {
 	*x = BankCardMessage{}
-	mi := &file_gophkeeper_proto_msgTypes[5]
+	mi := &file_proto_gophkeeper_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +331,7 @@ func (x *BankCardMessage) String() string {
 func (*BankCardMessage) ProtoMessage() {}
 
 func (x *BankCardMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[5]
+	mi := &file_proto_gophkeeper_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +344,7 @@ func (x *BankCardMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BankCardMessage.ProtoReflect.Descriptor instead.
 func (*BankCardMessage) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{5}
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *BankCardMessage) GetCardNumber() string {
@@ -391,7 +391,7 @@ type SensetiveDataMessage struct {
 
 func (x *SensetiveDataMessage) Reset() {
 	*x = SensetiveDataMessage{}
-	mi := &file_gophkeeper_proto_msgTypes[6]
+	mi := &file_proto_gophkeeper_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -403,7 +403,7 @@ func (x *SensetiveDataMessage) String() string {
 func (*SensetiveDataMessage) ProtoMessage() {}
 
 func (x *SensetiveDataMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_gophkeeper_proto_msgTypes[6]
+	mi := &file_proto_gophkeeper_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -416,7 +416,7 @@ func (x *SensetiveDataMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SensetiveDataMessage.ProtoReflect.Descriptor instead.
 func (*SensetiveDataMessage) Descriptor() ([]byte, []int) {
-	return file_gophkeeper_proto_rawDescGZIP(), []int{6}
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SensetiveDataMessage) GetIdentificator() string {
@@ -426,11 +426,71 @@ func (x *SensetiveDataMessage) GetIdentificator() string {
 	return ""
 }
 
-var File_gophkeeper_proto protoreflect.FileDescriptor
+type DataMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Passwords     []*PasswordMessage     `protobuf:"bytes,1,rep,name=passwords,proto3" json:"passwords,omitempty"`
+	BankCards     []*BankCardMessage     `protobuf:"bytes,2,rep,name=bankCards,proto3" json:"bankCards,omitempty"`
+	Files         []*FileMessage         `protobuf:"bytes,3,rep,name=files,proto3" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_gophkeeper_proto_rawDesc = "" +
+func (x *DataMessage) Reset() {
+	*x = DataMessage{}
+	mi := &file_proto_gophkeeper_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DataMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DataMessage) ProtoMessage() {}
+
+func (x *DataMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_gophkeeper_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DataMessage.ProtoReflect.Descriptor instead.
+func (*DataMessage) Descriptor() ([]byte, []int) {
+	return file_proto_gophkeeper_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DataMessage) GetPasswords() []*PasswordMessage {
+	if x != nil {
+		return x.Passwords
+	}
+	return nil
+}
+
+func (x *DataMessage) GetBankCards() []*BankCardMessage {
+	if x != nil {
+		return x.BankCards
+	}
+	return nil
+}
+
+func (x *DataMessage) GetFiles() []*FileMessage {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+var File_proto_gophkeeper_proto protoreflect.FileDescriptor
+
+const file_proto_gophkeeper_proto_rawDesc = "" +
 	"\n" +
-	"\x10gophkeeper.proto\x12)github.com.Tanya1515.gophkeeper.git.proto\x1a\x1bgoogle/protobuf/empty.proto\"N\n" +
+	"\x16proto/gophkeeper.proto\x12)github.com.Tanya1515.gophkeeper.git.proto\x1a\x1bgoogle/protobuf/empty.proto\"N\n" +
 	"\x04User\x12\x14\n" +
 	"\x05login\x18\x01 \x01(\tR\x05login\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
@@ -458,8 +518,11 @@ const file_gophkeeper_proto_rawDesc = "" +
 	"\x04bank\x18\x04 \x01(\tR\x04bank\x12\x1a\n" +
 	"\bmetadata\x18\x05 \x01(\tR\bmetadata\"<\n" +
 	"\x14SensetiveDataMessage\x12$\n" +
-	"\ridentificator\x18\x01 \x01(\tR\ridentificator2\xe6\n" +
-	"\n" +
+	"\ridentificator\x18\x01 \x01(\tR\ridentificator\"\x8f\x02\n" +
+	"\vDataMessage\x12X\n" +
+	"\tpasswords\x18\x01 \x03(\v2:.github.com.Tanya1515.gophkeeper.git.proto.PasswordMessageR\tpasswords\x12X\n" +
+	"\tbankCards\x18\x02 \x03(\v2:.github.com.Tanya1515.gophkeeper.git.proto.BankCardMessageR\tbankCards\x12L\n" +
+	"\x05files\x18\x03 \x03(\v26.github.com.Tanya1515.gophkeeper.git.proto.FileMessageR\x05files2\xc7\v\n" +
 	"\n" +
 	"Gophkeeper\x12V\n" +
 	"\tLoginUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a\x16.google.protobuf.Empty\"\x00\x12Y\n" +
@@ -474,23 +537,24 @@ const file_gophkeeper_proto_rawDesc = "" +
 	"DeleteFile\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a\x16.google.protobuf.Empty\"\x00\x12v\n" +
 	"\x19DeleteBankCardCredentials\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a\x16.google.protobuf.Empty\"\x00\x12\x8a\x01\n" +
 	"\vGetPassword\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a:.github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage\x12\x95\x01\n" +
-	"\x16GetBankCardCredentials\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a:.github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage\x12\x82\x01\n" +
-	"\aGetFile\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a6.github.com.Tanya1515.gophkeeper.git.proto.FileMessageB\vZ\tcmd/protob\x06proto3"
+	"\x16GetBankCardCredentials\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a:.github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage\x12\x84\x01\n" +
+	"\aGetFile\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a6.github.com.Tanya1515.gophkeeper.git.proto.FileMessage0\x01\x12]\n" +
+	"\vGetInfoData\x12\x16.google.protobuf.Empty\x1a6.github.com.Tanya1515.gophkeeper.git.proto.DataMessageB\vZ\tcmd/protob\x06proto3"
 
 var (
-	file_gophkeeper_proto_rawDescOnce sync.Once
-	file_gophkeeper_proto_rawDescData []byte
+	file_proto_gophkeeper_proto_rawDescOnce sync.Once
+	file_proto_gophkeeper_proto_rawDescData []byte
 )
 
-func file_gophkeeper_proto_rawDescGZIP() []byte {
-	file_gophkeeper_proto_rawDescOnce.Do(func() {
-		file_gophkeeper_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_gophkeeper_proto_rawDesc), len(file_gophkeeper_proto_rawDesc)))
+func file_proto_gophkeeper_proto_rawDescGZIP() []byte {
+	file_proto_gophkeeper_proto_rawDescOnce.Do(func() {
+		file_proto_gophkeeper_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_gophkeeper_proto_rawDesc), len(file_proto_gophkeeper_proto_rawDesc)))
 	})
-	return file_gophkeeper_proto_rawDescData
+	return file_proto_gophkeeper_proto_rawDescData
 }
 
-var file_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_gophkeeper_proto_goTypes = []any{
+var file_proto_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_gophkeeper_proto_goTypes = []any{
 	(*User)(nil),                 // 0: github.com.Tanya1515.gophkeeper.git.proto.User
 	(*Result)(nil),               // 1: github.com.Tanya1515.gophkeeper.git.proto.Result
 	(*Verify)(nil),               // 2: github.com.Tanya1515.gophkeeper.git.proto.Verify
@@ -498,60 +562,66 @@ var file_gophkeeper_proto_goTypes = []any{
 	(*FileMessage)(nil),          // 4: github.com.Tanya1515.gophkeeper.git.proto.FileMessage
 	(*BankCardMessage)(nil),      // 5: github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
 	(*SensetiveDataMessage)(nil), // 6: github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	(*emptypb.Empty)(nil),        // 7: google.protobuf.Empty
+	(*DataMessage)(nil),          // 7: github.com.Tanya1515.gophkeeper.git.proto.DataMessage
+	(*emptypb.Empty)(nil),        // 8: google.protobuf.Empty
 }
-var file_gophkeeper_proto_depIdxs = []int32{
-	0,  // 0: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
-	0,  // 1: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
-	2,  // 2: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:input_type -> github.com.Tanya1515.gophkeeper.git.proto.Verify
-	3,  // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
-	5,  // 4: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:input_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
-	4,  // 5: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
-	6,  // 6: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 7: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 8: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 9: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 10: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 11: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	7,  // 12: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> google.protobuf.Empty
-	7,  // 13: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> google.protobuf.Empty
-	1,  // 14: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Result
-	7,  // 15: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:output_type -> google.protobuf.Empty
-	7,  // 16: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:output_type -> google.protobuf.Empty
-	7,  // 17: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:output_type -> google.protobuf.Empty
-	7,  // 18: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:output_type -> google.protobuf.Empty
-	7,  // 19: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:output_type -> google.protobuf.Empty
-	7,  // 20: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:output_type -> google.protobuf.Empty
-	3,  // 21: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:output_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
-	5,  // 22: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:output_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
-	4,  // 23: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:output_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
-	12, // [12:24] is the sub-list for method output_type
-	0,  // [0:12] is the sub-list for method input_type
-	0,  // [0:0] is the sub-list for extension type_name
-	0,  // [0:0] is the sub-list for extension extendee
-	0,  // [0:0] is the sub-list for field type_name
+var file_proto_gophkeeper_proto_depIdxs = []int32{
+	3,  // 0: github.com.Tanya1515.gophkeeper.git.proto.DataMessage.passwords:type_name -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
+	5,  // 1: github.com.Tanya1515.gophkeeper.git.proto.DataMessage.bankCards:type_name -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
+	4,  // 2: github.com.Tanya1515.gophkeeper.git.proto.DataMessage.files:type_name -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
+	0,  // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
+	0,  // 4: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
+	2,  // 5: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:input_type -> github.com.Tanya1515.gophkeeper.git.proto.Verify
+	3,  // 6: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
+	5,  // 7: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:input_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
+	4,  // 8: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
+	6,  // 9: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 10: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 11: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 12: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 13: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 14: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	8,  // 15: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetInfoData:input_type -> google.protobuf.Empty
+	8,  // 16: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> google.protobuf.Empty
+	8,  // 17: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> google.protobuf.Empty
+	1,  // 18: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Result
+	8,  // 19: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:output_type -> google.protobuf.Empty
+	8,  // 20: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:output_type -> google.protobuf.Empty
+	8,  // 21: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:output_type -> google.protobuf.Empty
+	8,  // 22: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:output_type -> google.protobuf.Empty
+	8,  // 23: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:output_type -> google.protobuf.Empty
+	8,  // 24: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:output_type -> google.protobuf.Empty
+	3,  // 25: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:output_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
+	5,  // 26: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:output_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
+	4,  // 27: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:output_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
+	7,  // 28: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetInfoData:output_type -> github.com.Tanya1515.gophkeeper.git.proto.DataMessage
+	16, // [16:29] is the sub-list for method output_type
+	3,  // [3:16] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_gophkeeper_proto_init() }
-func file_gophkeeper_proto_init() {
-	if File_gophkeeper_proto != nil {
+func init() { file_proto_gophkeeper_proto_init() }
+func file_proto_gophkeeper_proto_init() {
+	if File_proto_gophkeeper_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gophkeeper_proto_rawDesc), len(file_gophkeeper_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_gophkeeper_proto_rawDesc), len(file_proto_gophkeeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_gophkeeper_proto_goTypes,
-		DependencyIndexes: file_gophkeeper_proto_depIdxs,
-		MessageInfos:      file_gophkeeper_proto_msgTypes,
+		GoTypes:           file_proto_gophkeeper_proto_goTypes,
+		DependencyIndexes: file_proto_gophkeeper_proto_depIdxs,
+		MessageInfos:      file_proto_gophkeeper_proto_msgTypes,
 	}.Build()
-	File_gophkeeper_proto = out.File
-	file_gophkeeper_proto_goTypes = nil
-	file_gophkeeper_proto_depIdxs = nil
+	File_proto_gophkeeper_proto = out.File
+	file_proto_gophkeeper_proto_goTypes = nil
+	file_proto_gophkeeper_proto_depIdxs = nil
 }

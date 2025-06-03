@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: gophkeeper.proto
+// source: proto/gophkeeper.proto
 
 package proto
 
@@ -32,6 +32,7 @@ const (
 	Gophkeeper_GetPassword_FullMethodName               = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/GetPassword"
 	Gophkeeper_GetBankCardCredentials_FullMethodName    = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/GetBankCardCredentials"
 	Gophkeeper_GetFile_FullMethodName                   = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/GetFile"
+	Gophkeeper_GetInfoData_FullMethodName               = "/github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper/GetInfoData"
 )
 
 // GophkeeperClient is the client API for Gophkeeper service.
@@ -49,7 +50,8 @@ type GophkeeperClient interface {
 	DeleteBankCardCredentials(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetPassword(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*PasswordMessage, error)
 	GetBankCardCredentials(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*BankCardMessage, error)
-	GetFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*FileMessage, error)
+	GetFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (grpc.ServerStreamingClient[FileMessage], error)
+	GetInfoData(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DataMessage, error)
 }
 
 type gophkeeperClient struct {
@@ -173,10 +175,29 @@ func (c *gophkeeperClient) GetBankCardCredentials(ctx context.Context, in *Sense
 	return out, nil
 }
 
-func (c *gophkeeperClient) GetFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (*FileMessage, error) {
+func (c *gophkeeperClient) GetFile(ctx context.Context, in *SensetiveDataMessage, opts ...grpc.CallOption) (grpc.ServerStreamingClient[FileMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FileMessage)
-	err := c.cc.Invoke(ctx, Gophkeeper_GetFile_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Gophkeeper_ServiceDesc.Streams[1], Gophkeeper_GetFile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SensetiveDataMessage, FileMessage]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Gophkeeper_GetFileClient = grpc.ServerStreamingClient[FileMessage]
+
+func (c *gophkeeperClient) GetInfoData(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DataMessage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DataMessage)
+	err := c.cc.Invoke(ctx, Gophkeeper_GetInfoData_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +219,8 @@ type GophkeeperServer interface {
 	DeleteBankCardCredentials(context.Context, *SensetiveDataMessage) (*emptypb.Empty, error)
 	GetPassword(context.Context, *SensetiveDataMessage) (*PasswordMessage, error)
 	GetBankCardCredentials(context.Context, *SensetiveDataMessage) (*BankCardMessage, error)
-	GetFile(context.Context, *SensetiveDataMessage) (*FileMessage, error)
+	GetFile(*SensetiveDataMessage, grpc.ServerStreamingServer[FileMessage]) error
+	GetInfoData(context.Context, *emptypb.Empty) (*DataMessage, error)
 	mustEmbedUnimplementedGophkeeperServer()
 }
 
@@ -242,8 +264,11 @@ func (UnimplementedGophkeeperServer) GetPassword(context.Context, *SensetiveData
 func (UnimplementedGophkeeperServer) GetBankCardCredentials(context.Context, *SensetiveDataMessage) (*BankCardMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBankCardCredentials not implemented")
 }
-func (UnimplementedGophkeeperServer) GetFile(context.Context, *SensetiveDataMessage) (*FileMessage, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetFile not implemented")
+func (UnimplementedGophkeeperServer) GetFile(*SensetiveDataMessage, grpc.ServerStreamingServer[FileMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method GetFile not implemented")
+}
+func (UnimplementedGophkeeperServer) GetInfoData(context.Context, *emptypb.Empty) (*DataMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInfoData not implemented")
 }
 func (UnimplementedGophkeeperServer) mustEmbedUnimplementedGophkeeperServer() {}
 func (UnimplementedGophkeeperServer) testEmbeddedByValue()                    {}
@@ -453,20 +478,31 @@ func _Gophkeeper_GetBankCardCredentials_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Gophkeeper_GetFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SensetiveDataMessage)
+func _Gophkeeper_GetFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SensetiveDataMessage)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(GophkeeperServer).GetFile(m, &grpc.GenericServerStream[SensetiveDataMessage, FileMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Gophkeeper_GetFileServer = grpc.ServerStreamingServer[FileMessage]
+
+func _Gophkeeper_GetInfoData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophkeeperServer).GetFile(ctx, in)
+		return srv.(GophkeeperServer).GetInfoData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Gophkeeper_GetFile_FullMethodName,
+		FullMethod: Gophkeeper_GetInfoData_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophkeeperServer).GetFile(ctx, req.(*SensetiveDataMessage))
+		return srv.(GophkeeperServer).GetInfoData(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -519,8 +555,8 @@ var Gophkeeper_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Gophkeeper_GetBankCardCredentials_Handler,
 		},
 		{
-			MethodName: "GetFile",
-			Handler:    _Gophkeeper_GetFile_Handler,
+			MethodName: "GetInfoData",
+			Handler:    _Gophkeeper_GetInfoData_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -529,6 +565,11 @@ var Gophkeeper_ServiceDesc = grpc.ServiceDesc{
 			Handler:       _Gophkeeper_UploadFile_Handler,
 			ClientStreams: true,
 		},
+		{
+			StreamName:    "GetFile",
+			Handler:       _Gophkeeper_GetFile_Handler,
+			ServerStreams: true,
+		},
 	},
-	Metadata: "gophkeeper.proto",
+	Metadata: "proto/gophkeeper.proto",
 }
