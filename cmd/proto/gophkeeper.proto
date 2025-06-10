@@ -32,6 +32,7 @@ message FileMessage {
     string fileName = 1;
     bytes content = 2;
     string metaData = 3;
+    bool end = 4;
 }
 
 message BankCardMessage {
@@ -49,7 +50,6 @@ message SensetiveDataMessage {
 message DataMessage {
     repeated PasswordMessage passwords = 1;
     repeated BankCardMessage bankCards = 2;
-    repeated FileMessage files = 3;
 }
 
 service Gophkeeper {
@@ -68,6 +68,12 @@ service Gophkeeper {
   rpc GetPassword(SensetiveDataMessage) returns (PasswordMessage);
   rpc GetBankCardCredentials(SensetiveDataMessage) returns (BankCardMessage);
   rpc GetFile(SensetiveDataMessage) returns (stream FileMessage);
+ 
+  rpc UpdatePassword(PasswordMessage) returns (google.protobuf.Empty) {};
+  rpc UpdateBankCardCreds(BankCardMessage) returns (google.protobuf.Empty) {};
+  rpc UpdateFile(stream FileMessage) returns (google.protobuf.Empty) {};
 
-  rpc GetInfoData(google.protobuf.Empty) returns (DataMessage);
+  rpc Sync(google.protobuf.Empty) returns (DataMessage);
+  rpc SyncFiles(google.protobuf.Empty) returns (stream FileMessage);
+  
 } 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/cipher"
 	"fmt"
 	"net"
 	"os"
@@ -16,8 +17,13 @@ import (
 	fileStorage "github.com/Tanya1515/gophkeeper.git/cmd/file_storage"
 	minio "github.com/Tanya1515/gophkeeper.git/cmd/file_storage/minio"
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
+
+type Crypto struct {
+	aesgcm cipher.AEAD
+
+	InitVect []byte // InitVect is used for encryption/decryption sensetive data
+}
 
 type GophkeeperServer struct {
 	DataStorage dataStorage.DataStorage // DataStorage saves all user sensetive data
@@ -30,7 +36,7 @@ type GophkeeperServer struct {
 
 	Mutex *sync.Mutex // Mutex for synchronization
 
-	InitVect []byte // InitVect is used for encryption/decryption sensetive data
+	Crypto
 
 	pb.UnimplementedGophkeeperServer // type pb.Unimplemented<TypeName> is used for backward compatibility
 }
@@ -130,11 +136,20 @@ func main() {
 
 	gophkeeper := &GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
 
-	gophkeeper.InitVect, err = ut.CreateInitVector()
+	gophkeeper.Crypto.aesgcm, gophkeeper.Crypto.InitVect, err = CreateInitVector()
 	if err != nil {
 		loggerApp.Errorln("Error while generating initialization vector: %s", err)
 		return
 	}
+
+	testEncrypt := gophkeeper.EncryptData("Hello from Gopher!")
+
+	result, err := gophkeeper.DecryptData(testEncrypt)
+	if err != nil {
+		gophkeeper.Logger.Errorf("Error while decrypting data: %s", err)
+		return
+	}
+	gophkeeper.Logger.Infof("Result: %s\n", result)
 
 	s = grpc.NewServer(grpc.ChainStreamInterceptor(gophkeeper.StreamInterceptorLogger, gophkeeper.StreamInterceptorCheckJWTToken), grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
 

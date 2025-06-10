@@ -141,7 +141,6 @@ var sendBankCard = &cobra.Command{
 	},
 }
 
-// доделать
 var getCard = &cobra.Command{
 	Use:   "card",
 	Short: "Get bank card credentials",
@@ -182,7 +181,7 @@ var getCard = &cobra.Command{
 
 		if err != nil {
 			fmt.Printf("Error while getting bank card %s: %s", cardNumber, err)
-			return 
+			return
 		}
 		fmt.Printf("Card number: %s\n", cardNumber)
 		fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
@@ -232,7 +231,7 @@ var deleteCard = &cobra.Command{
 			fmt.Printf("Error while removing sensetive data regarding the bank card %s: %s", cardNumber, err)
 			return
 		}
-		
+
 		fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper", cardNumber)
 	},
 }
@@ -241,5 +240,88 @@ var updateCard = &cobra.Command{
 	Use:   "card",
 	Short: "Update bank card credentials",
 	Run: func(cmd *cobra.Command, args []string) {
+		var cardNumber string
+		var cvc string
+		var date string
+		var bankName string
+		var metadatabankCard string
+
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		fmt.Print("Please enter card number you would like to change: ")
+		fmt.Fscan(os.Stdin, &cardNumber)
+		for {
+			if CheckCardNumber(cardNumber) {
+				break
+			}
+			fmt.Print("Your card number was invalid, please enter again: ")
+			fmt.Fscan(os.Stdin, &cardNumber)
+		}
+		fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
+		fmt.Fscan(os.Stdin, &cvc)
+		fmt.Print("Please enter card date, if you would like to change it: ")
+		fmt.Fscan(os.Stdin, &date)
+		for {
+			if CheckDateFormat(date) {
+				break
+			}
+			fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
+			fmt.Fscan(os.Stdin, &date)
+		}
+		fmt.Print("Please enter bank name, if you would like to change it: ")
+		fmt.Fscan(os.Stdin, &bankName)
+		fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
+		fmt.Fscan(os.Stdin, &metadatabankCard)
+
+		for metadatabankCard == "" && bankName == "" && date == "" && cvc == "" {
+			fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
+			fmt.Fscan(os.Stdin, &cvc)
+			fmt.Print("Please enter card date, if you would like to change it: ")
+			fmt.Fscan(os.Stdin, &date)
+			for {
+				if CheckDateFormat(date) {
+					break
+				}
+				fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
+				fmt.Fscan(os.Stdin, &date)
+			}
+			fmt.Print("Please enter bank name, if you would like to change it: ")
+			fmt.Fscan(os.Stdin, &bankName)
+			fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
+			fmt.Fscan(os.Stdin, &metadatabankCard)
+		}
+
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
+			CardNumber: cardNumber,
+			CvcCode:    cvc,
+			Data:       date,
+			Bank:       bankName,
+			Metadata:   metadatabankCard,
+		})
+
+		if err != nil {
+			fmt.Printf("Error while updating bank card credentials %s: %s\n", cardNumber, err)
+			return
+		}
+
+		fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
+
 	},
 }

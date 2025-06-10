@@ -251,6 +251,7 @@ type FileMessage struct {
 	FileName      string                 `protobuf:"bytes,1,opt,name=fileName,proto3" json:"fileName,omitempty"`
 	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
 	MetaData      string                 `protobuf:"bytes,3,opt,name=metaData,proto3" json:"metaData,omitempty"`
+	End           bool                   `protobuf:"varint,4,opt,name=end,proto3" json:"end,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -304,6 +305,13 @@ func (x *FileMessage) GetMetaData() string {
 		return x.MetaData
 	}
 	return ""
+}
+
+func (x *FileMessage) GetEnd() bool {
+	if x != nil {
+		return x.End
+	}
+	return false
 }
 
 type BankCardMessage struct {
@@ -430,7 +438,6 @@ type DataMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Passwords     []*PasswordMessage     `protobuf:"bytes,1,rep,name=passwords,proto3" json:"passwords,omitempty"`
 	BankCards     []*BankCardMessage     `protobuf:"bytes,2,rep,name=bankCards,proto3" json:"bankCards,omitempty"`
-	Files         []*FileMessage         `protobuf:"bytes,3,rep,name=files,proto3" json:"files,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -479,13 +486,6 @@ func (x *DataMessage) GetBankCards() []*BankCardMessage {
 	return nil
 }
 
-func (x *DataMessage) GetFiles() []*FileMessage {
-	if x != nil {
-		return x.Files
-	}
-	return nil
-}
-
 var File_proto_gophkeeper_proto protoreflect.FileDescriptor
 
 const file_proto_gophkeeper_proto_rawDesc = "" +
@@ -504,11 +504,12 @@ const file_proto_gophkeeper_proto_rawDesc = "" +
 	"\x0fPasswordMessage\x12\x1a\n" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\x12 \n" +
 	"\vapplication\x18\x02 \x01(\tR\vapplication\x12\x1a\n" +
-	"\bmetaData\x18\x03 \x01(\tR\bmetaData\"_\n" +
+	"\bmetaData\x18\x03 \x01(\tR\bmetaData\"q\n" +
 	"\vFileMessage\x12\x1a\n" +
 	"\bfileName\x18\x01 \x01(\tR\bfileName\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12\x1a\n" +
-	"\bmetaData\x18\x03 \x01(\tR\bmetaData\"\x8f\x01\n" +
+	"\bmetaData\x18\x03 \x01(\tR\bmetaData\x12\x10\n" +
+	"\x03end\x18\x04 \x01(\bR\x03end\"\x8f\x01\n" +
 	"\x0fBankCardMessage\x12\x1e\n" +
 	"\n" +
 	"cardNumber\x18\x01 \x01(\tR\n" +
@@ -518,11 +519,10 @@ const file_proto_gophkeeper_proto_rawDesc = "" +
 	"\x04bank\x18\x04 \x01(\tR\x04bank\x12\x1a\n" +
 	"\bmetadata\x18\x05 \x01(\tR\bmetadata\"<\n" +
 	"\x14SensetiveDataMessage\x12$\n" +
-	"\ridentificator\x18\x01 \x01(\tR\ridentificator\"\x8f\x02\n" +
+	"\ridentificator\x18\x01 \x01(\tR\ridentificator\"\xc1\x01\n" +
 	"\vDataMessage\x12X\n" +
 	"\tpasswords\x18\x01 \x03(\v2:.github.com.Tanya1515.gophkeeper.git.proto.PasswordMessageR\tpasswords\x12X\n" +
-	"\tbankCards\x18\x02 \x03(\v2:.github.com.Tanya1515.gophkeeper.git.proto.BankCardMessageR\tbankCards\x12L\n" +
-	"\x05files\x18\x03 \x03(\v26.github.com.Tanya1515.gophkeeper.git.proto.FileMessageR\x05files2\xc7\v\n" +
+	"\tbankCards\x18\x02 \x03(\v2:.github.com.Tanya1515.gophkeeper.git.proto.BankCardMessageR\tbankCards2\xd6\x0e\n" +
 	"\n" +
 	"Gophkeeper\x12V\n" +
 	"\tLoginUser\x12/.github.com.Tanya1515.gophkeeper.git.proto.User\x1a\x16.google.protobuf.Empty\"\x00\x12Y\n" +
@@ -538,8 +538,13 @@ const file_proto_gophkeeper_proto_rawDesc = "" +
 	"\x19DeleteBankCardCredentials\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a\x16.google.protobuf.Empty\"\x00\x12\x8a\x01\n" +
 	"\vGetPassword\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a:.github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage\x12\x95\x01\n" +
 	"\x16GetBankCardCredentials\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a:.github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage\x12\x84\x01\n" +
-	"\aGetFile\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a6.github.com.Tanya1515.gophkeeper.git.proto.FileMessage0\x01\x12]\n" +
-	"\vGetInfoData\x12\x16.google.protobuf.Empty\x1a6.github.com.Tanya1515.gophkeeper.git.proto.DataMessageB\vZ\tcmd/protob\x06proto3"
+	"\aGetFile\x12?.github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage\x1a6.github.com.Tanya1515.gophkeeper.git.proto.FileMessage0\x01\x12f\n" +
+	"\x0eUpdatePassword\x12:.github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage\x1a\x16.google.protobuf.Empty\"\x00\x12k\n" +
+	"\x13UpdateBankCardCreds\x12:.github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage\x1a\x16.google.protobuf.Empty\"\x00\x12`\n" +
+	"\n" +
+	"UpdateFile\x126.github.com.Tanya1515.gophkeeper.git.proto.FileMessage\x1a\x16.google.protobuf.Empty\"\x00(\x01\x12V\n" +
+	"\x04Sync\x12\x16.google.protobuf.Empty\x1a6.github.com.Tanya1515.gophkeeper.git.proto.DataMessage\x12]\n" +
+	"\tSyncFiles\x12\x16.google.protobuf.Empty\x1a6.github.com.Tanya1515.gophkeeper.git.proto.FileMessage0\x01B\vZ\tcmd/protob\x06proto3"
 
 var (
 	file_proto_gophkeeper_proto_rawDescOnce sync.Once
@@ -568,38 +573,45 @@ var file_proto_gophkeeper_proto_goTypes = []any{
 var file_proto_gophkeeper_proto_depIdxs = []int32{
 	3,  // 0: github.com.Tanya1515.gophkeeper.git.proto.DataMessage.passwords:type_name -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
 	5,  // 1: github.com.Tanya1515.gophkeeper.git.proto.DataMessage.bankCards:type_name -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
-	4,  // 2: github.com.Tanya1515.gophkeeper.git.proto.DataMessage.files:type_name -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
-	0,  // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
-	0,  // 4: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
-	2,  // 5: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:input_type -> github.com.Tanya1515.gophkeeper.git.proto.Verify
-	3,  // 6: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
-	5,  // 7: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:input_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
-	4,  // 8: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
-	6,  // 9: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 10: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 11: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 12: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 13: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	6,  // 14: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
-	8,  // 15: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetInfoData:input_type -> google.protobuf.Empty
-	8,  // 16: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> google.protobuf.Empty
-	8,  // 17: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> google.protobuf.Empty
-	1,  // 18: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Result
-	8,  // 19: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:output_type -> google.protobuf.Empty
-	8,  // 20: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:output_type -> google.protobuf.Empty
-	8,  // 21: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:output_type -> google.protobuf.Empty
-	8,  // 22: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:output_type -> google.protobuf.Empty
-	8,  // 23: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:output_type -> google.protobuf.Empty
-	8,  // 24: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:output_type -> google.protobuf.Empty
-	3,  // 25: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:output_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
-	5,  // 26: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:output_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
-	4,  // 27: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:output_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
-	7,  // 28: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetInfoData:output_type -> github.com.Tanya1515.gophkeeper.git.proto.DataMessage
-	16, // [16:29] is the sub-list for method output_type
-	3,  // [3:16] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	0,  // 2: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
+	0,  // 3: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:input_type -> github.com.Tanya1515.gophkeeper.git.proto.User
+	2,  // 4: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:input_type -> github.com.Tanya1515.gophkeeper.git.proto.Verify
+	3,  // 5: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
+	5,  // 6: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:input_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
+	4,  // 7: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
+	6,  // 8: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 9: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 10: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 11: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 12: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	6,  // 13: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.SensetiveDataMessage
+	3,  // 14: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UpdatePassword:input_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
+	5,  // 15: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UpdateBankCardCreds:input_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
+	4,  // 16: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UpdateFile:input_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
+	8,  // 17: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.Sync:input_type -> google.protobuf.Empty
+	8,  // 18: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.SyncFiles:input_type -> google.protobuf.Empty
+	8,  // 19: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.LoginUser:output_type -> google.protobuf.Empty
+	8,  // 20: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.RegisterUser:output_type -> google.protobuf.Empty
+	1,  // 21: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.VerificationApprove:output_type -> github.com.Tanya1515.gophkeeper.git.proto.Result
+	8,  // 22: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadPassword:output_type -> google.protobuf.Empty
+	8,  // 23: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadBankCard:output_type -> google.protobuf.Empty
+	8,  // 24: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UploadFile:output_type -> google.protobuf.Empty
+	8,  // 25: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeletePassword:output_type -> google.protobuf.Empty
+	8,  // 26: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteFile:output_type -> google.protobuf.Empty
+	8,  // 27: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.DeleteBankCardCredentials:output_type -> google.protobuf.Empty
+	3,  // 28: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetPassword:output_type -> github.com.Tanya1515.gophkeeper.git.proto.PasswordMessage
+	5,  // 29: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetBankCardCredentials:output_type -> github.com.Tanya1515.gophkeeper.git.proto.BankCardMessage
+	4,  // 30: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.GetFile:output_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
+	8,  // 31: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UpdatePassword:output_type -> google.protobuf.Empty
+	8,  // 32: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UpdateBankCardCreds:output_type -> google.protobuf.Empty
+	8,  // 33: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.UpdateFile:output_type -> google.protobuf.Empty
+	7,  // 34: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.Sync:output_type -> github.com.Tanya1515.gophkeeper.git.proto.DataMessage
+	4,  // 35: github.com.Tanya1515.gophkeeper.git.proto.Gophkeeper.SyncFiles:output_type -> github.com.Tanya1515.gophkeeper.git.proto.FileMessage
+	19, // [19:36] is the sub-list for method output_type
+	2,  // [2:19] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_gophkeeper_proto_init() }

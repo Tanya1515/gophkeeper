@@ -35,8 +35,19 @@ var sendPassword = &cobra.Command{
 		fmt.Fscan(os.Stdin, &password)
 		fmt.Print("Please enter appplication, that password belongs to: ")
 		fmt.Fscan(os.Stdin, &application)
+
+		for application == "" {
+			fmt.Print("Please enter appplication, that password belongs to: ")
+			fmt.Fscan(os.Stdin, &application)
+		}
+
 		fmt.Print("Please enter metadata for sensetive data: ")
 		fmt.Fscan(os.Stdin, &metadataPassword)
+
+		for password == "" {
+			fmt.Print("Please enter password to save: ")
+			fmt.Fscan(os.Stdin, &password)
+		}
 
 		connection, err := ClientConnection()
 		if err != nil {
@@ -62,7 +73,6 @@ var sendPassword = &cobra.Command{
 	},
 }
 
-// доделать
 var getPassword = &cobra.Command{
 	Use:   "password",
 	Short: "Get password of the application from gophkeeper",
@@ -79,6 +89,11 @@ var getPassword = &cobra.Command{
 
 		fmt.Print("Please enter appplication, that password belongs to: ")
 		fmt.Fscan(os.Stdin, &application)
+
+		for application == "" {
+			fmt.Print("Please enter appplication, that password belongs to: ")
+			fmt.Fscan(os.Stdin, &application)
+		}
 
 		connection, err := ClientConnection()
 		if err != nil {
@@ -121,6 +136,11 @@ var deletePassword = &cobra.Command{
 		fmt.Print("Please enter appplication, that password belongs to: ")
 		fmt.Fscan(os.Stdin, &application)
 
+		for application == "" {
+			fmt.Print("Please enter appplication, that password belongs to: ")
+			fmt.Fscan(os.Stdin, &application)
+		}
+
 		connection, err := ClientConnection()
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
@@ -148,5 +168,60 @@ var updatePassword = &cobra.Command{
 	Use:   "password",
 	Short: "Update password of the application from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
+		var application string
+		var newPassword string
+		var passwordMetadata string
+
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		fmt.Print("Please enter appplication, that password belongs to: ")
+		fmt.Fscan(os.Stdin, &application)
+		for application == "" {
+			fmt.Print("Please enter appplication, that password belongs to: ")
+			fmt.Fscan(os.Stdin, &application)
+		}
+
+		fmt.Println("Please enter new password: ")
+		fmt.Fscan(os.Stdin, &newPassword)
+
+		fmt.Println("Please entee metadata: ")
+		fmt.Fscan(os.Stdin, &passwordMetadata)
+
+		for newPassword == "" && passwordMetadata == "" {
+			fmt.Printf("Please enter password or metadata for application %s for updating", application)
+			fmt.Println("Please enter new password: ")
+			fmt.Fscan(os.Stdin, &newPassword)
+
+			fmt.Println("Please entee metadata: ")
+			fmt.Fscan(os.Stdin, &passwordMetadata)
+		}
+
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		_, err = clientGRPC.UpdatePassword(ctx, &pb.PasswordMessage{
+			Password:    newPassword,
+			Application: application,
+			MetaData:    passwordMetadata,
+		})
+
+		if err != nil {
+			fmt.Printf("Error while updating password for application %s : %s\n", application, err)
+			return
+		}
+		fmt.Printf("Your password for application %s has been successfully updated!\n", application)
 	},
 }

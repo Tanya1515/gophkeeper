@@ -30,4 +30,10 @@ type DataStorage interface {
 	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, error)
 
 	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, error)
+
+	UpdatePassword(ctx context.Context, password, app, md string) error
+
+	UpdateFile(ctx context.Context, fileName, metaData string) error
+
+	UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string) error
 }

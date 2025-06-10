@@ -103,8 +103,6 @@ func (s *GophkeeperServer) DeleteFile(ctx context.Context, fileData *pb.Sensetiv
 	return nil, nil
 }
 
-// *"github.com/Tanya1515/gophkeeper.git/cmd/proto".SensetiveDataMessage, grpc.ServerStreamingServer["github.com/Tanya1515/gophkeeper.git/cmd/proto".FileMessage]
-
 func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStream grpc.ServerStreamingServer[pb.FileMessage]) error {
 	const chunkSize = 64 * 1024
 
@@ -137,6 +135,12 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.FileMessage, emptypb.Empty]) error {
+	
 
 	return nil
 }

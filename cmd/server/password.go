@@ -15,7 +15,9 @@ func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	err := s.DataStorage.UploadPassword(ctxDB, passwordData.Password, passwordData.Application, passwordData.MetaData)
+	password := s.EncryptData(passwordData.Password)
+
+	err := s.DataStorage.UploadPassword(ctxDB, password, passwordData.Application, passwordData.MetaData)
 	if err != nil {
 		s.Logger.Errorf("error while uploading password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)
 		return nil, fmt.Errorf("error while uploading password for user %s for application %s: %w", ctx.Value(ut.LoginKey), passwordData.Application, err)
@@ -48,6 +50,29 @@ func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.Sen
 		s.Logger.Errorln("Error while getting bank credentials for card %s: %s", passwordData.Identificator, err)
 		return nil, err
 	}
+	passwordApp.Password, err = s.DecryptData(passwordApp.Password)
+	if err != nil {
+		s.Logger.Errorln("Error while decrypting password for application %s: %s", passwordApp.Application, err)
+		return nil, fmt.Errorf("error while decrypting password for application %s: %w", passwordApp.Application, err)
+	}
 
 	return &passwordApp, err
+}
+
+func (s *GophkeeperServer) UpdatePassword(ctx context.Context, passwordData *pb.PasswordMessage) (*emptypb.Empty, error) {
+	var password string
+	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if passwordData.Password != "" {
+		password = s.EncryptData(passwordData.Password)
+	}
+
+	err := s.DataStorage.UpdatePassword(ctxDB, password, passwordData.Application, passwordData.MetaData)
+	if err != nil {
+		s.Logger.Errorf("error while updating password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)
+		return nil, fmt.Errorf("error while updating password for user %s for application %s: %w", ctx.Value(ut.LoginKey), passwordData.Application, err)
+	}
+
+	return nil, nil
 }

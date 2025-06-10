@@ -31,10 +31,13 @@ var sendFile = &cobra.Command{
 			return
 		}
 
-		fmt.Print("Please enter absolute path for file to save: ")
-		fmt.Fscan(os.Stdin, &filePath)
 		fmt.Print("Please enter metadata for sensetive data: ")
 		fmt.Fscan(os.Stdin, &metadataFile)
+
+		for filePath == "" {
+			fmt.Print("Please enter absolute path for file to save: ")
+			fmt.Fscan(os.Stdin, &filePath)
+		}
 
 		file, err := os.Open(filePath)
 		if err != nil {
@@ -92,7 +95,6 @@ var sendFile = &cobra.Command{
 	},
 }
 
-// доделать
 var getFile = &cobra.Command{
 	Use:   "file",
 	Short: "Get file from Gophkeeper",
@@ -108,10 +110,12 @@ var getFile = &cobra.Command{
 			fmt.Print("Internal error")
 		}
 
+		for filePath == "" {
+			fmt.Print("Please enter path for saving file from gophkeeper: ")
+			fmt.Fscan(os.Stdin, &filePath)
+		}
 		fmt.Print("Please enter file to get from gophkeeper: ")
 		fmt.Fscan(os.Stdin, &fileName)
-		fmt.Print("Please enter path for saving file from gophkeeper: ")
-		fmt.Fscan(os.Stdin, &filePath)
 
 		connection, err := ClientConnection()
 		if err != nil {
@@ -139,9 +143,11 @@ var getFile = &cobra.Command{
 		var chunkFile *pb.FileMessage
 		for {
 			chunkFile, err = fileGetter.Recv()
-			if err != nil && err == io.EOF {
+			if err != nil && err != io.EOF {
 				fmt.Printf("Error while recieving new data portion of file %s: %s\n", fileName, err)
 				break
+			} else if err == io.EOF {
+				return
 			}
 
 			_, err = fileToSave.Write(chunkFile.Content)
@@ -165,6 +171,82 @@ var updateFile = &cobra.Command{
 	Use:   "file",
 	Short: "Update existing file with sensetive data in gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
+		var fileName string
+		var filePath string
+		var fileMetadata string
+
+		JWTToken, err := ut.GetJWT(user)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+			return
+		} else if err != nil {
+			fmt.Print("Internal error")
+		}
+
+		for fileName == "" {
+			fmt.Print("Please enter file to update: ")
+			fmt.Fscan(os.Stdin, &fileName)
+		}
+
+		for filePath == "" {
+			fmt.Print("Please enter path for updating file in gophkeeper: ")
+			fmt.Fscan(os.Stdin, &filePath)
+			fmt.Print("Please enter metadata for updating file metadata in gophkeeper: ")
+			fmt.Fscan(os.Stdin, &filePath)
+		}
+
+		file, err := os.Open(filePath)
+		if err != nil {
+			fmt.Printf("failed to open file: %v\n", err)
+			return
+		}
+		defer file.Close()
+
+		connection, err := ClientConnection()
+		if err != nil {
+			fmt.Println("Error while creating GRPC connection to server: ", err)
+			return
+		}
+
+		clientGRPC := pb.NewGophkeeperClient(connection)
+		md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		stream, err := clientGRPC.UpdateFile(ctx)
+		if err != nil {
+			fmt.Printf("error while openning GRPC stream to update file: %s", err)
+			return
+		}
+
+		const chunkSize = 64 * 1024
+		buffer := make([]byte, chunkSize)
+
+		for {
+			n, err := file.Read(buffer)
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				fmt.Printf("Error while sending file chunk: %s", err)
+				return
+			}
+
+			if err := stream.Send(&pb.FileMessage{
+				Content:  buffer[:n],
+				FileName: fileName,
+				MetaData: fileMetadata,
+			}); err != nil {
+				fmt.Printf("Error while sending file chunk: %s", err)
+				return
+			}
+		}
+		_, err = stream.CloseAndRecv()
+		if err != nil {
+			fmt.Printf("Error while recoeving response from server: %s", err)
+			return
+		}
+
+		fmt.Printf("File with name %s was successfully updated.", fileName)
 
 	},
 }
@@ -183,8 +265,10 @@ var deleteFile = &cobra.Command{
 			fmt.Print("Internal error")
 		}
 
-		fmt.Print("Please enter file to delete: ")
-		fmt.Fscan(os.Stdin, &fileName)
+		for fileName == "" {
+			fmt.Print("Please enter file to delete: ")
+			fmt.Fscan(os.Stdin, &fileName)
+		}
 
 		connection, err := ClientConnection()
 		if err != nil {
