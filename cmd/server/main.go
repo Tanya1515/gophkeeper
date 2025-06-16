@@ -22,7 +22,6 @@ import (
 type Crypto struct {
 	aesgcm cipher.AEAD
 
-	InitVect []byte // InitVect is used for encryption/decryption sensetive data
 }
 
 type GophkeeperServer struct {
@@ -136,7 +135,7 @@ func main() {
 
 	gophkeeper := &GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
 
-	gophkeeper.Crypto.aesgcm, gophkeeper.Crypto.InitVect, err = CreateInitVector()
+	gophkeeper.Crypto.aesgcm, err = CreateInitVector()
 	if err != nil {
 		loggerApp.Errorln("Error while generating initialization vector: %s", err)
 		return

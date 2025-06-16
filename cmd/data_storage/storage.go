@@ -15,9 +15,9 @@ type DataStorage interface {
 
 	CheckUserJWT(ctx context.Context, userLogin string) (string, error)
 
-	UploadPassword(ctx context.Context, passwrod, app, md string) error
+	UploadPassword(ctx context.Context, passwrod, app, md string, initVector []byte) error
 
-	UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string) error
+	UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte) error
 
 	UploadFile(ctx context.Context, fileName, metaData string) error
 
@@ -27,13 +27,13 @@ type DataStorage interface {
 
 	DeletePassword(ctx context.Context, application string) error
 
-	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, error)
+	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, []byte, error)
 
-	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, error)
+	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, []byte, error)
 
-	UpdatePassword(ctx context.Context, password, app, md string) error
+	UpdatePassword(ctx context.Context, password, app, md string, initVector []byte) error
 
 	UpdateFile(ctx context.Context, fileName, metaData string) error
 
-	UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string) error
+	UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte) error
 }

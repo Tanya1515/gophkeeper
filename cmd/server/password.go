@@ -15,9 +15,9 @@ func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	s.Logger.Infoln("Recieved password: ", passwordData.Password)
-	password := s.EncryptData(passwordData.Password)
+	password, initVector := s.EncryptData(passwordData.Password)
 	s.Logger.Infoln("Encoded password: ", password)
-	err := s.DataStorage.UploadPassword(ctxDB, password, passwordData.Application, passwordData.MetaData)
+	err := s.DataStorage.UploadPassword(ctxDB, password, passwordData.Application, passwordData.MetaData, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while uploading password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)
 		return nil, fmt.Errorf("error while uploading password for user %s for application %s: %w", ctx.Value(ut.LoginKey), passwordData.Application, err)
@@ -45,12 +45,12 @@ func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.Sen
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	passwordApp, err = s.DataStorage.GetPassword(ctxDB, passwordData.Identificator)
+	passwordApp, initVector, err := s.DataStorage.GetPassword(ctxDB, passwordData.Identificator)
 	if err != nil {
 		s.Logger.Errorln("Error while getting password for application %s: %s", passwordData.Identificator, err)
 		return nil, err
 	}
-	passwordApp.Password, err = s.DecryptData(passwordApp.Password)
+	passwordApp.Password, err = s.DecryptData(passwordApp.Password, initVector)
 	if err != nil {
 		s.Logger.Errorln("Error while decrypting password for application %s: %s", passwordApp.Application, err)
 		return nil, fmt.Errorf("error while decrypting password for application %s: %w", passwordApp.Application, err)
@@ -61,15 +61,15 @@ func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.Sen
 
 func (s *GophkeeperServer) UpdatePassword(ctx context.Context, passwordData *pb.PasswordMessage) (*emptypb.Empty, error) {
 	var password string
+	var initVector []byte
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	if passwordData.Password != "" {
-		password = s.EncryptData(passwordData.Password)
+		password, initVector = s.EncryptData(passwordData.Password)
 	}
-	s.Logger.Infoln("Password: ", password)
-	s.Logger.Infoln("Metadata: ", passwordData.MetaData)
-	err := s.DataStorage.UpdatePassword(ctxDB, password, passwordData.Application, passwordData.MetaData)
+	
+	err := s.DataStorage.UpdatePassword(ctxDB, password, passwordData.Application, passwordData.MetaData, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while updating password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)
 		return nil, fmt.Errorf("error while updating password for user %s for application %s: %w", ctx.Value(ut.LoginKey), passwordData.Application, err)
