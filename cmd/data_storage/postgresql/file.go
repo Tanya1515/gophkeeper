@@ -28,7 +28,7 @@ func (pg *PostgreSQLConnection) DeleteFile(ctx context.Context, fileName string)
 
 func (pg *PostgreSQLConnection) UpdateFile(ctx context.Context, fileName, metaData string) error {
 	_, err := pg.dbConn.ExecContext(ctx,
-		"UPDATE UserFiles SET metaData=CASE WHEN NULLIF(TRIM($1), '') IS NOT NULL THEN $1 ELSE metaData END "+
+		"UPDATE UserFiles SET metaData= $1"+
 			" WHERE fileName=$2 AND userID=$3", metaData, fileName, ctx.Value(ut.IDKey))
 
 	if err != nil {

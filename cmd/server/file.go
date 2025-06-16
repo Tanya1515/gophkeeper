@@ -41,7 +41,11 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 			return fmt.Errorf("error while recieving file chunk from GRPC stream: %w", err)
 		}
 
-		fileToSave.Write(chunkFile.Content)
+		_, err = fileToSave.Write(chunkFile.Content)
+		if err != nil {
+			s.Logger.Errorln("Error while writting data to temporary file: ", err)
+			return fmt.Errorf("error while writing data from %s to temporary file: %w", fileName, err)
+		}
 	}
 	tempFileName := fileToSave.Name()
 	err = fileToSave.Close()
@@ -123,10 +127,14 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 		s.Logger.Errorf("Error while getting file %s from Minio: %s\n", fileName, err)
 		return err
 	}
-	amount := len(fileByte) % 1024
+	amount := len(fileByte) / 1024
 
 	for i := 0; i < amount; i++ {
-		buffer = fileByte[i : i+1024]
+		if (len(fileByte) < i*1024) || (amount == 0) {
+			buffer = fileByte[i*1024:]
+		} else {
+			buffer = fileByte[i : i+1024]
+		}
 		s.Logger.Infoln("send data: %s", string(buffer))
 		fileMessage.Content = buffer
 		err = fileStream.Send(&fileMessage)
@@ -140,7 +148,91 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 }
 
 func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.FileMessage, emptypb.Empty]) error {
-	
+
+	fileToSave, err := os.CreateTemp("/tmp/", "gophkeeper")
+	if err != nil {
+		s.Logger.Errorln("Error while creating temporary file: %s", err)
+		return fmt.Errorf("error while creating temporary file: %s", err)
+	}
+
+	ctx := inStream.Context()
+	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	chunkFile, err := inStream.Recv()
+	if err != nil {
+		s.Logger.Errorln("Error while recieving file from GRPC stream: ", err)
+		return fmt.Errorf("error while recieving file from GRPC stream: %w", err)
+	}
+
+	fileName := chunkFile.FileName
+	fileMetadata := chunkFile.MetaData
+
+	if fileMetadata != "" {
+		err = s.DataStorage.UpdateFile(ctxDB, fileName, fileMetadata)
+		if err != nil {
+			s.Logger.Errorln("Error while updating file metadata: ", err)
+			return fmt.Errorf("error while updating file %s metadata: %w", fileName, err)
+		}
+	}
+
+	tempFileName := fileToSave.Name()
+
+	if len(chunkFile.Content) != 0 {
+		_, err = fileToSave.Write(chunkFile.Content)
+		if err != nil {
+			s.Logger.Errorln("Error while writting data to temporary file: ", err)
+			return fmt.Errorf("error while writing data from %s to temporary file: %w", fileName, err)
+		}
+
+		for {
+			chunkFile, err = inStream.Recv()
+			if err != nil && err == io.EOF {
+				break
+			} else if err != nil {
+				s.Logger.Errorln("Error while recieving file chunk from GRPC stream: ", err)
+				return fmt.Errorf("error while recieving file chunk from GRPC stream: %w", err)
+			}
+
+			_, err = fileToSave.Write(chunkFile.Content)
+			if err != nil {
+				s.Logger.Errorln("Error while writting data to temporary file: ", err)
+				return fmt.Errorf("error while writing data from %s to temporary file: %w", fileName, err)
+			}
+		}
+
+		ctxFileStore, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		err = fileToSave.Close()
+		if err != nil {
+			s.Logger.Errorf("Error while closing temporary file %s: %s\n", tempFileName, err)
+			return fmt.Errorf("error while closing temporary file %s: %w", tempFileName, err)
+		}
+
+		err = s.FileStorage.UploadFile(ctxFileStore, fileName, tempFileName)
+		if err != nil {
+			s.Logger.Errorln(err)
+			return err
+		}
+	} else {
+		err = fileToSave.Close()
+		if err != nil {
+			s.Logger.Errorf("Error while closing temporary file %s: %s\n", tempFileName, err)
+			return fmt.Errorf("error while closing temporary file %s: %w", tempFileName, err)
+		}
+	}
+
+	err = os.Remove(tempFileName)
+	if err != nil {
+		s.Logger.Errorf("Error while removing temporary file %s: %s", tempFileName, err)
+		return fmt.Errorf("error while removing temporary file %s: %w", tempFileName, err)
+	}
+
+	err = inStream.SendMsg("success")
+	if err != nil {
+		s.Logger.Errorln("Error while sending closing message to client: %s", err)
+		return fmt.Errorf("error while sending closing message to client: %w", err)
+	}
 
 	return nil
 }

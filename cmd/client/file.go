@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -86,7 +87,7 @@ var sendFile = &cobra.Command{
 		}
 		_, err = stream.CloseAndRecv()
 		if err != nil {
-			fmt.Printf("Error while recoeving response from server: %s", err)
+			fmt.Printf("Error while recieving response from server: %s", err)
 			return
 		}
 
@@ -175,6 +176,8 @@ var updateFile = &cobra.Command{
 		var filePath string
 		var fileMetadata string
 
+		reader := bufio.NewReader(os.Stdin)
+
 		JWTToken, err := ut.GetJWT(user)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
@@ -185,22 +188,19 @@ var updateFile = &cobra.Command{
 
 		for fileName == "" {
 			fmt.Print("Please enter file to update: ")
-			fmt.Fscan(os.Stdin, &fileName)
+			fileName, _ = reader.ReadString('\n')
+			fileName = strings.TrimRight(fileName, "\n")
 		}
 
-		for filePath == "" {
+		for filePath == "" && fileMetadata == "" {
 			fmt.Print("Please enter path for updating file in gophkeeper: ")
-			fmt.Fscan(os.Stdin, &filePath)
-			fmt.Print("Please enter metadata for updating file metadata in gophkeeper: ")
-			fmt.Fscan(os.Stdin, &filePath)
-		}
+			filePath, _ = reader.ReadString('\n')
+			filePath = strings.TrimRight(filePath, "\n")
 
-		file, err := os.Open(filePath)
-		if err != nil {
-			fmt.Printf("failed to open file: %v\n", err)
-			return
+			fmt.Print("Please enter metadata for updating file metadata in gophkeeper: ")
+			fileMetadata, _ = reader.ReadString('\n')
+			fileMetadata = strings.TrimRight(fileMetadata, "\n")
 		}
-		defer file.Close()
 
 		connection, err := ClientConnection()
 		if err != nil {
@@ -219,20 +219,38 @@ var updateFile = &cobra.Command{
 			return
 		}
 
-		const chunkSize = 64 * 1024
-		buffer := make([]byte, chunkSize)
-
-		for {
-			n, err := file.Read(buffer)
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				fmt.Printf("Error while sending file chunk: %s", err)
+		if filePath != "" {
+			file, err := os.Open(filePath)
+			if err != nil {
+				fmt.Printf("failed to open file: %v\n", err)
 				return
 			}
+			defer file.Close()
 
+			const chunkSize = 64 * 1024
+			buffer := make([]byte, chunkSize)
+
+			for {
+				n, err := file.Read(buffer)
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					fmt.Printf("Error while sending file chunk: %s", err)
+					return
+				}
+
+				if err := stream.Send(&pb.FileMessage{
+					Content:  buffer[:n],
+					FileName: fileName,
+					MetaData: fileMetadata,
+				}); err != nil {
+					fmt.Printf("Error while sending file chunk: %s", err)
+					return
+				}
+			}
+		} else {
 			if err := stream.Send(&pb.FileMessage{
-				Content:  buffer[:n],
+				Content:  []byte{},
 				FileName: fileName,
 				MetaData: fileMetadata,
 			}); err != nil {
@@ -240,9 +258,10 @@ var updateFile = &cobra.Command{
 				return
 			}
 		}
+
 		_, err = stream.CloseAndRecv()
 		if err != nil {
-			fmt.Printf("Error while recoeving response from server: %s", err)
+			fmt.Printf("Error while recieving response from server: %s", err)
 			return
 		}
 
