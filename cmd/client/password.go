@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -172,6 +173,8 @@ var updatePassword = &cobra.Command{
 		var newPassword string
 		var passwordMetadata string
 
+		reader := bufio.NewReader(os.Stdin)
+
 		JWTToken, err := ut.GetJWT(user)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
@@ -181,25 +184,28 @@ var updatePassword = &cobra.Command{
 		}
 
 		fmt.Print("Please enter appplication, that password belongs to: ")
-		fmt.Fscan(os.Stdin, &application)
+		application, _ = reader.ReadString('\n')
 		for application == "" {
 			fmt.Print("Please enter appplication, that password belongs to: ")
-			fmt.Fscan(os.Stdin, &application)
+			application, _ = reader.ReadString('\n')
 		}
+		application = strings.TrimRight(application, "\n")
 
-		fmt.Println("Please enter new password: ")
-		fmt.Fscan(os.Stdin, &newPassword)
+		fmt.Print("Please enter new password: ")
+		newPassword, _ = reader.ReadString('\n')
+		newPassword = strings.TrimRight(newPassword, "\n")
 
-		fmt.Println("Please entee metadata: ")
-		fmt.Fscan(os.Stdin, &passwordMetadata)
+		fmt.Print("Please entee metadata: ")
+		passwordMetadata, _ = reader.ReadString('\n')
+		passwordMetadata = strings.TrimRight(passwordMetadata, "\n")
 
 		for newPassword == "" && passwordMetadata == "" {
 			fmt.Printf("Please enter password or metadata for application %s for updating", application)
 			fmt.Println("Please enter new password: ")
-			fmt.Fscan(os.Stdin, &newPassword)
+			newPassword, _ = reader.ReadString('\n')
 
 			fmt.Println("Please entee metadata: ")
-			fmt.Fscan(os.Stdin, &passwordMetadata)
+			passwordMetadata, _ = reader.ReadString('\n')
 		}
 
 		connection, err := ClientConnection()

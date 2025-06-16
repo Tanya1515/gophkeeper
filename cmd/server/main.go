@@ -142,15 +142,6 @@ func main() {
 		return
 	}
 
-	testEncrypt := gophkeeper.EncryptData("Hello from Gopher!")
-
-	result, err := gophkeeper.DecryptData(testEncrypt)
-	if err != nil {
-		gophkeeper.Logger.Errorf("Error while decrypting data: %s", err)
-		return
-	}
-	gophkeeper.Logger.Infof("Result: %s\n", result)
-
 	s = grpc.NewServer(grpc.ChainStreamInterceptor(gophkeeper.StreamInterceptorLogger, gophkeeper.StreamInterceptorCheckJWTToken), grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
 
 	gophkeeper.UserOTP = make(map[string]string, 100)

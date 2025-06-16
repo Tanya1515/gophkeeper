@@ -52,11 +52,11 @@ func (pg *PostgreSQLConnection) GetBankCardCredentials(ctx context.Context, card
 
 func (pg *PostgreSQLConnection) UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string) error {
 	_, err := pg.dbConn.ExecContext(ctx,
-		"UPDATE BankCards SET cvc=CASE WHEN NULLIF(TRIM($1), '') IS NOT NULL THEN $1 ELSE cvc END, "+
-			"SET date=CASE WHEN NULLIF(TRIM($2), '') IS NOT NULL THEN $2 ELSE date END, "+
-			"SET bank=CASE WHEN NULLIF(TRIM($3), '') IS NOT NULL THEN $3 ELSE bank END, "+
-			"SET metaData=CASE WHEN NULLIF(TRIM($4), '') IS NOT NULL THEN $4 ELSE metaData END "+
-			"WHERE cardNumber=&5", cvc, date, bank, md, cardNumber)
+		"UPDATE BankCards SET cvcCode=CASE WHEN $1 <> '' THEN $1 ELSE cvcCode END, "+
+			"date=CASE WHEN $2 <> '' THEN TO_DATE($2, 'MM/YY') ELSE date END, "+
+			"bank=CASE WHEN $3 <> '' THEN $3 ELSE bank END, "+
+			"metaData=CASE WHEN $4 <> '' THEN $4 ELSE metaData END "+
+			"WHERE cardNumber=$5", cvc, date, bank, md, cardNumber)
 
 	if err != nil {
 		return fmt.Errorf("error while updating bank card credentials for card number %s: %w", cardNumber, err)

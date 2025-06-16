@@ -14,9 +14,9 @@ import (
 func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.PasswordMessage) (*emptypb.Empty, error) {
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-
+	s.Logger.Infoln("Recieved password: ", passwordData.Password)
 	password := s.EncryptData(passwordData.Password)
-
+	s.Logger.Infoln("Encoded password: ", password)
 	err := s.DataStorage.UploadPassword(ctxDB, password, passwordData.Application, passwordData.MetaData)
 	if err != nil {
 		s.Logger.Errorf("error while uploading password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)
@@ -47,7 +47,7 @@ func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.Sen
 
 	passwordApp, err = s.DataStorage.GetPassword(ctxDB, passwordData.Identificator)
 	if err != nil {
-		s.Logger.Errorln("Error while getting bank credentials for card %s: %s", passwordData.Identificator, err)
+		s.Logger.Errorln("Error while getting password for application %s: %s", passwordData.Identificator, err)
 		return nil, err
 	}
 	passwordApp.Password, err = s.DecryptData(passwordApp.Password)
@@ -67,7 +67,8 @@ func (s *GophkeeperServer) UpdatePassword(ctx context.Context, passwordData *pb.
 	if passwordData.Password != "" {
 		password = s.EncryptData(passwordData.Password)
 	}
-
+	s.Logger.Infoln("Password: ", password)
+	s.Logger.Infoln("Metadata: ", passwordData.MetaData)
 	err := s.DataStorage.UpdatePassword(ctxDB, password, passwordData.Application, passwordData.MetaData)
 	if err != nil {
 		s.Logger.Errorf("error while updating password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)

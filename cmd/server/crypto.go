@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 )
 
@@ -36,8 +37,11 @@ func CreateInitVector() (aesgcm cipher.AEAD, vectInit []byte, err error) {
 }
 
 func (s *GophkeeperServer) DecryptData(sensetiveData string) (string, error) {
-	incomingData := []byte(sensetiveData)
-	result, err := s.Crypto.aesgcm.Open(nil, s.Crypto.InitVect, incomingData, nil)
+	decodedData, err := base64.StdEncoding.DecodeString(sensetiveData)
+	if err != nil {
+		return "", fmt.Errorf("error, while decoding string: %w", err)
+	}
+	result, err := s.Crypto.aesgcm.Open(nil, s.Crypto.InitVect, decodedData, nil)
 	if err != nil {
 		s.Logger.Errorf("Error while decrypting data: %s\n", err)
 		return "", err
@@ -51,5 +55,5 @@ func (s *GophkeeperServer) EncryptData(sensetiveData string) string {
 
 	result := s.Crypto.aesgcm.Seal(nil, s.Crypto.InitVect, incomingData, nil)
 
-	return string(result)
+	return base64.StdEncoding.EncodeToString(result)
 }

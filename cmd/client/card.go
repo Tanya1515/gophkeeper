@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -59,9 +60,11 @@ func CheckCardNumber(cardNumber string) bool {
 }
 
 func CheckDateFormat(date string) (ok bool) {
-	bankDate := strings.Split(date, "/")
-	if bankDate[0] == "01" || bankDate[0] == "02" || bankDate[0] == "03" || bankDate[0] == "04" || bankDate[0] == "05" || bankDate[0] == "06" || bankDate[0] == "07" || bankDate[0] == "08" || bankDate[0] == "09" || bankDate[0] == "10" || bankDate[0] == "11" || bankDate[0] == "12" {
-		bankDateYear, err := strconv.Atoi(bankDate[1])
+	bankDateResult := strings.Split(date, "/")
+
+	if bankDateResult[0] == "01" || bankDateResult[0] == "02" || bankDateResult[0] == "03" || bankDateResult[0] == "04" || bankDateResult[0] == "05" || bankDateResult[0] == "06" || bankDateResult[0] == "07" || bankDateResult[0] == "08" || bankDateResult[0] == "09" || bankDateResult[0] == "10" || bankDateResult[0] == "11" || bankDateResult[0] == "12" {
+		bankDateYear, err := strconv.Atoi(bankDateResult[1])
+
 		if err != nil {
 			return false
 		}
@@ -242,9 +245,11 @@ var updateCard = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var cardNumber string
 		var cvc string
-		var date string
+		var cardDate string
 		var bankName string
 		var metadatabankCard string
+
+		reader := bufio.NewReader(os.Stdin)
 
 		JWTToken, err := ut.GetJWT(user)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
@@ -255,47 +260,57 @@ var updateCard = &cobra.Command{
 		}
 
 		fmt.Print("Please enter card number you would like to change: ")
-		fmt.Fscan(os.Stdin, &cardNumber)
+		cardNumber, _ = reader.ReadString('\n')
+		cardNumber = strings.TrimRight(cardNumber, "\n")
 		for {
 			if CheckCardNumber(cardNumber) {
 				break
 			}
 			fmt.Print("Your card number was invalid, please enter again: ")
-			fmt.Fscan(os.Stdin, &cardNumber)
+			cardNumber, _ = reader.ReadString('\n')
+			cardNumber = strings.TrimRight(cardNumber, "\n")
 		}
+
 		fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
-		fmt.Fscan(os.Stdin, &cvc)
-		fmt.Print("Please enter card date, if you would like to change it: ")
-		fmt.Fscan(os.Stdin, &date)
+		cvc, _ = reader.ReadString('\n')
+
+		fmt.Print("Please enter CARD date, if you would like to change it: ")
+		cardDate, _ = reader.ReadString('\n')
+		cardDate = strings.TrimRight(cardDate, "\n")
 		for {
-			if CheckDateFormat(date) {
+			if CheckDateFormat(cardDate) || (cardDate == "") {
 				break
 			}
 			fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
-			fmt.Fscan(os.Stdin, &date)
+			cardDate, _ = reader.ReadString('\n')
+			cardDate = strings.TrimRight(cardDate, "\n")
 		}
-		fmt.Print("Please enter bank name, if you would like to change it: ")
-		fmt.Fscan(os.Stdin, &bankName)
-		fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
-		fmt.Fscan(os.Stdin, &metadatabankCard)
 
-		for metadatabankCard == "" && bankName == "" && date == "" && cvc == "" {
+		fmt.Print("Please enter bank name, if you would like to change it: ")
+		bankName, _ = reader.ReadString('\n')
+		fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
+		metadatabankCard, _ = reader.ReadString('\n')
+		for metadatabankCard == "\n" && bankName == "\n" && cardDate == "\n" && cvc == "\n" {
 			fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
-			fmt.Fscan(os.Stdin, &cvc)
+			cvc, _ = reader.ReadString('\n')
 			fmt.Print("Please enter card date, if you would like to change it: ")
-			fmt.Fscan(os.Stdin, &date)
+			cardDate, _ = reader.ReadString('\n')
 			for {
-				if CheckDateFormat(date) {
+				if CheckDateFormat(cardDate) {
 					break
 				}
 				fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
-				fmt.Fscan(os.Stdin, &date)
+				cardDate, _ = reader.ReadString('\n')
 			}
 			fmt.Print("Please enter bank name, if you would like to change it: ")
-			fmt.Fscan(os.Stdin, &bankName)
+			bankName, _ = reader.ReadString('\n')
 			fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
-			fmt.Fscan(os.Stdin, &metadatabankCard)
+			metadatabankCard, _ = reader.ReadString('\n')
 		}
+
+		cvc = strings.TrimRight(cvc, "\n")
+		bankName = strings.TrimRight(bankName, "\n")
+		metadatabankCard = strings.TrimRight(metadatabankCard, "\n")
 
 		connection, err := ClientConnection()
 		if err != nil {
@@ -303,7 +318,7 @@ var updateCard = &cobra.Command{
 		}
 
 		clientGRPC := pb.NewGophkeeperClient(connection)
-		
+
 		md := metadata.New(map[string]string{"Authorization": JWTToken})
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
@@ -311,7 +326,7 @@ var updateCard = &cobra.Command{
 		_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
 			CardNumber: cardNumber,
 			CvcCode:    cvc,
-			Data:       date,
+			Data:       cardDate,
 			Bank:       bankName,
 			Metadata:   metadatabankCard,
 		})

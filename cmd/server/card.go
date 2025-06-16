@@ -58,12 +58,12 @@ func (s *GophkeeperServer) GetBankCardCredentials(ctx context.Context, bankCardC
 	return bankCardCreds, nil
 }
 
-func (s *GophkeeperServer) UpdateBankCardCreds(ctx context.Context, bankCardData *pb.BankCardMessage) (*emptypb.Empty, error){
+func (s *GophkeeperServer) UpdateBankCardCreds(ctx context.Context, bankCardData *pb.BankCardMessage) (*emptypb.Empty, error) {
 	var cvcCode string
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	if bankCardData.CvcCode != "" {
+	if bankCardData.CvcCode != "\n" {
 		cvcCode = s.EncryptData(bankCardData.CvcCode)
 	}
 

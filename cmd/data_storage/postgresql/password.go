@@ -38,10 +38,12 @@ func (pg *PostgreSQLConnection) GetPassword(ctx context.Context, application str
 }
 
 func (pg *PostgreSQLConnection) UpdatePassword(ctx context.Context, password, app, md string) error {
+
 	_, err := pg.dbConn.ExecContext(ctx,
-		"UPDATE Credentials SET password = CASE WHEN NULLIF(TRIM($1), '') IS NOT NULL THEN $1 ELSE password END, "+
-			"metaData = CASE WHEN NULLIF(TRIM($2), '') IS NOT NULL THEN $2 ELSE metaData END"+
-			" WHERE application=$3", password, md, app)
+		"UPDATE Credentials SET "+
+			"password = CASE WHEN $1 <> '' THEN $1 ELSE password END, "+
+			"metaData = CASE WHEN $2 <> '' THEN $2 ELSE metaData END "+
+			"WHERE application=$3; RETURNING *", password, md, app)
 
 	if err != nil {
 		return fmt.Errorf("error while updating password for application %s : %w", app, err)
