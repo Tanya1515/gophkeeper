@@ -92,7 +92,7 @@ var sendFile = &cobra.Command{
 			}
 		}
 		_, err = stream.CloseAndRecv()
-		if err != nil {
+		if err != nil && err != io.EOF {
 			fmt.Printf("Error while recieving response from server: %s", err)
 			return
 		}
@@ -276,7 +276,7 @@ var updateFile = &cobra.Command{
 		}
 
 		_, err = stream.CloseAndRecv()
-		if err != nil {
+		if err != nil && err != io.EOF {
 			fmt.Printf("Error while recieving response from server: %s", err)
 			return
 		}

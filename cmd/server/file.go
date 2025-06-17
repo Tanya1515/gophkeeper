@@ -78,11 +78,6 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 		return fmt.Errorf("error while removing temporary file %s: %w", tempFileName, err)
 	}
 
-	err = inStream.SendMsg("success")
-	if err != nil {
-		s.Logger.Errorln("Error while sending closing message to client: %s", err)
-		return fmt.Errorf("error while sending closing message to client: %w", err)
-	}
 	return nil
 }
 
@@ -226,12 +221,6 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 	if err != nil {
 		s.Logger.Errorf("Error while removing temporary file %s: %s", tempFileName, err)
 		return fmt.Errorf("error while removing temporary file %s: %w", tempFileName, err)
-	}
-
-	err = inStream.SendMsg("success")
-	if err != nil {
-		s.Logger.Errorln("Error while sending closing message to client: %s", err)
-		return fmt.Errorf("error while sending closing message to client: %w", err)
 	}
 
 	return nil

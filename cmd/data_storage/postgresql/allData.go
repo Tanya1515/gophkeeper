@@ -21,12 +21,12 @@ func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords [
 	defer rows.Close()
 	for rows.Next() {
 		var initVector []byte
-		var passwordInfo *pb.PasswordMessage
-		err = rows.Scan(passwordInfo.Password, passwordInfo.MetaData, &initVector, passwordInfo.Application)
+		var passwordInfo pb.PasswordMessage
+		err = rows.Scan(&passwordInfo.Password, &passwordInfo.MetaData, &initVector, &passwordInfo.Application)
 		if err != nil {
 			return nil, fmt.Errorf("error while scanning password data for user with id %s: %w", ctx.Value(ut.IDKey), err)
 		}
-		passwords = append(passwords, passwordInfo)
+		passwords = append(passwords, &passwordInfo)
 		passwordVector[passwordInfo.Password] = initVector
 	}
 
@@ -49,9 +49,9 @@ func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bank
 	defer rows.Close()
 	for rows.Next() {
 		var initVector []byte
-		var bankCardInfo *pb.BankCardMessage
+		var bankCardInfo pb.BankCardMessage
 		var date string
-		err = rows.Scan(bankCardInfo.CardNumber, bankCardInfo.CvcCode, &date, bankCardInfo.Bank, bankCardInfo.Metadata, &initVector)
+		err = rows.Scan(&bankCardInfo.CardNumber, &bankCardInfo.CvcCode, &date, &bankCardInfo.Bank, &bankCardInfo.Metadata, &initVector)
 		if err != nil {
 			return nil, fmt.Errorf("error while scanning card credentials data for user with id %s: %w", ctx.Value(ut.IDKey), err)
 		}
@@ -62,7 +62,7 @@ func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bank
 
 		bankCardInfo.Data = t.Format("01/06")
 
-		bankCards = append(bankCards, bankCardInfo)
+		bankCards = append(bankCards, &bankCardInfo)
 		cvcVector[bankCardInfo.CvcCode] = initVector
 	}
 
@@ -78,9 +78,27 @@ func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bank
 func (pg *PostgreSQLConnection) GetAllFilesInfo(ctx context.Context) (map[string]string, error) {
 	fileInfo := make(map[string]string, 100)
 
-	_, err := pg.dbConn.QueryContext(ctx, "SELECT fileName, metaData FROM UserFiles WHERE userID=$1", ctx.Value(ut.IDKey))
+	rows, err := pg.dbConn.QueryContext(ctx, "SELECT fileName, metaData FROM UserFiles WHERE userID=$1", ctx.Value(ut.IDKey))
 	if err != nil {
 		return nil, fmt.Errorf("error while getting data about files for user with id %s: %w", ctx.Value(ut.IDKey), err)
 	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var fileName, metaData string
+
+		err = rows.Scan(&fileName, &metaData)
+		if err != nil {
+			return nil, fmt.Errorf("error while scanning file info for user with id %s: %w", ctx.Value(ut.IDKey), err)
+		}
+
+		fileInfo[fileName] = metaData
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error while saving all info about files for user id %s: %w", ctx.Value(ut.IDKey), err)
+	}
+
 	return fileInfo, nil
 }
