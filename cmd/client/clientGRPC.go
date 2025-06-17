@@ -8,8 +8,8 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-func ClientConnection() (*grpc.ClientConn, error) {
-	certFile, err := filepath.Abs("../../certs/ca.crt")
+func ClientConnection(certPath string) (*grpc.ClientConn, error) {
+	certFile, err := filepath.Abs(certPath + "ca.crt")
 	if err != nil {
 		fmt.Println("Error while searching for ca.crt ", err)
 		return nil, err

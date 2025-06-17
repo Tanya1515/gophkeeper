@@ -119,7 +119,12 @@ var sendBankCard = &cobra.Command{
 		fmt.Print("Please enter metadata for sensetive data: ")
 		fmt.Fscan(os.Stdin, &metadatabankCard)
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
@@ -168,7 +173,12 @@ var getCard = &cobra.Command{
 			ok = CheckCardNumber(cardNumber)
 		}
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
@@ -216,7 +226,13 @@ var deleteCard = &cobra.Command{
 			fmt.Fscan(os.Stdin, &cardNumber)
 			ok = CheckCardNumber(cardNumber)
 		}
-		connection, err := ClientConnection()
+
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
@@ -312,7 +328,12 @@ var updateCard = &cobra.Command{
 		bankName = strings.TrimRight(bankName, "\n")
 		metadatabankCard = strings.TrimRight(metadatabankCard, "\n")
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}

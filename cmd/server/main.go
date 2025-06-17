@@ -21,7 +21,6 @@ import (
 
 type Crypto struct {
 	aesgcm cipher.AEAD
-
 }
 
 type GophkeeperServer struct {
@@ -40,13 +39,13 @@ type GophkeeperServer struct {
 	pb.UnimplementedGophkeeperServer // type pb.Unimplemented<TypeName> is used for backward compatibility
 }
 
-func generateTLSCreds() (credentials.TransportCredentials, error) {
-	certFile, err := filepath.Abs("./certs/server.crt")
+func generateTLSCreds(certPath string) (credentials.TransportCredentials, error) {
+	certFile, err := filepath.Abs(certPath + "server.crt")
 	if err != nil {
 		fmt.Println("Error while searching for server.crt ", err)
 		return nil, err
 	}
-	keyFile, err := filepath.Abs("./certs/server.key")
+	keyFile, err := filepath.Abs(certPath + "server.key")
 	if err != nil {
 		fmt.Println("Error while searching for server.key ", err)
 		return nil, err
@@ -117,6 +116,11 @@ func main() {
 		return
 	}
 
+	certPath, envExists := os.LookupEnv("CERT_PATH")
+	if !(envExists) {
+		certPath = "./test_certs/"
+	}
+
 	postgreSQL := postgresql.NewPostgreSQLConnection(host, userName, password, dbName)
 	err = postgreSQL.Connect()
 	if err != nil {
@@ -128,7 +132,7 @@ func main() {
 		loggerApp.Errorln("Error while openning connection on address ", address, " : ", err)
 	}
 
-	credsTLS, err := generateTLSCreds()
+	credsTLS, err := generateTLSCreds(certPath)
 	if err != nil {
 		loggerApp.Errorln("Error while getting certificates for GRPC server ", err)
 	}

@@ -25,7 +25,12 @@ var loginCmd = &cobra.Command{
 		fmt.Print("Password: ")
 		fmt.Fscan(os.Stdin, &password)
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}

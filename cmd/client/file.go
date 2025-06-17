@@ -48,7 +48,13 @@ var sendFile = &cobra.Command{
 		defer file.Close()
 		fileNameArr := strings.Split(filePath, "/")
 		fileName := fileNameArr[len(fileNameArr)-1]
-		connection, err := ClientConnection()
+
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 			return
@@ -118,7 +124,12 @@ var getFile = &cobra.Command{
 		fmt.Print("Please enter file to get from gophkeeper: ")
 		fmt.Fscan(os.Stdin, &fileName)
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
@@ -202,7 +213,12 @@ var updateFile = &cobra.Command{
 			fileMetadata = strings.TrimRight(fileMetadata, "\n")
 		}
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 			return
@@ -289,7 +305,12 @@ var deleteFile = &cobra.Command{
 			fmt.Fscan(os.Stdin, &fileName)
 		}
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}

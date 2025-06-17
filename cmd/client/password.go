@@ -50,7 +50,12 @@ var sendPassword = &cobra.Command{
 			fmt.Fscan(os.Stdin, &password)
 		}
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
@@ -96,7 +101,12 @@ var getPassword = &cobra.Command{
 			fmt.Fscan(os.Stdin, &application)
 		}
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
@@ -142,7 +152,12 @@ var deletePassword = &cobra.Command{
 			fmt.Fscan(os.Stdin, &application)
 		}
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
@@ -208,7 +223,12 @@ var updatePassword = &cobra.Command{
 			passwordMetadata, _ = reader.ReadString('\n')
 		}
 
-		connection, err := ClientConnection()
+		certPath, envExists := os.LookupEnv("CERT_PATH")
+		if !(envExists) {
+			certPath = "../../test_certs/"
+		}
+
+		connection, err := ClientConnection(certPath)
 		if err != nil {
 			fmt.Println("Error while creating GRPC connection to server: ", err)
 		}
