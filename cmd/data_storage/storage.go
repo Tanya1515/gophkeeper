@@ -27,6 +27,12 @@ type DataStorage interface {
 
 	DeletePassword(ctx context.Context, application string) error
 
+	GetAllPasswords(ctx context.Context, passwordInfo []*pb.PasswordMessage) (map[string][]byte, error)
+
+	GetAllCardsCredentials(ctx context.Context, bankCardsInfo []*pb.BankCardMessage) (map[string][]byte, error)
+
+	GetAllFilesInfo(ctx context.Context) (map[string]string, error)
+
 	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, []byte, error)
 
 	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, []byte, error)

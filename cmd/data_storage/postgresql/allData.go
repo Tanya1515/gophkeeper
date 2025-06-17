@@ -1,0 +1,86 @@
+package postgresql
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+)
+
+func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords []*pb.PasswordMessage) (map[string][]byte, error) {
+
+	passwordVector := make(map[string][]byte, 100)
+
+	rows, err := pg.dbConn.QueryContext(ctx, "SELECT password, metaData, initVector, application FROM Credentials WHERE userID=$1", ctx.Value(ut.IDKey))
+	if err != nil {
+		return nil, fmt.Errorf("error while getting data about all passwords for user with id %s: %w", ctx.Value(ut.IDKey), err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var initVector []byte
+		var passwordInfo *pb.PasswordMessage
+		err = rows.Scan(passwordInfo.Password, passwordInfo.MetaData, &initVector, passwordInfo.Application)
+		if err != nil {
+			return nil, fmt.Errorf("error while scanning password data for user with id %s: %w", ctx.Value(ut.IDKey), err)
+		}
+		passwords = append(passwords, passwordInfo)
+		passwordVector[passwordInfo.Password] = initVector
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error while saving all password data for user id %s: %w", ctx.Value(ut.IDKey), err)
+	}
+
+	return passwordVector, nil
+}
+
+func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bankCards []*pb.BankCardMessage) (map[string][]byte, error) {
+	cvcVector := make(map[string][]byte, 100)
+
+	rows, err := pg.dbConn.QueryContext(ctx, "SELECT cardNumber, cvcCode, date, bank, metadata, initVector FROM BankCards WHERE userID=$1", ctx.Value(ut.IDKey))
+	if err != nil {
+		return nil, fmt.Errorf("error while getting bank credentials for user with id %s: %w", ctx.Value(ut.IDKey), err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var initVector []byte
+		var bankCardInfo *pb.BankCardMessage
+		var date string
+		err = rows.Scan(bankCardInfo.CardNumber, bankCardInfo.CvcCode, &date, bankCardInfo.Bank, bankCardInfo.Metadata, &initVector)
+		if err != nil {
+			return nil, fmt.Errorf("error while scanning card credentials data for user with id %s: %w", ctx.Value(ut.IDKey), err)
+		}
+		t, err := time.Parse(time.RFC3339, date)
+		if err != nil {
+			return nil, fmt.Errorf("error while parsing date to format MM/YY: %w", err)
+		}
+
+		bankCardInfo.Data = t.Format("01/06")
+
+		bankCards = append(bankCards, bankCardInfo)
+		cvcVector[bankCardInfo.CvcCode] = initVector
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error while saving all card credentials for user id %s: %w", ctx.Value(ut.IDKey), err)
+	}
+
+	return cvcVector, nil
+
+}
+
+func (pg *PostgreSQLConnection) GetAllFilesInfo(ctx context.Context) (map[string]string, error) {
+	fileInfo := make(map[string]string, 100)
+
+	_, err := pg.dbConn.QueryContext(ctx, "SELECT fileName, metaData FROM UserFiles WHERE userID=$1", ctx.Value(ut.IDKey))
+	if err != nil {
+		return nil, fmt.Errorf("error while getting data about files for user with id %s: %w", ctx.Value(ut.IDKey), err)
+	}
+	return fileInfo, nil
+}

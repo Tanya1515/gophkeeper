@@ -10,8 +10,7 @@ import (
 )
 
 func (s *GophkeeperServer) Sync(ctx context.Context, empt *emptypb.Empty) (*pb.DataMessage, error) {
-	// достать все пароли и упаковать в массив
-	// достать все карты и упавковать в массив
+
 	return nil, nil
 }
 
