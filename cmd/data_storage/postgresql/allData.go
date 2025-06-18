@@ -9,7 +9,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
-func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords []*pb.PasswordMessage) (map[string][]byte, error) {
+func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords *[]*pb.PasswordMessage) (map[string][]byte, error) {
 
 	passwordVector := make(map[string][]byte, 100)
 
@@ -26,7 +26,7 @@ func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords [
 		if err != nil {
 			return nil, fmt.Errorf("error while scanning password data for user with id %s: %w", ctx.Value(ut.IDKey), err)
 		}
-		passwords = append(passwords, &passwordInfo)
+		*passwords = append(*passwords, &passwordInfo)
 		passwordVector[passwordInfo.Password] = initVector
 	}
 
@@ -38,7 +38,7 @@ func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords [
 	return passwordVector, nil
 }
 
-func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bankCards []*pb.BankCardMessage) (map[string][]byte, error) {
+func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bankCards *[]*pb.BankCardMessage) (map[string][]byte, error) {
 	cvcVector := make(map[string][]byte, 100)
 
 	rows, err := pg.dbConn.QueryContext(ctx, "SELECT cardNumber, cvcCode, date, bank, metadata, initVector FROM BankCards WHERE userID=$1", ctx.Value(ut.IDKey))
@@ -62,7 +62,7 @@ func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bank
 
 		bankCardInfo.Data = t.Format("01/06")
 
-		bankCards = append(bankCards, &bankCardInfo)
+		*bankCards = append(*bankCards, &bankCardInfo)
 		cvcVector[bankCardInfo.CvcCode] = initVector
 	}
 

@@ -16,7 +16,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
-func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient, files *map[string]string) {
+func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient, files map[string]string) {
 	var fileName string
 	var fileToSave *os.File
 	md := metadata.New(map[string]string{"Authorization": JWTToken})
@@ -49,14 +49,19 @@ func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperC
 		return
 	}
 
-	for file.End {
+	for {
 		file, err := stream.Recv()
 		if err != nil && err != io.EOF {
 			fmt.Printf("Error while recieving file chunk %s from gophkeeper: %s\n", file.FileName, err)
 			return
 		}
+		if file.End {
+			files[fileName] = "/tmp/" + fileName
+			break
+		}
 
 		if fileName != file.FileName {
+			files[fileName] = "/tmp/" + fileName
 			fileName = file.FileName
 			fileToSave, err = os.Create("/tmp/" + fileName)
 			if err != nil {
@@ -107,7 +112,7 @@ var getUserData = &cobra.Command{
 
 		wg.Add(1)
 
-		go SyncAllFiles(&wg, JWTToken, clientGRPC, &files)
+		go SyncAllFiles(&wg, JWTToken, clientGRPC, files)
 
 		sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
 		if err != nil {
@@ -116,23 +121,25 @@ var getUserData = &cobra.Command{
 		}
 		fmt.Println("Yor passwords: ")
 		for _, passwordInfo := range sensetiveData.Passwords {
-			fmt.Printf("Application: %s, password: %s, Metadata: %s", passwordInfo.Application, passwordInfo.Password, passwordInfo.MetaData)
+			fmt.Printf("\n  Application: %s,\n   password: %s,\n   Metadata: %s\n", passwordInfo.Application, passwordInfo.Password, passwordInfo.MetaData)
 		}
 
-		fmt.Println("Your bank card credentials: ")
+		fmt.Println("\nYour bank card credentials: ")
+		fmt.Println()
 		for _, bankCardCreds := range sensetiveData.BankCards {
-			fmt.Println("Bank: ", bankCardCreds.Bank)
-			fmt.Println("Card number: ", bankCardCreds.CardNumber)
-			fmt.Printf("CVC %s, date: %s", bankCardCreds.CvcCode, bankCardCreds.Data)
-			fmt.Println("Metada: ", bankCardCreds.Metadata)
+			fmt.Println("  Bank: ", bankCardCreds.Bank)
+			fmt.Println("    Card number: ", bankCardCreds.CardNumber)
+			fmt.Printf("    CVC: %s, date: %s\n", bankCardCreds.CvcCode, bankCardCreds.Data)
+			fmt.Printf("    Metada: %s\n\n", bankCardCreds.Metadata)
 		}
 
 		wg.Wait()
 		if len(files) != 0 {
 			fmt.Println("Your files: ")
 			for fileName, pathToFile := range files {
-				fmt.Printf("File %s have been saved along the path: %s\n", fileName, pathToFile)
+				fmt.Printf("\n  File %s have been saved along the path: %s\n", fileName, pathToFile)
 			}
+			fmt.Println()
 		}
 
 		fmt.Printf("All data for user %s was synchronyzed\n", user)
