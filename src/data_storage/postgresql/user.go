@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// LoginUser - function for checking user credentials to login user.
 func (pg *PostgreSQLConnection) LoginUser(ctx context.Context, login, password string) (string, error) {
 	ok := false
 	var email string
@@ -24,6 +25,7 @@ func (pg *PostgreSQLConnection) LoginUser(ctx context.Context, login, password s
 	return email, nil
 }
 
+// RegisterUser - function for adding new user to application.
 func (pg *PostgreSQLConnection) RegisterUser(ctx context.Context, login, password, email string) (string, error) {
 	var userID string
 	row := pg.dbConn.QueryRowContext(ctx, "INSERT INTO Users (userLogin, userPassword, userEmail) VALUES($1,crypt($2, gen_salt('xdes')),$3) RETURNING ID", login, password, email)
@@ -36,6 +38,7 @@ func (pg *PostgreSQLConnection) RegisterUser(ctx context.Context, login, passwor
 	return userID, nil
 }
 
+// CheckUserJWT -function for checking if JWT token is correct and user can be successfully authorized.
 func (pg *PostgreSQLConnection) CheckUserJWT(ctx context.Context, userLogin string) (userID string, err error) {
 
 	row := pg.dbConn.QueryRowContext(ctx, "SELECT ID FROM Users WHERE userLogin=$1", userLogin)

@@ -1,3 +1,5 @@
+// Datastorage - package, that describes interface for using
+// database in the context of sensetive data storage.
 package datastorage
 
 import (

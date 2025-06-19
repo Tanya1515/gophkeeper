@@ -8,6 +8,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
+// UploadFile - function for uploading file info for current user.
 func (pg *PostgreSQLConnection) UploadFile(ctx context.Context, fileName, metaData string) error {
 	_, err := pg.dbConn.ExecContext(ctx, "INSERT INTO UserFiles (userID, fileName, metaData) VALUES ($1, $2, $3)"+
 		" ON CONFLICT (fileName) DO"+
@@ -20,12 +21,14 @@ func (pg *PostgreSQLConnection) UploadFile(ctx context.Context, fileName, metaDa
 	return nil
 }
 
+// DeleteFile - function for deleting file info for current user.
 func (pg *PostgreSQLConnection) DeleteFile(ctx context.Context, fileName string) (err error) {
 	_, err = pg.dbConn.Exec("DELETE FROM UserFiles WHERE fileName=$1", fileName)
 
 	return
 }
 
+// UpdateFile - function for updating file info for current user.
 func (pg *PostgreSQLConnection) UpdateFile(ctx context.Context, fileName, metaData string) error {
 	_, err := pg.dbConn.ExecContext(ctx,
 		"UPDATE UserFiles SET metaData= $1"+

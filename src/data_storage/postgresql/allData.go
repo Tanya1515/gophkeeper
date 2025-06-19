@@ -1,3 +1,7 @@
+// PostgreSQL - package, that contains functions for managing user sensetive data,
+// such as passwords, files and card credentials. Supported operations are create,
+// update, get and delete for every data type. Also getting all sensetive data for
+// the current user is supported.
 package postgresql
 
 import (
@@ -9,6 +13,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
+// GetAllPasswords - function for getting all passwords for user.
 func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords *[]*pb.PasswordMessage) (map[string][]byte, error) {
 
 	passwordVector := make(map[string][]byte, 100)
@@ -38,6 +43,7 @@ func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords *
 	return passwordVector, nil
 }
 
+// GetAllPasswords - function for getting all bank card credentials for user.
 func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bankCards *[]*pb.BankCardMessage) (map[string][]byte, error) {
 	cvcVector := make(map[string][]byte, 100)
 
@@ -75,6 +81,7 @@ func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bank
 
 }
 
+// GetAllFilesInfo - function for getting info about all files for user.
 func (pg *PostgreSQLConnection) GetAllFilesInfo(ctx context.Context) (map[string]string, error) {
 	fileInfo := make(map[string]string, 100)
 

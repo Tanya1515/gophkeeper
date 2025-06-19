@@ -9,6 +9,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
+// UploadBankCard - function for uploading credentials of new bank card.
 func (pg *PostgreSQLConnection) UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte) error {
 
 	_, err := pg.dbConn.ExecContext(ctx, "INSERT INTO BankCards (userID, cardNumber, cvcCode, date, bank, metaData, initVector) VALUES ($1,$2,$3,TO_DATE($4, 'MM/YY'),$5,$6,$7) "+
@@ -29,6 +30,7 @@ func (pg *PostgreSQLConnection) DeleteBankCard(ctx context.Context, cardNumber s
 	return
 }
 
+// GetBankCardCredentials - function for getting bank card credentials for specified user.
 func (pg *PostgreSQLConnection) GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, []byte, error) {
 	var date string
 	var err error
@@ -51,6 +53,7 @@ func (pg *PostgreSQLConnection) GetBankCardCredentials(ctx context.Context, card
 	return &cardCreds, initVector, err
 }
 
+// UpdateBankCardCreds - function for updating bank card credentials.
 func (pg *PostgreSQLConnection) UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte) error {
 	_, err := pg.dbConn.ExecContext(ctx,
 		"UPDATE BankCards SET cvcCode=CASE WHEN $1 <> '' THEN $1 ELSE cvcCode END, "+

@@ -1,3 +1,5 @@
+// Datastorage - package, that describes interface for using
+// any file stoarge in the context of sensetive data storage.
 package filestorage
 
 import "context"

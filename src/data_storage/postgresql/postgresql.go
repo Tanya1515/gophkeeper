@@ -7,20 +7,24 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// PostgreSQLConnection - structure, that contains all data for connecting to PostgreSQL
+// and execute database requests.
 type PostgreSQLConnection struct {
-	Host     string
-	UserName string
-	Password string
-	DBName   string
+	Host     string // Host - database host
+	UserName string // User - user, that connects to database
+	Password string // Password - password, that gives an opportunity to connect to database
+	DBName   string // DBName - database name,
 	dbConn   *sql.DB
 }
 
+// NewPostgreSQLConnection - function for inserting PostgreSQL credentials for connection.
 func NewPostgreSQLConnection(host string, userName string, password string, dbName string) *PostgreSQLConnection {
 	postgreSQL := &PostgreSQLConnection{Host: host, UserName: userName, Password: password, DBName: dbName}
 
 	return postgreSQL
 }
 
+// Connect - function for connecting to PotgreSQL and creating application tables for data storing.
 func (pg *PostgreSQLConnection) Connect() (err error) {
 	ps := fmt.Sprintf("host=%s user=%s password=%s database=%s sslmode=disable",
 		pg.Host, pg.UserName, pg.Password, pg.DBName)
