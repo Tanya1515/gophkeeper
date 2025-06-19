@@ -1,3 +1,6 @@
+// Utils - package, that containts special contants
+// and functions for processing JWT tokens: generate,
+// check and save.
 package utils
 
 import (
@@ -11,13 +14,16 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// Claims - structure, that containts data for generate and sign JWT token.
 type Claims struct {
 	jwt.RegisteredClaims
 	UserLogin string
 }
 
+// TokenExp - contstant, that containts time, after which JWT token is expired.
 const TokenExp = time.Hour
 
+// GenerateToken - function, that generats JWT token for the current user.
 func GenerateToken(userLogin string) (JWTtoken string, err error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
@@ -35,6 +41,7 @@ func GenerateToken(userLogin string) (JWTtoken string, err error) {
 	return
 }
 
+// ProcessJWTToken - function, that
 func ProcessJWTToken(JWTToken string) (userLogin string, err error) {
 	claims := &Claims{}
 
@@ -53,6 +60,8 @@ func ProcessJWTToken(JWTToken string) (userLogin string, err error) {
 
 }
 
+// SaveJWT - function, that saves JWT token to special file on client side for
+// sending GRPC-requests with token for user authetification.
 func SaveJWT(JWTToken, userLogin string) error {
 
 	var err error
@@ -102,6 +111,8 @@ func SaveJWT(JWTToken, userLogin string) error {
 	return nil
 }
 
+// GetJWT - function, that gets JWT token for the user from special
+// file for the user.
 func GetJWT(userLogin string) (JWTToken string, err error) {
 
 	var userJWTByte []byte
@@ -126,6 +137,7 @@ func GetJWT(userLogin string) (JWTToken string, err error) {
 	return
 }
 
+// CreateJWTPath - function, that creates special path for storing JWT tokens on client side.
 func CreateJWTPath() error {
 	path := ".configs"
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {

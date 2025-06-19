@@ -11,6 +11,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
+// UploadPassword - GRPC handler for uploading user password.
 func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.PasswordMessage) (*emptypb.Empty, error) {
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -26,6 +27,7 @@ func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.
 	return nil, nil
 }
 
+// DeletePassword - GRPC handler for deleting user password.
 func (s *GophkeeperServer) DeletePassword(ctx context.Context, passwordData *pb.SensetiveDataMessage) (*emptypb.Empty, error) {
 
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -39,6 +41,7 @@ func (s *GophkeeperServer) DeletePassword(ctx context.Context, passwordData *pb.
 	return nil, nil
 }
 
+// GetPassword - GRPC handler, that returns user password and its' metadata.
 func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.SensetiveDataMessage) (*pb.PasswordMessage, error) {
 	var err error
 	var passwordApp pb.PasswordMessage
@@ -59,6 +62,7 @@ func (s *GophkeeperServer) GetPassword(ctx context.Context, passwordData *pb.Sen
 	return &passwordApp, err
 }
 
+// UpdatePassword - function, that updates user password or its' metadata.
 func (s *GophkeeperServer) UpdatePassword(ctx context.Context, passwordData *pb.PasswordMessage) (*emptypb.Empty, error) {
 	var password string
 	var initVector []byte
@@ -68,7 +72,7 @@ func (s *GophkeeperServer) UpdatePassword(ctx context.Context, passwordData *pb.
 	if passwordData.Password != "" {
 		password, initVector = s.EncryptData(passwordData.Password)
 	}
-	
+
 	err := s.DataStorage.UpdatePassword(ctxDB, password, passwordData.Application, passwordData.MetaData, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while updating password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)

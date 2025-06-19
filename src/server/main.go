@@ -1,3 +1,6 @@
+// Server - package, that containts GRPC handlers for processing
+// client requests, such as storing, updating senetive data:
+// passwords, files and bank card credentials.
 package main
 
 import (
@@ -19,10 +22,13 @@ import (
 	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
 )
 
+// Crypto - structure, that containts object for generating
+// key for encryption/decryption data.
 type Crypto struct {
 	aesgcm cipher.AEAD
 }
 
+// GophkeeperServer - structure, that containts data about Gophkeeper application
 type GophkeeperServer struct {
 	DataStorage dataStorage.DataStorage // DataStorage saves all user sensetive data
 
@@ -34,7 +40,7 @@ type GophkeeperServer struct {
 
 	Mutex *sync.Mutex // Mutex for synchronization
 
-	Crypto
+	Crypto // Crypto data for encryption/decryption sensetive information
 
 	pb.UnimplementedGophkeeperServer // type pb.Unimplemented<TypeName> is used for backward compatibility
 }

@@ -3,7 +3,6 @@
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
 // source: proto/gophkeeper.proto
-
 package proto
 
 import (

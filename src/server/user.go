@@ -14,6 +14,8 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
 )
 
+// LoginUser - GRPC handler for user authorization, checks user login and password
+// generates new JWT token and send OTP to confirm user authorization.
 func (s *GophkeeperServer) LoginUser(ctx context.Context, in *pb.User) (*emptypb.Empty, error) {
 
 	ctxDB, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -45,6 +47,8 @@ func (s *GophkeeperServer) LoginUser(ctx context.Context, in *pb.User) (*emptypb
 	return &emptypb.Empty{}, nil
 }
 
+// RegisterUser - GRPC handler to register user: saves user credentials in database,
+// creates user file storage, sends OTP to confirm user email.
 func (s *GophkeeperServer) RegisterUser(ctx context.Context, in *pb.User) (*emptypb.Empty, error) {
 
 	ctxDB, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -82,6 +86,7 @@ func (s *GophkeeperServer) RegisterUser(ctx context.Context, in *pb.User) (*empt
 	return &emptypb.Empty{}, nil
 }
 
+// VerificationApprove - function, that checks if entered user OTP is correct.
 func (s *GophkeeperServer) VerificationApprove(ctx context.Context, in *pb.Verify) (*pb.Result, error) {
 	var result pb.Result
 	var err error
