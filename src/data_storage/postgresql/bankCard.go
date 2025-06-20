@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 // UploadBankCard - function for uploading credentials of new bank card.

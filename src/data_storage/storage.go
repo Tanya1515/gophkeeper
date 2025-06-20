@@ -5,7 +5,7 @@ package datastorage
 import (
 	"context"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 )
 
 type DataStorage interface {

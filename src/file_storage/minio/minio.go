@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 	"github.com/minio/minio-go"
 )
 

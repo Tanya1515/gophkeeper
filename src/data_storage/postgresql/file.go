@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	_ "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	_ "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 // UploadFile - function for uploading file info for current user.

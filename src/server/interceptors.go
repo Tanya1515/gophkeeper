@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 type CustomServerStream struct {

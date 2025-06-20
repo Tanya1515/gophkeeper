@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 // LoginUser - GRPC handler for user authorization, checks user login and password

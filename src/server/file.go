@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.FileMessage, emptypb.Empty]) error {

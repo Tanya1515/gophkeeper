@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bufio"
@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 func CheckCardNumber(cardNumber string) bool {
@@ -75,7 +75,7 @@ func CheckDateFormat(date string) (ok bool) {
 	return false
 }
 
-var sendBankCard = &cobra.Command{
+var SendBankCard = &cobra.Command{
 	Use:   "card",
 	Short: "Save bank card sensetive data",
 	Long:  `Save bank card sensetive data: card number, cvc code, date`,
@@ -86,7 +86,7 @@ var sendBankCard = &cobra.Command{
 		var bankName string
 		var metadatabankCard string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -149,13 +149,13 @@ var sendBankCard = &cobra.Command{
 	},
 }
 
-var getCard = &cobra.Command{
+var GetCard = &cobra.Command{
 	Use:   "card",
 	Short: "Get bank card credentials",
 	Run: func(cmd *cobra.Command, args []string) {
 		var cardNumber string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -204,13 +204,13 @@ var getCard = &cobra.Command{
 	},
 }
 
-var deleteCard = &cobra.Command{
+var DeleteCard = &cobra.Command{
 	Use:   "card",
 	Short: "Delete bank card credentials",
 	Run: func(cmd *cobra.Command, args []string) {
 		var cardNumber string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -255,7 +255,7 @@ var deleteCard = &cobra.Command{
 	},
 }
 
-var updateCard = &cobra.Command{
+var UpdateCard = &cobra.Command{
 	Use:   "card",
 	Short: "Update bank card credentials",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -267,7 +267,7 @@ var updateCard = &cobra.Command{
 
 		reader := bufio.NewReader(os.Stdin)
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return

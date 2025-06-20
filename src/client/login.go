@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -7,11 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
-var loginCmd = &cobra.Command{
+var LoginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login into gophkeeper",
 	Long:  `Command to authentificate with user login, password and OTP into gophkeeper`,

@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bufio"
@@ -11,11 +11,11 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
-var sendFile = &cobra.Command{
+var SendFile = &cobra.Command{
 	Use:   "file",
 	Short: "Save file",
 	Long:  `Save file with sensetive data to gophkeeper!`,
@@ -23,7 +23,7 @@ var sendFile = &cobra.Command{
 		var filePath string
 		var metadataFile string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -102,14 +102,14 @@ var sendFile = &cobra.Command{
 	},
 }
 
-var getFile = &cobra.Command{
+var GetFile = &cobra.Command{
 	Use:   "file",
 	Short: "Get file from Gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 		var fileName string
 		var filePath string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -179,7 +179,7 @@ var getFile = &cobra.Command{
 	},
 }
 
-var updateFile = &cobra.Command{
+var UpdateFile = &cobra.Command{
 	Use:   "file",
 	Short: "Update existing file with sensetive data in gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -189,7 +189,7 @@ var updateFile = &cobra.Command{
 
 		reader := bufio.NewReader(os.Stdin)
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -286,13 +286,13 @@ var updateFile = &cobra.Command{
 	},
 }
 
-var deleteFile = &cobra.Command{
+var DeleteFile = &cobra.Command{
 	Use:   "file",
 	Short: "Delete existing file with sensetive data in gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 		var fileName string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return

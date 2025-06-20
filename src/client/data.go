@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient, files map[string]string) {
@@ -80,13 +80,13 @@ func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperC
 	defer wg.Done()
 }
 
-var getUserData = &cobra.Command{
+var GetUserData = &cobra.Command{
 	Use:   "all",
-	Short: "Get description of all user sensetive data",
+	Short: "Get description of all User sensetive data",
 	Run: func(cmd *cobra.Command, args []string) {
 		var wg sync.WaitGroup
 		files := make(map[string]string, 100)
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -116,7 +116,7 @@ var getUserData = &cobra.Command{
 
 		sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
 		if err != nil {
-			fmt.Printf("Error while getting all sensetive data for user %s: %s\n", user, err)
+			fmt.Printf("Error while getting all sensetive data for User %s: %s\n", User, err)
 			return
 		}
 		fmt.Println("Yor passwords: ")
@@ -142,7 +142,7 @@ var getUserData = &cobra.Command{
 			fmt.Println()
 		}
 
-		fmt.Printf("All data for user %s was synchronyzed\n", user)
+		fmt.Printf("All data for User %s was synchronyzed\n", User)
 
 	},
 }

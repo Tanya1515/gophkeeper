@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"crypto/aes"
@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-func CreateInitVector() (aesgcm cipher.AEAD, err error) {
+func CreateInitVector() (Aesgcm cipher.AEAD, err error) {
 	key := make([]byte, 2*aes.BlockSize)
 
 	key = []byte("Gophekepeer encrypt/decrypt key.")
@@ -18,7 +18,7 @@ func CreateInitVector() (aesgcm cipher.AEAD, err error) {
 		return nil, fmt.Errorf("error while creating new cipher.Block: %w", err)
 	}
 
-	aesgcm, err = cipher.NewGCM(aesblock)
+	Aesgcm, err = cipher.NewGCM(aesblock)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating given 128-bit block cipher: %w", err)
 	}
@@ -31,7 +31,7 @@ func (s *GophkeeperServer) DecryptData(sensetiveData string, initVector []byte) 
 	if err != nil {
 		return "", fmt.Errorf("error, while decoding string: %w", err)
 	}
-	result, err := s.Crypto.aesgcm.Open(nil, initVector, decodedData, nil)
+	result, err := s.Crypto.Aesgcm.Open(nil, initVector, decodedData, nil)
 	if err != nil {
 		s.Logger.Errorf("Error while decrypting data: %s\n", err)
 		return "", err
@@ -43,7 +43,7 @@ func (s *GophkeeperServer) DecryptData(sensetiveData string, initVector []byte) 
 func (s *GophkeeperServer) EncryptData(sensetiveData string) (string, []byte) {
 	incomingData := []byte(sensetiveData)
 
-	vectInit := make([]byte, s.Crypto.aesgcm.NonceSize())
+	vectInit := make([]byte, s.Crypto.Aesgcm.NonceSize())
 
 	_, err := rand.Read(vectInit)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *GophkeeperServer) EncryptData(sensetiveData string) (string, []byte) {
 		return "", nil
 	}
 
-	result := s.Crypto.aesgcm.Seal(nil, vectInit, incomingData, nil)
+	result := s.Crypto.Aesgcm.Seal(nil, vectInit, incomingData, nil)
 
 	return base64.StdEncoding.EncodeToString(result), vectInit
 }

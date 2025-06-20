@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bufio"
@@ -10,11 +10,11 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
-var sendPassword = &cobra.Command{
+var SendPassword = &cobra.Command{
 	Use:   "password",
 	Short: "Save password",
 	Long:  `Save password from third-party service`,
@@ -23,7 +23,7 @@ var sendPassword = &cobra.Command{
 		var application string
 		var metadataPassword string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -79,13 +79,13 @@ var sendPassword = &cobra.Command{
 	},
 }
 
-var getPassword = &cobra.Command{
+var GetPassword = &cobra.Command{
 	Use:   "password",
 	Short: "Get password of the application from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 		var application string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -130,13 +130,13 @@ var getPassword = &cobra.Command{
 	},
 }
 
-var deletePassword = &cobra.Command{
+var DeletePassword = &cobra.Command{
 	Use:   "password",
 	Short: "Delete password of the application from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
 		var application string
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return
@@ -180,7 +180,7 @@ var deletePassword = &cobra.Command{
 	},
 }
 
-var updatePassword = &cobra.Command{
+var UpdatePassword = &cobra.Command{
 	Use:   "password",
 	Short: "Update password of the application from gophkeeper",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -190,7 +190,7 @@ var updatePassword = &cobra.Command{
 
 		reader := bufio.NewReader(os.Stdin)
 
-		JWTToken, err := ut.GetJWT(user)
+		JWTToken, err := ut.GetJWT(User)
 		if err != nil && strings.Contains(err.Error(), "please login or register") {
 			fmt.Print(err.Error())
 			return

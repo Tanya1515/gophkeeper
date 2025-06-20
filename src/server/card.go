@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	pb "github.com/Tanya1515/gophkeeper.git/cmd/proto"
-	ut "github.com/Tanya1515/gophkeeper.git/cmd/utils"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.BankCardMessage) (*emptypb.Empty, error) {
-	
+
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
