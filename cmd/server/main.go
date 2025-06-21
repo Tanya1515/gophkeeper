@@ -1,0 +1,137 @@
+package main
+
+import (
+	"fmt"
+	"net"
+	"os"
+	"path/filepath"
+	"sync"
+
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
+	postgresql "github.com/Tanya1515/gophkeeper.git/src/data_storage/postgresql"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	minio "github.com/Tanya1515/gophkeeper.git/src/file_storage/minio"
+	server "github.com/Tanya1515/gophkeeper.git/src/server"
+)
+
+func generateTLSCreds(certPath string) (credentials.TransportCredentials, error) {
+	certFile, err := filepath.Abs(certPath + "server.crt")
+	if err != nil {
+		fmt.Println("Error while searching for server.crt ", err)
+		return nil, err
+	}
+	keyFile, err := filepath.Abs(certPath + "server.key")
+	if err != nil {
+		fmt.Println("Error while searching for server.key ", err)
+		return nil, err
+	}
+
+	return credentials.NewServerTLSFromFile(certFile, keyFile)
+}
+
+func main() {
+	var s *grpc.Server
+	address := "0.0.0.0:3200"
+
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	defer logger.Sync()
+
+	loggerApp := *logger.Sugar()
+
+	endpoint, envExists := os.LookupEnv("MINIO_HOST")
+	if !(envExists) {
+		loggerApp.Errorln("Error while getting postgreSQL address")
+		return
+	}
+
+	endpoint = endpoint + ":9000"
+	accessKeyID, envExists := os.LookupEnv("MINIO_ROOT_USER")
+	if !(envExists) {
+		loggerApp.Errorln("Error while getting access key id for Minio")
+		return
+	}
+
+	secretAccessKey, envExists := os.LookupEnv("MINIO_ROOT_PASSWORD")
+	if !(envExists) {
+		loggerApp.Errorln("Error while getting secret access key for Minio")
+		return
+	}
+
+	minioStorage := minio.NewMinioStorage(endpoint, accessKeyID, secretAccessKey, false)
+	err = minioStorage.Connect()
+	if err != nil {
+		loggerApp.Errorln("Error while connecting to Minio: ", err)
+	}
+
+	host, envExists := os.LookupEnv("POSTGRES_HOST")
+	if !(envExists) {
+		loggerApp.Errorln("Error while getting address for PostgreSQL")
+		return
+	}
+
+	userName, envExists := os.LookupEnv("POSTGRES_USER")
+	if !(envExists) {
+		loggerApp.Errorln("Error while getting userName for PostgreSQL")
+		return
+	}
+
+	password, envExists := os.LookupEnv("POSTGRES_PASSWORD")
+	if !(envExists) {
+		loggerApp.Errorln("Error while getting password for PostgreSQL")
+		return
+	}
+
+	dbName, envExists := os.LookupEnv("POSTGRES_DB")
+	if !(envExists) {
+		loggerApp.Errorln("Error while getting database name for PostgreSQL")
+		return
+	}
+
+	certPath, envExists := os.LookupEnv("CERT_PATH")
+	if !(envExists) {
+		certPath = "./test_certs/"
+	}
+
+	postgreSQL := postgresql.NewPostgreSQLConnection(host, userName, password, dbName)
+	err = postgreSQL.Connect()
+	if err != nil {
+		loggerApp.Errorln("Error while connecting to postgreSQL: ", err)
+	}
+
+	listen, err := net.Listen("tcp", address)
+	if err != nil {
+		loggerApp.Errorln("Error while openning connection on address ", address, " : ", err)
+	}
+
+	credsTLS, err := generateTLSCreds(certPath)
+	if err != nil {
+		loggerApp.Errorln("Error while getting certificates for GRPC server ", err)
+	}
+
+	gophkeeper := &server.GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
+
+	gophkeeper.Crypto.Aesgcm, err = server.CreateInitVector()
+	if err != nil {
+		loggerApp.Errorln("Error while generating initialization vector: %s", err)
+		return
+	}
+
+	s = grpc.NewServer(grpc.ChainStreamInterceptor(gophkeeper.StreamInterceptorLogger, gophkeeper.StreamInterceptorCheckJWTToken), grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
+
+	gophkeeper.UserOTP = make(map[string]string, 100)
+
+	var mutex sync.Mutex
+	gophkeeper.Mutex = &mutex
+	pb.RegisterGophkeeperServer(s, gophkeeper)
+	if err := s.Serve(listen); err != nil {
+		loggerApp.Errorln("Error, while trying to start grpc server: ", err)
+	}
+	loggerApp.Infoln("GRPC server for Gopherkeeper successfully started")
+}
