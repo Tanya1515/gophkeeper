@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 	client "github.com/Tanya1515/gophkeeper.git/src/client"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 var rootCmd = &cobra.Command{
@@ -52,7 +52,6 @@ var updateCmd = &cobra.Command{
 	},
 }
 
-
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -60,57 +59,55 @@ func Execute() {
 	}
 }
 
-var user string
-
 func init() {
 	rootCmd.AddCommand(client.LoginCmd)
 	rootCmd.AddCommand(client.RegisterCmd)
 
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.AddCommand(client.SendPassword)
-	client.SendPassword.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.SendPassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.SendPassword.MarkFlagRequired("user")
 	saveCmd.AddCommand(client.SendBankCard)
-	client.SendBankCard.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.SendBankCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.SendBankCard.MarkFlagRequired("user")
 	saveCmd.AddCommand(client.SendFile)
-	client.SendFile.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.SendFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.SendFile.MarkFlagRequired("user")
 
 	rootCmd.AddCommand(getCmd)
 	getCmd.AddCommand(client.GetCard)
-	client.GetCard.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.GetCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.GetCard.MarkFlagRequired("user")
 	getCmd.AddCommand(client.GetFile)
-	client.GetFile.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.GetFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.GetFile.MarkFlagRequired("user")
 	getCmd.AddCommand(client.GetPassword)
-	client.GetPassword.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.GetPassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.GetPassword.MarkFlagRequired("user")
 	getCmd.AddCommand(client.GetUserData)
-	client.GetUserData.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.GetUserData.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.GetUserData.MarkFlagRequired("user")
 
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.AddCommand(client.DeleteFile)
-	client.DeleteFile.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.DeleteFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.DeleteFile.MarkFlagRequired("user")
 	deleteCmd.AddCommand(client.DeleteCard)
-	client.DeleteCard.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.DeleteCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.DeleteCard.MarkFlagRequired("user")
 	deleteCmd.AddCommand(client.DeletePassword)
-	client.DeletePassword.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.DeletePassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.DeletePassword.MarkFlagRequired("user")
 
 	rootCmd.AddCommand(updateCmd)
 	updateCmd.AddCommand(client.UpdateFile)
-	client.UpdateFile.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.UpdateFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.UpdateFile.MarkFlagRequired("user")
 	updateCmd.AddCommand(client.UpdateCard)
-	client.UpdateCard.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.UpdateCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.UpdateCard.MarkFlagRequired("user")
 	updateCmd.AddCommand(client.UpdatePassword)
-	client.UpdatePassword.Flags().StringVarP(&user, "user", "u", "", "User login (required)")
+	client.UpdatePassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	client.UpdatePassword.MarkFlagRequired("user")
 }
 
@@ -120,4 +117,6 @@ func main() {
 		fmt.Println("Error while file for JWT initialization: ", err)
 	}
 	Execute()
+	
+	
 }

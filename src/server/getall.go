@@ -1,3 +1,5 @@
+//Server - package for storing clients' sensetive data
+// such as passwords, bank cards, files. 
 package server
 
 import (
@@ -11,6 +13,7 @@ import (
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 )
 
+// Sync - GRPC handler for getting all passwords and bank card credentials for current user.
 func (s *GophkeeperServer) Sync(ctx context.Context, empt *emptypb.Empty) (*pb.DataMessage, error) {
 
 	var wg sync.WaitGroup
@@ -65,6 +68,7 @@ func (s *GophkeeperServer) Sync(ctx context.Context, empt *emptypb.Empty) (*pb.D
 	return &result, nil
 }
 
+// SyncFiles - GRPC handler for getting all files for current user.
 func (s *GophkeeperServer) SyncFiles(empt *emptypb.Empty, fileStream grpc.ServerStreamingServer[pb.FileMessage]) error {
 	const chunkSize = 64 * 1024
 	ctx := fileStream.Context()

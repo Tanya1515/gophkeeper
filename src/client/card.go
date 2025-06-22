@@ -15,6 +15,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// CheckCardNumber - function, that checks if bank card number is correct.
 func CheckCardNumber(cardNumber string) bool {
 	var num, sum int64
 	arrayDigits := make([]int64, 0, 16)
@@ -59,6 +60,7 @@ func CheckCardNumber(cardNumber string) bool {
 	}
 }
 
+// CheckDateFormat - function, that checks, if date, entered for bank card, is correct.
 func CheckDateFormat(date string) (ok bool) {
 	bankDateResult := strings.Split(date, "/")
 
@@ -91,7 +93,7 @@ var SendBankCard = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		fmt.Print("Please enter card number: ")
@@ -160,7 +162,7 @@ var GetCard = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		fmt.Print("Please enter card number: ")
@@ -215,7 +217,7 @@ var DeleteCard = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		fmt.Print("Please enter card number, that is going to be deleted: ")
@@ -272,7 +274,7 @@ var UpdateCard = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		fmt.Print("Please enter card number you would like to change: ")

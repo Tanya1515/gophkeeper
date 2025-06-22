@@ -11,6 +11,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// UploadBankCard - GRPC handler for saving new bank card credentials for current user.
 func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.BankCardMessage) (*emptypb.Empty, error) {
 
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -27,6 +28,7 @@ func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.
 	return nil, nil
 }
 
+// DeleteBankCardCredentials - GRPC handler for deleting bank card credetials for current user.
 func (s *GophkeeperServer) DeleteBankCardCredentials(ctx context.Context, bankCardCredentials *pb.SensetiveDataMessage) (*emptypb.Empty, error) {
 
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -40,6 +42,7 @@ func (s *GophkeeperServer) DeleteBankCardCredentials(ctx context.Context, bankCa
 	return nil, nil
 }
 
+// GetBankCardCredentials - GRPC handler for getting bank card credentials for current user.
 func (s *GophkeeperServer) GetBankCardCredentials(ctx context.Context, bankCardCredentials *pb.SensetiveDataMessage) (*pb.BankCardMessage, error) {
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -59,6 +62,7 @@ func (s *GophkeeperServer) GetBankCardCredentials(ctx context.Context, bankCardC
 	return bankCardCreds, nil
 }
 
+// UpdateBankCardCreds - GRPC handler for updating bank card credentials for current user.
 func (s *GophkeeperServer) UpdateBankCardCreds(ctx context.Context, bankCardData *pb.BankCardMessage) (*emptypb.Empty, error) {
 	var cvcCode string
 	var initVector []byte

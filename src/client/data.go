@@ -16,6 +16,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// SyncAllFiles - function for getting all files from server and saving them locally.
 func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient, files map[string]string) {
 	var fileName string
 	var fileToSave *os.File
@@ -91,7 +92,7 @@ var GetUserData = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 			return
 		}
 

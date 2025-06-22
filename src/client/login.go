@@ -1,3 +1,6 @@
+// Client - package for running console client for uploading
+// such sensetive data as passwords, files and bank card
+// credentials.
 package client
 
 import (

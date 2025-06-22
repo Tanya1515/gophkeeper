@@ -8,6 +8,8 @@ import (
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 )
 
+// DataStorage - interface for describing storage for saving 
+// sensetive data. 
 type DataStorage interface {
 	Connect() error
 

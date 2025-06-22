@@ -14,6 +14,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// UploadFile - GRPC handler for upploading new file into file storage for current user.
 func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.FileMessage, emptypb.Empty]) error {
 
 	fileToSave, err := os.CreateTemp("/tmp/", "gophkeeper")
@@ -81,6 +82,7 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 	return nil
 }
 
+// DeleteFile - GRPC handler for deleting file from file storage for current user.
 func (s *GophkeeperServer) DeleteFile(ctx context.Context, fileData *pb.SensetiveDataMessage) (*emptypb.Empty, error) {
 
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -102,6 +104,7 @@ func (s *GophkeeperServer) DeleteFile(ctx context.Context, fileData *pb.Sensetiv
 	return nil, nil
 }
 
+// GetFile - GRPC handler for getting file from file storage and other data for current user.
 func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStream grpc.ServerStreamingServer[pb.FileMessage]) error {
 	const chunkSize = 64 * 1024
 
@@ -142,6 +145,7 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 	return nil
 }
 
+// UpdateFile - GRPC handler for updating file in file storage and metadata about the file.
 func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.FileMessage, emptypb.Empty]) error {
 
 	fileToSave, err := os.CreateTemp("/tmp/", "gophkeeper")

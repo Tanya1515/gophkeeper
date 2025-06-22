@@ -8,6 +8,8 @@ import (
 	"fmt"
 )
 
+// CreateInitVector - function for generating aesgm object for encrypting/decrypting 
+// sensetive data.
 func CreateInitVector() (Aesgcm cipher.AEAD, err error) {
 	key := make([]byte, 2*aes.BlockSize)
 
@@ -26,6 +28,7 @@ func CreateInitVector() (Aesgcm cipher.AEAD, err error) {
 	return
 }
 
+// DecryptData - function for decrypting user sensetive data.
 func (s *GophkeeperServer) DecryptData(sensetiveData string, initVector []byte) (string, error) {
 	decodedData, err := base64.StdEncoding.DecodeString(sensetiveData)
 	if err != nil {
@@ -40,6 +43,8 @@ func (s *GophkeeperServer) DecryptData(sensetiveData string, initVector []byte) 
 	return string(result), err
 }
 
+// EncryptData - function, that generates init vector and ecnode sensetive data 
+// for current user.
 func (s *GophkeeperServer) EncryptData(sensetiveData string) (string, []byte) {
 	incomingData := []byte(sensetiveData)
 

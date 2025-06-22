@@ -28,7 +28,7 @@ var SendFile = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 			return
 		}
 
@@ -114,7 +114,7 @@ var GetFile = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		for filePath == "" {
@@ -194,7 +194,7 @@ var UpdateFile = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		for fileName == "" {
@@ -297,7 +297,7 @@ var DeleteFile = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		for fileName == "" {

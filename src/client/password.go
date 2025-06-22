@@ -28,7 +28,7 @@ var SendPassword = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 			return
 		}
 
@@ -90,7 +90,7 @@ var GetPassword = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		fmt.Print("Please enter appplication, that password belongs to: ")
@@ -141,7 +141,7 @@ var DeletePassword = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		fmt.Print("Please enter appplication, that password belongs to: ")
@@ -195,7 +195,7 @@ var UpdatePassword = &cobra.Command{
 			fmt.Print(err.Error())
 			return
 		} else if err != nil {
-			fmt.Print("Internal error")
+			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
 		}
 
 		fmt.Print("Please enter appplication, that password belongs to: ")

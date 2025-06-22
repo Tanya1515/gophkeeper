@@ -4,6 +4,8 @@ package filestorage
 
 import "context"
 
+// FileStorage - interface for describing storage files
+// with sensetive data. 
 type FileStorage interface {
 	Connect() error
 
