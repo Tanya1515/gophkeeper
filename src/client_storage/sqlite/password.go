@@ -36,7 +36,7 @@ func (cache *SQLite) DeletePassword(application string, userID int) error {
 }
 
 // SavePasswordOperation - function for saving all operations with password for the application, if server is unavailable.
-func (cache *SQLite) SavePasswordOperation(application string, operation cs.Operation, fields []string, opTime string) error {
+func (cache *SQLite) SavePasswordOperation(application string, operation cs.Operation, fields []string, opTime string, userID int) error {
 	var operationName string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -78,11 +78,11 @@ func (cache *SQLite) SavePasswordOperation(application string, operation cs.Oper
 		}
 	}
 
-	statement, err := db.Prepare("INSERT INTO PasswordOperations (operationID, application, operationName, operationUploadTime) VALUES (?, ?, ?, ?)")
+	statement, err := db.Prepare("INSERT INTO PasswordOperations (operationID, userID, application, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with password for application %s: %w", operation, application, err)
 	}
-	_, err = statement.ExecContext(ctxCache, operationID, application, operation, opTime)
+	_, err = statement.ExecContext(ctxCache, operationID, userID, application, operation, opTime)
 	if err != nil {
 		return fmt.Errorf("error while adding new operation %s with password for application %s: %w", operation, application, err)
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
@@ -65,16 +66,25 @@ var SendPassword = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+		var retryCount = 1
 		_, err = clientGRPC.UploadPassword(ctx, &pb.PasswordMessage{
 			Password:    password,
 			Application: application,
 			MetaData:    metadataPassword,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while uploading password for application %s : %s\n", application, err)
-			return
+		for err != nil || retryCount == 3 {
+			_, err = clientGRPC.UploadPassword(ctx, &pb.PasswordMessage{
+				Password:    password,
+				Application: application,
+				MetaData:    metadataPassword,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+
+		// SQLite
+
 		fmt.Printf("Your password for application %s has been successfully uploaded!\n", application)
 	},
 }
@@ -116,14 +126,21 @@ var GetPassword = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+		var retryCount = 1
 		passwordApp, err := clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
 			Identificator: application,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while getting password for application %s: %s", application, err)
-			return
+		for err != nil || retryCount == 3 {
+			passwordApp, err = clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
+				Identificator: application,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+
+		// SQLite
+
 		fmt.Printf("Application: %s\n", application)
 		fmt.Printf("Password: %s\n", passwordApp.Password)
 		fmt.Printf("Additioanl information: %s\n", passwordApp.MetaData)
@@ -167,14 +184,19 @@ var DeletePassword = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+		var retryCount = 1
 		_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
 			Identificator: application,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while removing sensetive data regarding the application %s: %s", application, err)
-			return
+		for err != nil || retryCount == 3 {
+			_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
+				Identificator: application,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+		// SQLite
 
 		fmt.Printf("All sensetive data regarding to application %s was successfully removed from gophkeeper", application)
 	},
@@ -238,16 +260,24 @@ var UpdatePassword = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+		var retryCount = 1
 		_, err = clientGRPC.UpdatePassword(ctx, &pb.PasswordMessage{
 			Password:    newPassword,
 			Application: application,
 			MetaData:    passwordMetadata,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while updating password for application %s : %s\n", application, err)
-			return
+		for err != nil || retryCount == 3 {
+			_, err = clientGRPC.UpdatePassword(ctx, &pb.PasswordMessage{
+				Password:    newPassword,
+				Application: application,
+				MetaData:    passwordMetadata,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+		// SQLite
+		
 		fmt.Printf("Your password for application %s has been successfully updated!\n", application)
 	},
 }

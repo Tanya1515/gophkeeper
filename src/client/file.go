@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
@@ -64,16 +65,30 @@ var SendFile = &cobra.Command{
 		md := metadata.New(map[string]string{"Authorization": JWTToken})
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
 		stream, err := clientGRPC.UploadFile(ctx)
 		if err != nil {
 			fmt.Printf("error while openning GRPC stream to send file: %s", err)
 			return
+		}
+		var retryCount = 1
+		for err != nil || retryCount == 3 {
+			stream, err = clientGRPC.UploadFile(ctx)
+			if err != nil {
+				fmt.Printf("error while openning GRPC stream to send file: %s", err)
+				return
+			}
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
 
 		const chunkSize = 64 * 1024
 		buffer := make([]byte, chunkSize)
 
 		for {
+			if err != nil {
+				break
+			}
 			n, err := file.Read(buffer)
 			if err == io.EOF {
 				break
@@ -81,16 +96,25 @@ var SendFile = &cobra.Command{
 				fmt.Printf("Error while sending file chunk: %s", err)
 				return
 			}
-
-			if err := stream.Send(&pb.FileMessage{
+			
+			err = stream.Send(&pb.FileMessage{
 				Content:  buffer[:n],
 				FileName: fileName,
 				MetaData: metadataFile,
-			}); err != nil {
-				fmt.Printf("Error while sending file chunk: %s", err)
-				return
+			})
+
+			retryCount = 1
+			for err != nil || retryCount == 3 {
+				err = stream.Send(&pb.FileMessage{
+					Content:  buffer[:n],
+					FileName: fileName,
+					MetaData: metadataFile,
+				})
+				retryCount++
+				time.Sleep(time.Duration(retryCount))
 			}
 		}
+		// if err != nil - обрабатываем файл в SQLite
 		_, err = stream.CloseAndRecv()
 		if err != nil && err != io.EOF {
 			fmt.Printf("Error while recieving response from server: %s", err)

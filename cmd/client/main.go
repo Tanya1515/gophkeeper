@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	client "github.com/Tanya1515/gophkeeper.git/src/client"
+	sql "github.com/Tanya1515/gophkeeper.git/src/client_storage/sqlite"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
@@ -118,5 +119,13 @@ func main() {
 	}
 	Execute()
 	
-	
+	sqliteCache := &sql.SQLite{}
+
+	client := client.Client{ClientStorage: sqliteCache}
+
+	err = client.ClientStorage.Connect()
+	if err != nil {
+		fmt.Println("Error while connecting to client storage: ", err)
+		return 
+	}
 }

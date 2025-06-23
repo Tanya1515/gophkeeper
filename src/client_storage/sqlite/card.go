@@ -37,7 +37,7 @@ func (cache *SQLite) DeleteBankCard(cardNumber string, userID int) error {
 
 // SaveCardOperation - function for saving all new operations for bank card to application cache,
 // because server is unavailable.
-func (cache *SQLite) SaveCardOperation(cardNumber string, operation cs.Operation, fields []string, opTime string) error {
+func (cache *SQLite) SaveCardOperation(cardNumber string, operation cs.Operation, fields []string, opTime string, userID int) error {
 	var operationName string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -79,11 +79,11 @@ func (cache *SQLite) SaveCardOperation(cardNumber string, operation cs.Operation
 		}
 	}
 
-	statement, err := db.Prepare("INSERT INTO CardOperations (operationID, cardNumber, operationName, operationUploadTime) VALUES (?, ?, ?, ?)")
+	statement, err := db.Prepare("INSERT INTO CardOperations (operationID, userID, cardNumber, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with bank card %s: %w", operation, cardNumber, err)
 	}
-	_, err = statement.ExecContext(ctxCache, operationID, cardNumber, operation, opTime)
+	_, err = statement.ExecContext(ctxCache, operationID, userID, cardNumber, operation, opTime)
 	if err != nil {
 		return fmt.Errorf("error while adding new operation %s with bank card %s: %w", operation, cardNumber, err)
 	}

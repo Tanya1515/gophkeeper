@@ -36,7 +36,7 @@ func (cache *SQLite) DeleteFile(fileName string, userID int) error {
 }
 
 // SaveFileOperation - function, that saves operations with file if server is unavailable.
-func (cache *SQLite) SaveFileOperation(fileName string, operation cs.Operation, fields []string, opTime string) error {
+func (cache *SQLite) SaveFileOperation(fileName string, operation cs.Operation, fields []string, opTime string, userID int) error {
 	var operationName string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -78,11 +78,11 @@ func (cache *SQLite) SaveFileOperation(fileName string, operation cs.Operation, 
 		}
 	}
 
-	statement, err := db.Prepare("INSERT INTO FileOperations (operationID, fileName, operationName, operationUploadTime) VALUES (?, ?, ?, ?)")
+	statement, err := db.Prepare("INSERT INTO FileOperations (operationID, userID, fileName, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with password for application %s: %w", operation, fileName, err)
 	}
-	_, err = statement.ExecContext(ctxCache, operationID, fileName, operation, opTime)
+	_, err = statement.ExecContext(ctxCache, operationID, userID, fileName, operation, opTime)
 	if err != nil {
 		return fmt.Errorf("error while adding new operation %s with file %s: %w", operation, fileName, err)
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
@@ -134,6 +135,7 @@ var SendBankCard = &cobra.Command{
 		clientGRPC := pb.NewGophkeeperClient(connection)
 		md := metadata.New(map[string]string{"Authorization": JWTToken})
 
+		var retryCount = 1
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 		_, err = clientGRPC.UploadBankCard(ctx, &pb.BankCardMessage{
 			CardNumber: cardNumber,
@@ -143,10 +145,20 @@ var SendBankCard = &cobra.Command{
 			Metadata:   metadatabankCard,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while uploading bank card credentials with card number %s\n", cardNumber)
-			return
+		for err != nil || retryCount == 3 {
+			_, err = clientGRPC.UploadBankCard(ctx, &pb.BankCardMessage{
+				CardNumber: cardNumber,
+				CvcCode:    cvc,
+				Data:       date,
+				Bank:       bankName,
+				Metadata:   metadatabankCard,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+		
+		// SQLite
+
 		fmt.Println("Bank card credentials successfully have been uploaded!")
 	},
 }
@@ -190,14 +202,21 @@ var GetCard = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+		var retryCount = 1
 		bankCard, err := clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 			Identificator: cardNumber,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while getting bank card %s: %s", cardNumber, err)
-			return
+		for err != nil || retryCount == 3 {
+			bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+				Identificator: cardNumber,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+
+		// SQLite
+		
 		fmt.Printf("Card number: %s\n", cardNumber)
 		fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
 		fmt.Printf("Card date: %s\n", bankCard.Data)
@@ -244,14 +263,20 @@ var DeleteCard = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+		var retryCount = 1
 		_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 			Identificator: cardNumber,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while removing sensetive data regarding the bank card %s: %s", cardNumber, err)
-			return
+		for err != nil || retryCount == 3 {
+			_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+				Identificator: cardNumber,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+
+		// SQLite
 
 		fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper", cardNumber)
 	},
@@ -346,6 +371,7 @@ var UpdateCard = &cobra.Command{
 
 		ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+		var retryCount = 1
 		_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
 			CardNumber: cardNumber,
 			CvcCode:    cvc,
@@ -354,10 +380,19 @@ var UpdateCard = &cobra.Command{
 			Metadata:   metadatabankCard,
 		})
 
-		if err != nil {
-			fmt.Printf("Error while updating bank card credentials %s: %s\n", cardNumber, err)
-			return
+		for err != nil || retryCount == 3 {
+			_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
+				CardNumber: cardNumber,
+				CvcCode:    cvc,
+				Data:       cardDate,
+				Bank:       bankName,
+				Metadata:   metadatabankCard,
+			})
+			retryCount++
+			time.Sleep(time.Duration(retryCount))
 		}
+
+		// SQLite
 
 		fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
 
