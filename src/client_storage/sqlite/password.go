@@ -11,8 +11,8 @@ import (
 	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 )
 
-// DeletePassword - function, that deletes application, password and other data from application cache. 
-func (cache *SQLite) DeletePassword(application string) error {
+// DeletePassword - function, that deletes application, password and other data from application cache.
+func (cache *SQLite) DeletePassword(application string, userID int) error {
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -24,11 +24,11 @@ func (cache *SQLite) DeletePassword(application string) error {
 
 	defer db.Close()
 
-	statement, err := db.Prepare("DELETE from Passwords WHERE application=?")
+	statement, err := db.Prepare("DELETE from Passwords WHERE application=? AND userID")
 	if err != nil {
 		return fmt.Errorf("error while making request for deleting password for application %s: %w", application, err)
 	}
-	_, err = statement.ExecContext(ctxCache, application)
+	_, err = statement.ExecContext(ctxCache, application, userID)
 	if err != nil {
 		return fmt.Errorf("error while deleting password for application %s: %w", application, err)
 	}
@@ -113,7 +113,7 @@ func (cache *SQLite) SavePasswordOperation(application string, operation cs.Oper
 
 // GetPassword - function for getting password and data about it from application cache.
 // The function also checks, if the data is up to date.
-func (cache *SQLite) GetPassword(application string) (password string, metadata string, err error) {
+func (cache *SQLite) GetPassword(application string, userID int) (password string, metadata string, err error) {
 	var lastUpdated, uploadTime string
 	var accessCount int
 
@@ -127,20 +127,43 @@ func (cache *SQLite) GetPassword(application string) (password string, metadata 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	row := db.QueryRowContext(ctxCache, "SELECT password, metadata, lastUpdated, accessCount, uploadTime WHERE application=$1", application)
+	row := db.QueryRowContext(ctxCache, "SELECT password, metadata, lastUpdated, accessCount, uploadTime WHERE application=$1 AND userID=$2", application, userID)
 
 	err = row.Scan(&password, &metadata, &lastUpdated, &accessCount, &uploadTime)
 	if err != nil {
 		return "", "", fmt.Errorf("error while getting data for password of application %s: %w", application, err)
 	}
-	// проверка актуальности данных (lastUpdated + accessCount)
+	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
 
 	// логика по рашисфровке пароля
-	return 
+	return
 }
 
 // UploadPassword - function for updating existing password and data about it or
-// inserting new one. 
-func (cache *SQLite) UploadPassword(application, password, metadata string) error {
-	return nil
+// inserting new one.
+func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime string, userID int) (err error) {
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return fmt.Errorf("error while openning connection to update data about application %s or add new one: %w", application, err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = db.ExecContext(ctxCache, "INSERT INTO Passwords (application, password, metadata, lastUpdated, uploadTime, userID) VALUES ($1,$2,$3,$4,$5,$6) "+
+		"ON CONFLICT (application, userID) DO "+
+		"UPDATE SET "+
+		"password = CASE WHEN excluded.password <> '' THEN excluded.password ELSE password END, "+
+		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
+		"lastUpdated = excluded.lastUpdated, "+
+		"Passwords.accessCount = Passwords.accessCount + 1 WHERE Passwords.application = excluded.application AND Passwords.userID = excluded.userID", application, password, metadata, uploadTime, uploadTime, userID)
+
+	if err != nil {
+		return fmt.Errorf("error while updating existing application %s or inserting new one: %w", application, err)
+	}
+
+	return
 }

@@ -23,7 +23,7 @@ func (pg *PostgreSQLConnection) UploadFile(ctx context.Context, fileName, metaDa
 
 // DeleteFile - function for deleting file info for current user.
 func (pg *PostgreSQLConnection) DeleteFile(ctx context.Context, fileName string) (err error) {
-	_, err = pg.dbConn.Exec("DELETE FROM UserFiles WHERE fileName=$1", fileName)
+	_, err = pg.dbConn.Exec("DELETE FROM UserFiles WHERE fileName=$1 AND userID=$2", fileName, ctx.Value(ut.IDKey))
 
 	return
 }

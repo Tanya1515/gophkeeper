@@ -31,13 +31,14 @@ func (cache *SQLite) Connect() error {
 
 	statement.Exec()
 
-	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS Passwords (application TEXT PRIMARY KEY, " +
+	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS Passwords (application TEXT, " +
 		"userID INTEGER, " +
 		"password TEXT, " +
 		"metadata TEXT, " +
 		"accessCount INTEGER, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
+		"PRIMARY KEY (application, userID)" +
 		"FOREIGN KEY(userID) REFERENCES Users(userID) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for passwords: ", err)
@@ -46,7 +47,7 @@ func (cache *SQLite) Connect() error {
 
 	statement.Exec()
 
-	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS Cards (cardNumber TEXT PRIMARY KEY, " +
+	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS Cards (cardNumber TEXT, " +
 		"userID INTEGER, " +
 		"cvcCode TEXT, " +
 		"date TEXT, " +
@@ -55,6 +56,7 @@ func (cache *SQLite) Connect() error {
 		"accessCount INTEGER, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT," +
+		"PRIMARY KEY (userID, cardNumber) " +
 		"FOREIGN KEY(userID) REFERENCES Users(userID) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for cards: ", err)
@@ -63,13 +65,14 @@ func (cache *SQLite) Connect() error {
 
 	statement.Exec()
 
-	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS Files (fileName TEXT PRIMARY KEY, " +
+	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS Files (fileName TEXT, " +
 		"filePath TEXT, " +
 		"content BLOB, " +
 		"metadata TEXT, " +
 		"accessCount INTEGER, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
+		"PRIMARY KEY (fileName, userID)" +
 		"FOREIGN KEY(userID) REFERENCES Users(userID) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for files: ", err)

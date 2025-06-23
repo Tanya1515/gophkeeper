@@ -25,7 +25,7 @@ func (pg *PostgreSQLConnection) UploadPassword(ctx context.Context, password, ap
 // DeletePassword - function for deleting password data for current user.
 func (pg *PostgreSQLConnection) DeletePassword(ctx context.Context, application string) (err error) {
 
-	_, err = pg.dbConn.Exec("DELETE FROM Credentials WHERE application=$1", application)
+	_, err = pg.dbConn.Exec("DELETE FROM Credentials WHERE application=$1 AND userID=$2", application, ctx.Value(ut.IDKey))
 
 	return
 }
@@ -33,7 +33,7 @@ func (pg *PostgreSQLConnection) DeletePassword(ctx context.Context, application 
 // GetPassword - function for getting password data for current user.
 func (pg *PostgreSQLConnection) GetPassword(ctx context.Context, application string) (passwordApp pb.PasswordMessage, initVector []byte, err error) {
 
-	row := pg.dbConn.QueryRowContext(ctx, "SELECT password, metaData, initVector FROM Credentials WHERE application=$1", application)
+	row := pg.dbConn.QueryRowContext(ctx, "SELECT password, metaData, initVector FROM Credentials WHERE application=$1 AND userID=$2", application, ctx.Value(ut.IDKey))
 
 	err = row.Scan(&passwordApp.Password, &passwordApp.MetaData, &initVector)
 
@@ -48,7 +48,7 @@ func (pg *PostgreSQLConnection) UpdatePassword(ctx context.Context, password, ap
 			"password = CASE WHEN $1 <> '' THEN $1 ELSE password END, "+
 			"metaData = CASE WHEN $2 <> '' THEN $2 ELSE metaData END, "+
 			"initVector = CASE WHEN $3::bytea IS NOT NULL THEN $3::bytea ELSE initVector END "+
-			"WHERE application=$4;", password, md, initVector, app)
+			"WHERE application=$4 AND userID=$2", password, md, initVector, app, ctx.Value(ut.IDKey))
 
 	if err != nil {
 		return fmt.Errorf("error while updating password for application %s : %w", app, err)

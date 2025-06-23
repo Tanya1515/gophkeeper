@@ -4,14 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 	"github.com/google/uuid"
 )
 
-// DeleteFile - function for deleting file from cache 
-func (cache *SQLite) DeleteFile(fileName string) error {
+// DeleteFile - function for deleting file from cache
+func (cache *SQLite) DeleteFile(fileName string, userID int) error {
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -23,11 +24,11 @@ func (cache *SQLite) DeleteFile(fileName string) error {
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	statement, err := db.Prepare("DELETE from Files WHERE fileName=?")
+	statement, err := db.Prepare("DELETE from Files WHERE fileName=? AND userID=?")
 	if err != nil {
 		return fmt.Errorf("error while making request for deleting file with name %s: %w", fileName, err)
 	}
-	_, err = statement.ExecContext(ctxCache, fileName)
+	_, err = statement.ExecContext(ctxCache, fileName, userID)
 	if err != nil {
 		return fmt.Errorf("error while deleting file with name %s: %w", fileName, err)
 	}
@@ -109,13 +110,111 @@ func (cache *SQLite) SaveFileOperation(fileName string, operation cs.Operation, 
 
 	return nil
 }
+
 // GetFile - function for getting file from application cache or return path to local file.
 // The function is also checks if data is up to date.
-func (cache *SQLite) GetFile(fileName string) error {
-	return nil
+func (cache *SQLite) GetFile(fileName string, userID int) (metadata, pathFile string, err error) {
+	var lastUpdated, uploadTime string
+	var accessCount int
+	var fileContent []byte
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return "", "", fmt.Errorf("error while openning connection to update data about application %s or add new one: %w", fileName, err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	row := db.QueryRowContext(ctxCache, "SELECT filePath, content, metadata, lastUpdated, accessCount, uploadTime FROM Files WHERE fileName=$1 AND userID=$2", fileName, userID)
+
+	err = row.Scan(&pathFile, &fileContent, &metadata, &lastUpdated, &accessCount, &uploadTime)
+	if err != nil {
+		return "", "", fmt.Errorf("error while scanning all data about file %s: %w", fileName, err)
+	}
+
+	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
+
+	if pathFile != "" {
+		return
+	}
+
+	file, err := os.OpenFile("/tmp/"+fileName, os.O_RDWR|os.O_CREATE, 0777)
+	if err != nil {
+		return "", "", fmt.Errorf("error while openning file /tmp/%s", fileName)
+	}
+
+	_, err = file.Write(fileContent)
+	if err != nil {
+		return "", "", fmt.Errorf("error while writting data to file /tmp/%s", fileName)
+	}
+	defer file.Close()
+	pathFile = "/tmp/" + fileName
+	return
 }
 
 // UploadFile - function for updating existing file or insert new one to application cache.
-func (cache *SQLite) UploadFile(fileName, filePath, metadata string) error {
+func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime string, userID int) error {
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return fmt.Errorf("error while openning connection to update file %s or add new one: %w", fileName, err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	processedFile, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("error while openning file %s: %w", filePath, err)
+	}
+
+	fileInfo, err := processedFile.Stat()
+	if err != nil {
+		return fmt.Errorf("error while getting info about file %s: %w", filePath, err)
+	}
+
+	if fileInfo.Size() <= 102400 {
+		content := make([]byte, fileInfo.Size())
+		
+		_, err = processedFile.Read(content)
+		if err != nil {
+			return fmt.Errorf("error while reading data from file %s: %w", filePath, err)
+		}
+
+		_, err = db.ExecContext(ctxCache, "INSERT INTO Files (fileName, content, metadata, lastUpdated, uploadTime, userID) VALUES ($1,$2,$3,$4,$5,$6) "+
+			"ON CONFLICT (fileName, userID) DO"+
+			"UPDATE SET "+
+			"content = CASE WHEN excluded.content::bytea IS NOT NULL THEN excluded.content::bytea ELSE content END, "+
+			"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
+			"lastUpdated = excluded.lastUpdated,"+
+			"Files.accessCount = Files.accessCount + 1 WHERE Files.fileName = excluded.fileName AND Files.userID = excluded.userID", fileName, content, metadata, uploadTime, uploadTime, userID)
+
+		if err != nil {
+			return fmt.Errorf("error while updating existing file %s or inserting new one with content: %w", filePath, err)
+		}
+	} else {
+		err = os.Rename(filePath, "/tmp/"+fileName)
+		if err != nil {
+			return fmt.Errorf("error while moving file %s to /tmp/%s: %w", filePath, fileName, err)
+		}
+
+		_, err = db.ExecContext(ctxCache, "INSERT INTO Files (fileName, filePath, metadata, lastUpdated, uploadTime, userID) VALUES ($1,$2,$3,$4,$5,$6) "+
+			"ON CONFLICT (fileName, userID) DO"+
+			"UPDATE SET "+
+			"filePath = CASE WHEN excluded.filePath <> '' THEN excluded.filePath ELSE filePath END, "+
+			"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
+			"lastUpdated = excluded.lastUpdated, " +
+			"Files.accessCount = Files.accessCount + 1 WHERE Files.fileName = excluded.fileName AND Files.userID = excluded.userID", fileName, filePath, metadata, uploadTime, uploadTime, userID)
+
+		if err != nil {
+			return fmt.Errorf("error while updating existing file %s or inserting new one with content: %w", filePath, err)
+		}
+	}
+
 	return nil
 }

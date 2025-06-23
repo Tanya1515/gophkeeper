@@ -19,17 +19,17 @@ const (
 type ClientStorage interface {
 	Connect() 
 
-	GetBankCard(cardNumber string) (password string, metadata string, err error)
-	GetFile(fileName string) error
-	GetPassword(application string) error
+	GetBankCard(cardNumber string, userID int) (password string, metadata string, err error)
+	GetFile(fileName string, userID int) error
+	GetPassword(application string, userID int) error
 
-	DeleteBankCard(cardNumber string) error
-	DeleteFile(fileName string) error
-	DeletePassword(application string) error
+	DeleteBankCard(cardNumber string, userID int) error
+	DeleteFile(fileName string, userID int) error
+	DeletePassword(application string, userID int) error
 
-	UploadBankCard(cardNumber string) error
-	UploadFile(fileName, filePath, metadata string) error
-	UploadPassword(application, password, metadata string) error
+	UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime string, userID int) error
+	UploadFile(fileName, filePath, metadata string, userID int) error
+	UploadPassword(application, password, metadata string, userID int) error
 
 	SaveCardOperation(cardNumber string, operation Operation, fields []string, time string) error
 	SaveFileOperation(fileName string, operation Operation, fields []string, time string) error

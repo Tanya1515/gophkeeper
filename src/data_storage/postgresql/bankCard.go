@@ -25,7 +25,7 @@ func (pg *PostgreSQLConnection) UploadBankCard(ctx context.Context, cardNumber, 
 
 func (pg *PostgreSQLConnection) DeleteBankCard(ctx context.Context, cardNumber string) (err error) {
 
-	_, err = pg.dbConn.ExecContext(ctx, "DELETE FROM BankCards WHERE cardNumber=$1", cardNumber)
+	_, err = pg.dbConn.ExecContext(ctx, "DELETE FROM BankCards WHERE cardNumber=$1 AND userID=$2", cardNumber, ctx.Value(ut.IDKey))
 
 	return
 }
@@ -36,7 +36,7 @@ func (pg *PostgreSQLConnection) GetBankCardCredentials(ctx context.Context, card
 	var err error
 	var cardCreds pb.BankCardMessage
 	var initVector []byte
-	row := pg.dbConn.QueryRowContext(ctx, "SELECT cvcCode, date, bank, metadata, initVector FROM BankCards WHERE cardNumber=$1", cardNumber)
+	row := pg.dbConn.QueryRowContext(ctx, "SELECT cvcCode, date, bank, metadata, initVector FROM BankCards WHERE cardNumber=$1 AND userID=$2", cardNumber, ctx.Value(ut.IDKey))
 
 	err = row.Scan(&cardCreds.CvcCode, &date, &cardCreds.Bank, &cardCreds.Metadata, &initVector)
 	if err != nil {
@@ -61,7 +61,7 @@ func (pg *PostgreSQLConnection) UpdateBankCardCreds(ctx context.Context, cardNum
 			"bank=CASE WHEN $3 <> '' THEN $3 ELSE bank END, "+
 			"metaData=CASE WHEN $4 <> '' THEN $4 ELSE metaData END, "+
 			"initVector = CASE WHEN $5::bytea IS NOT NULL THEN $5::bytea ELSE initVector END "+
-			"WHERE cardNumber=$6", cvc, date, bank, md, initVector, cardNumber)
+			"WHERE cardNumber=$6 AND userID=$7", cvc, date, bank, md, initVector, cardNumber, ctx.Value(ut.IDKey))
 
 	if err != nil {
 		return fmt.Errorf("error while updating bank card credentials for card number %s: %w", cardNumber, err)
