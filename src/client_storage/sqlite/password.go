@@ -36,7 +36,7 @@ func (cache *SQLite) DeletePassword(application, userName string) error {
 }
 
 // SavePasswordOperation - function for saving all operations with password for the application, if server is unavailable.
-func (cache *SQLite) SavePasswordOperation(application string, operation cs.Operation, fields []string, opTime, userName string) error {
+func (cache *SQLite) SavePasswordOperation(application, userName string, operation cs.Operation, fields []string, opTime string) error {
 	var operationName string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")

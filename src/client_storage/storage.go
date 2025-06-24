@@ -33,7 +33,7 @@ type ClientStorage interface {
 	UploadFile(fileName, filePath, metadata, uploadTime, userName string) error
 	UploadPassword(application, password, metadata, uploadTime, userName string) error
 
-	SaveCardOperation(cardNumber string, operation Operation, fields []string, time string) error
-	SaveFileOperation(fileName string, operation Operation, fields []string, time string) error
-	SavePasswordOperation(application string, operation Operation, fields []string, time string) error
+	SaveCardOperation(cardNumber, userName string, operation Operation, fields []string, time string) error
+	SaveFileOperation(fileName, userName string, operation Operation, fields []string, time string) error
+	SavePasswordOperation(application, userName string, operation Operation, fields []string, time string) error
 }
