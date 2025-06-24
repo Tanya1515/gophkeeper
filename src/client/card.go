@@ -78,6 +78,7 @@ func CheckDateFormat(date string) (ok bool) {
 	return false
 }
 
+// SendBankCard creates handler for processing cli command, that sends bank card credentials.
 func (c *Client) SendBankCard() *cobra.Command {
 	var SendBankCard = &cobra.Command{
 		Use:   "card",
@@ -167,6 +168,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 	return SendBankCard
 }
 
+// GetBankCard creates handler for processing cli command, that gets bank card credentials.
 func (c *Client) GetBankCard() *cobra.Command {
 	var GetCard = &cobra.Command{
 		Use:   "card",
@@ -234,6 +236,7 @@ func (c *Client) GetBankCard() *cobra.Command {
 
 }
 
+// DeleteBankCard creates handler for processing cli command, that deletes bank card data.
 func (c *Client) DeleteBankCard() *cobra.Command {
 	var DeleteCard = &cobra.Command{
 		Use:   "card",
@@ -296,6 +299,7 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 
 }
 
+// UpdateBankCard creates handler for processing cli command, that updates bank card credentials.
 func (c *Client) UpdateBankCard() *cobra.Command {
 	var UpdateCard = &cobra.Command{
 		Use:   "card",

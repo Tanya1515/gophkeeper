@@ -81,6 +81,7 @@ func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperC
 	defer wg.Done()
 }
 
+// GetUserData creates handler for processing cli command, that gets all sensetive data for current user.
 func (c *Client) GetUserData() *cobra.Command {
 
 	var GetUserData = &cobra.Command{

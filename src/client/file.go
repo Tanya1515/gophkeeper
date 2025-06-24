@@ -16,6 +16,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// SendFile creates handler for processing cli command, that sends user file and data.
 func (c *Client) SendFile() *cobra.Command {
 	var SendFile = &cobra.Command{
 		Use:   "file",
@@ -131,6 +132,7 @@ func (c *Client) SendFile() *cobra.Command {
 
 }
 
+// GetFile creates handler for processing cli command, that gets user file and data.
 func (c *Client) GetFile() *cobra.Command {
 	var GetFile = &cobra.Command{
 		Use:   "file",
@@ -213,6 +215,7 @@ func (c *Client) GetFile() *cobra.Command {
 
 }
 
+// UpdateFile creates handler for processing cli command, that updates user file and data.
 func (c *Client) UpdateFile() *cobra.Command {
 	var UpdateFile = &cobra.Command{
 		Use:   "file",
@@ -325,6 +328,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 
 }
 
+// DeleteFile creates handler for processing cli command, that deletes user file and data.
 func (c *Client) DeleteFile() *cobra.Command {
 	var DeleteFile = &cobra.Command{
 		Use:   "file",

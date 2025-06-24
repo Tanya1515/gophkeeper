@@ -15,6 +15,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// SendPassword creates handler for processing cli command, that sends user password for application of the current user.
 func (c *Client) SendPassword() *cobra.Command {
 	var SendPassword = &cobra.Command{
 		Use:   "password",
@@ -94,6 +95,7 @@ func (c *Client) SendPassword() *cobra.Command {
 
 }
 
+// GetPassword creates handler for processing cli command, that gets user password for the application of the current user.
 func (c *Client) GetPassword() *cobra.Command {
 	var GetPassword = &cobra.Command{
 		Use:   "password",
@@ -157,6 +159,7 @@ func (c *Client) GetPassword() *cobra.Command {
 
 }
 
+// DeletePassword creates handler for processing cli command, that deletes user password for the application of the current user.
 func (c *Client) DeletePassword() *cobra.Command {
 
 	var DeletePassword = &cobra.Command{
@@ -218,6 +221,7 @@ func (c *Client) DeletePassword() *cobra.Command {
 
 }
 
+// UpdatePassword creates handler for processing cli command, that updates user password for the application of the current user.
 func (c *Client) UpdatePassword() *cobra.Command {
 	var UpdatePassword = &cobra.Command{
 		Use:   "password",

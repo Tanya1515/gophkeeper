@@ -14,6 +14,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// RegisterClient creates handler for processing cli command, that logins user in Gophkeeper.
 func (c *Client) LoginClient() *cobra.Command {
 	var LoginCmd = &cobra.Command{
 		Use:   "login",
