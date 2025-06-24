@@ -14,56 +14,60 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
-var LoginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Login into gophkeeper",
-	Long:  `Command to authentificate with user login, password and OTP into gophkeeper`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var login string
-		var password string
-		var oneTimePassword string
+func (c *Client) LoginClient() *cobra.Command {
+	var LoginCmd = &cobra.Command{
+		Use:   "login",
+		Short: "Login into gophkeeper",
+		Long:  `Command to authentificate with user login, password and OTP into gophkeeper`,
+		Run: func(cmd *cobra.Command, args []string) {
+			var login string
+			var password string
+			var oneTimePassword string
 
-		fmt.Print("Login: ")
-		fmt.Fscan(os.Stdin, &login)
-		fmt.Print("Password: ")
-		fmt.Fscan(os.Stdin, &password)
+			fmt.Print("Login: ")
+			fmt.Fscan(os.Stdin, &login)
+			fmt.Print("Password: ")
+			fmt.Fscan(os.Stdin, &password)
 
-		certPath, envExists := os.LookupEnv("CERT_PATH")
-		if !(envExists) {
-			certPath = "../../test_certs/"
-		}
+			certPath, envExists := os.LookupEnv("CERT_PATH")
+			if !(envExists) {
+				certPath = "../../test_certs/"
+			}
 
-		connection, err := ClientConnection(certPath)
-		if err != nil {
-			fmt.Println("Error while creating GRPC connection to server: ", err)
-		}
+			connection, err := ClientConnection(certPath)
+			if err != nil {
+				fmt.Println("Error while creating GRPC connection to server: ", err)
+			}
 
-		clientGRPC := pb.NewGophkeeperClient(connection)
-		_, err = clientGRPC.LoginUser(context.Background(), &pb.User{
-			Login:    login,
-			Password: password,
-		})
+			clientGRPC := pb.NewGophkeeperClient(connection)
+			_, err = clientGRPC.LoginUser(context.Background(), &pb.User{
+				Login:    login,
+				Password: password,
+			})
 
-		if err != nil {
-			fmt.Println("Error while sending request to grpc server ", err)
-		}
+			if err != nil {
+				fmt.Println("Error while sending request to grpc server ", err)
+			}
 
-		fmt.Print("Please enter one-time password: ")
-		fmt.Fscan(os.Stdin, &oneTimePassword)
-		result, err := clientGRPC.VerificationApprove(context.Background(), &pb.Verify{
-			Login:       login,
-			OneTimePass: oneTimePassword,
-		})
+			fmt.Print("Please enter one-time password: ")
+			fmt.Fscan(os.Stdin, &oneTimePassword)
+			result, err := clientGRPC.VerificationApprove(context.Background(), &pb.Verify{
+				Login:       login,
+				OneTimePass: oneTimePassword,
+			})
 
-		if err != nil {
-			fmt.Println("Error while checking if OTP is correct")
-		}
+			if err != nil {
+				fmt.Println("Error while checking if OTP is correct")
+			}
 
-		err = ut.SaveJWT(result.JWTtoken, login)
-		if err != nil {
-			fmt.Printf("Error while saving user %s JWTToken %s", login, err)
-		}
+			err = ut.SaveJWT(result.JWTtoken, login)
+			if err != nil {
+				fmt.Printf("Error while saving user %s JWTToken %s", login, err)
+			}
 
-		defer connection.Close()
-	},
+			defer connection.Close()
+		},
+	}
+
+	return LoginCmd
 }

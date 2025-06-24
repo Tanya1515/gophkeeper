@@ -60,72 +60,86 @@ func Execute() {
 	}
 }
 
-func init() {
-	rootCmd.AddCommand(client.LoginCmd)
-	rootCmd.AddCommand(client.RegisterCmd)
-
-	rootCmd.AddCommand(saveCmd)
-	saveCmd.AddCommand(client.SendPassword)
-	client.SendPassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.SendPassword.MarkFlagRequired("user")
-	saveCmd.AddCommand(client.SendBankCard)
-	client.SendBankCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.SendBankCard.MarkFlagRequired("user")
-	saveCmd.AddCommand(client.SendFile)
-	client.SendFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.SendFile.MarkFlagRequired("user")
-
-	rootCmd.AddCommand(getCmd)
-	getCmd.AddCommand(client.GetCard)
-	client.GetCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.GetCard.MarkFlagRequired("user")
-	getCmd.AddCommand(client.GetFile)
-	client.GetFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.GetFile.MarkFlagRequired("user")
-	getCmd.AddCommand(client.GetPassword)
-	client.GetPassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.GetPassword.MarkFlagRequired("user")
-	getCmd.AddCommand(client.GetUserData)
-	client.GetUserData.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.GetUserData.MarkFlagRequired("user")
-
-	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.AddCommand(client.DeleteFile)
-	client.DeleteFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.DeleteFile.MarkFlagRequired("user")
-	deleteCmd.AddCommand(client.DeleteCard)
-	client.DeleteCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.DeleteCard.MarkFlagRequired("user")
-	deleteCmd.AddCommand(client.DeletePassword)
-	client.DeletePassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.DeletePassword.MarkFlagRequired("user")
-
-	rootCmd.AddCommand(updateCmd)
-	updateCmd.AddCommand(client.UpdateFile)
-	client.UpdateFile.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.UpdateFile.MarkFlagRequired("user")
-	updateCmd.AddCommand(client.UpdateCard)
-	client.UpdateCard.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.UpdateCard.MarkFlagRequired("user")
-	updateCmd.AddCommand(client.UpdatePassword)
-	client.UpdatePassword.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
-	client.UpdatePassword.MarkFlagRequired("user")
-}
-
 func main() {
 	err := ut.CreateJWTPath()
 	if err != nil {
 		fmt.Println("Error while file for JWT initialization: ", err)
 	}
 	Execute()
-	
+
 	sqliteCache := &sql.SQLite{}
 
-	client := client.Client{ClientStorage: sqliteCache}
+	consoleClient := client.Client{ClientStorage: sqliteCache}
 
-	err = client.ClientStorage.Connect()
+	err = consoleClient.ClientStorage.Connect()
 	if err != nil {
 		fmt.Println("Error while connecting to client storage: ", err)
-		return 
+		return
 	}
+
+	loginCmd := consoleClient.LoginClient()
+	registerCmd := consoleClient.RegisterClient()
+
+	rootCmd.AddCommand(loginCmd)
+	rootCmd.AddCommand(registerCmd)
+
+	sendPasswordCmd := consoleClient.SendPassword()
+	sendBankCardCmd := consoleClient.SendBankCard()
+	sendFileCmd := consoleClient.SendFile()
+	rootCmd.AddCommand(saveCmd)
+	saveCmd.AddCommand(sendPasswordCmd)
+	sendPasswordCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	sendPasswordCmd.MarkFlagRequired("user")
+	saveCmd.AddCommand(sendBankCardCmd)
+	sendBankCardCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	sendBankCardCmd.MarkFlagRequired("user")
+	saveCmd.AddCommand(sendFileCmd)
+	sendFileCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	sendFileCmd.MarkFlagRequired("user")
+
+	getCardCmd := consoleClient.GetBankCard()
+	getFileCmd := consoleClient.GetFile()
+	getPasswordCmd := consoleClient.GetPassword()
+	getUserDataCmd := consoleClient.GetUserData()
+	rootCmd.AddCommand(getCmd)
+	getCmd.AddCommand(getCardCmd)
+	getCardCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	getCardCmd.MarkFlagRequired("user")
+	getCmd.AddCommand(getFileCmd)
+	getFileCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	getFileCmd.MarkFlagRequired("user")
+	getCmd.AddCommand(getPasswordCmd)
+	getPasswordCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	getPasswordCmd.MarkFlagRequired("user")
+	getCmd.AddCommand(getUserDataCmd)
+	getUserDataCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	getUserDataCmd.MarkFlagRequired("user")
+
+	deleteFileCmd := consoleClient.DeleteFile()
+	deleteCardCmd := consoleClient.DeleteBankCard()
+	deletePasswordCmd := consoleClient.DeletePassword()
+	rootCmd.AddCommand(deleteCmd)
+	deleteCmd.AddCommand(deleteFileCmd)
+	deleteFileCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	deleteFileCmd.MarkFlagRequired("user")
+	deleteCmd.AddCommand(deleteCardCmd)
+	deleteCardCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	deleteCardCmd.MarkFlagRequired("user")
+	deleteCmd.AddCommand(deletePasswordCmd)
+	deletePasswordCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	deletePasswordCmd.MarkFlagRequired("user")
+
+	updateFileCmd := consoleClient.UpdateFile()
+	updateCardCmd := consoleClient.UpdateBankCard()
+	updatePasswordCmd := consoleClient.UpdatePassword()
+	rootCmd.AddCommand(updateCmd)
+	updateCmd.AddCommand(updateFileCmd)
+	updateFileCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	updateFileCmd.MarkFlagRequired("user")
+	updateCmd.AddCommand(updateCardCmd)
+	updateCardCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	updateCardCmd.MarkFlagRequired("user")
+	updateCmd.AddCommand(updatePasswordCmd)
+	updatePasswordCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
+	updatePasswordCmd.MarkFlagRequired("user")
 }

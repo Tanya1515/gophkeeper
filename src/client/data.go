@@ -81,69 +81,75 @@ func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperC
 	defer wg.Done()
 }
 
-var GetUserData = &cobra.Command{
-	Use:   "all",
-	Short: "Get description of all User sensetive data",
-	Run: func(cmd *cobra.Command, args []string) {
-		var wg sync.WaitGroup
-		files := make(map[string]string, 100)
-		JWTToken, err := ut.GetJWT(User)
-		if err != nil && strings.Contains(err.Error(), "please login or register") {
-			fmt.Print(err.Error())
-			return
-		} else if err != nil {
-			fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
-			return
-		}
+func (c *Client) GetUserData() *cobra.Command {
 
-		certPath, envExists := os.LookupEnv("CERT_PATH")
-		if !(envExists) {
-			certPath = "../../test_certs/"
-		}
-
-		connection, err := ClientConnection(certPath)
-		if err != nil {
-			fmt.Println("Error while creating GRPC connection to server: ", err)
-		}
-
-		clientGRPC := pb.NewGophkeeperClient(connection)
-		md := metadata.New(map[string]string{"Authorization": JWTToken})
-
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
-
-		wg.Add(1)
-
-		go SyncAllFiles(&wg, JWTToken, clientGRPC, files)
-
-		sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
-		if err != nil {
-			fmt.Printf("Error while getting all sensetive data for User %s: %s\n", User, err)
-			return
-		}
-		fmt.Println("Yor passwords: ")
-		for _, passwordInfo := range sensetiveData.Passwords {
-			fmt.Printf("\n  Application: %s,\n   password: %s,\n   Metadata: %s\n", passwordInfo.Application, passwordInfo.Password, passwordInfo.MetaData)
-		}
-
-		fmt.Println("\nYour bank card credentials: ")
-		fmt.Println()
-		for _, bankCardCreds := range sensetiveData.BankCards {
-			fmt.Println("  Bank: ", bankCardCreds.Bank)
-			fmt.Println("    Card number: ", bankCardCreds.CardNumber)
-			fmt.Printf("    CVC: %s, date: %s\n", bankCardCreds.CvcCode, bankCardCreds.Data)
-			fmt.Printf("    Metada: %s\n\n", bankCardCreds.Metadata)
-		}
-
-		wg.Wait()
-		if len(files) != 0 {
-			fmt.Println("Your files: ")
-			for fileName, pathToFile := range files {
-				fmt.Printf("\n  File %s have been saved along the path: %s\n", fileName, pathToFile)
+	var GetUserData = &cobra.Command{
+		Use:   "all",
+		Short: "Get description of all User sensetive data",
+		Run: func(cmd *cobra.Command, args []string) {
+			var wg sync.WaitGroup
+			files := make(map[string]string, 100)
+			JWTToken, err := ut.GetJWT(User)
+			if err != nil && strings.Contains(err.Error(), "please login or register") {
+				fmt.Print(err.Error())
+				return
+			} else if err != nil {
+				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				return
 			}
+
+			certPath, envExists := os.LookupEnv("CERT_PATH")
+			if !(envExists) {
+				certPath = "../../test_certs/"
+			}
+
+			connection, err := ClientConnection(certPath)
+			if err != nil {
+				fmt.Println("Error while creating GRPC connection to server: ", err)
+			}
+
+			clientGRPC := pb.NewGophkeeperClient(connection)
+			md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+			ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+			wg.Add(1)
+
+			go SyncAllFiles(&wg, JWTToken, clientGRPC, files)
+
+			sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
+			if err != nil {
+				fmt.Printf("Error while getting all sensetive data for User %s: %s\n", User, err)
+				return
+			}
+			fmt.Println("Yor passwords: ")
+			for _, passwordInfo := range sensetiveData.Passwords {
+				fmt.Printf("\n  Application: %s,\n   password: %s,\n   Metadata: %s\n", passwordInfo.Application, passwordInfo.Password, passwordInfo.MetaData)
+			}
+
+			fmt.Println("\nYour bank card credentials: ")
 			fmt.Println()
-		}
+			for _, bankCardCreds := range sensetiveData.BankCards {
+				fmt.Println("  Bank: ", bankCardCreds.Bank)
+				fmt.Println("    Card number: ", bankCardCreds.CardNumber)
+				fmt.Printf("    CVC: %s, date: %s\n", bankCardCreds.CvcCode, bankCardCreds.Data)
+				fmt.Printf("    Metada: %s\n\n", bankCardCreds.Metadata)
+			}
 
-		fmt.Printf("All data for User %s was synchronyzed\n", User)
+			wg.Wait()
+			if len(files) != 0 {
+				fmt.Println("Your files: ")
+				for fileName, pathToFile := range files {
+					fmt.Printf("\n  File %s have been saved along the path: %s\n", fileName, pathToFile)
+				}
+				fmt.Println()
+			}
 
-	},
+			fmt.Printf("All data for User %s was synchronyzed\n", User)
+
+		},
+	}
+
+	return GetUserData
+
 }
