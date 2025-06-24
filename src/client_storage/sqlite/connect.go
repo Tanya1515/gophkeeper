@@ -95,7 +95,7 @@ func (cache *SQLite) Connect() error {
 	}
 
 	statement.Exec()
-
+	// по идее надо раздрабить - чтобы не было дублирующих полей (ID меньше весят, чем строки).
 	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS PasswordOperations (operationID TEXT PRIMARY KEY, " +
 		"userName TEXT, " +
 		"application TEXT, " +

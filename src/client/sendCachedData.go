@@ -1,5 +1,5 @@
 package client
 
-func SendCacheData() {
-	
+func (c *Client) SendCacheData() {
+
 }

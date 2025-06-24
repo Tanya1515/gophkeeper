@@ -170,3 +170,41 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 
 	return nil
 }
+
+func (cache *SQLite) GetAllCardOperation() (result map[string][]string, err error) {
+
+	var userName, cardNumber string
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return nil, fmt.Errorf("error while openning connection to get all operations with bank cards: %w", err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctxCache, "SELECT userName, cardNumber FROM CardOperations GROUP BY (userName, cardNumber)")
+	if err != nil {
+		return nil, fmt.Errorf("error while getting all operations with cards: %w", err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&userName, &cardNumber)
+		if err != nil {
+			return nil, fmt.Errorf("error while scanning operations with cards: %w", err)
+		}
+		_, exists := result[userName]
+		if !exists {
+			result[userName] = make([]string, 0)
+		}
+		result[userName] = append(result[userName], cardNumber)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error after scanning all operations with cards: %w", err)
+	}
+	return
+}

@@ -36,4 +36,8 @@ type ClientStorage interface {
 	SaveCardOperation(cardNumber, userName string, operation Operation, fields []string, time string) error
 	SaveFileOperation(fileName, userName string, operation Operation, fields []string, time string) error
 	SavePasswordOperation(application, userName string, operation Operation, fields []string, time string) error
+
+	GetAllCardOperation() (map[string][]string, error)
+	GetAllFileOperation() (map[string][]string, error)
+	GetAllPasswordOperation() (map[string][]string, error)
 }

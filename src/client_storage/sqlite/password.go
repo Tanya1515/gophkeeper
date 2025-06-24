@@ -98,7 +98,7 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 			}
 		}
 
-		_, err = db.ExecContext(ctxCache, "DELETE FROM PasswordOperations "+
+		_, err = db.ExecContext(ctxCache, "DELETE FROM PasswordOperations"+
 			"WHERE NOT EXISTS "+
 			"(SELECT 1 FROM fields WHERE OperationPasswordDiff.operationID = PasswordOperations.operationID)")
 
@@ -165,5 +165,42 @@ func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime,
 		return fmt.Errorf("error while updating existing application %s or inserting new one: %w", application, err)
 	}
 
+	return
+}
+
+func (cache *SQLite) GetAllPasswordOperation() (result map[string][]string, err error) {
+	var userName, application string
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return nil, fmt.Errorf("error while openning connection to get all operations with passwords: %w", err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctxCache, "SELECT userName, application FROM PasswordOperations GROUP BY (userName, application)")
+	if err != nil {
+		return nil, fmt.Errorf("error while getting all operations with passwords: %w", err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&userName, &application)
+		if err != nil {
+			return nil, fmt.Errorf("error while scanning operations with passwords: %w", err)
+		}
+		_, exists := result[userName]
+		if !exists {
+			result[userName] = make([]string, 0)
+		}
+		result[userName] = append(result[userName], application)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error after scanning all operations with passwords: %w", err)
+	}
 	return
 }
