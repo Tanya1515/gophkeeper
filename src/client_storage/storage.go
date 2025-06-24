@@ -21,19 +21,19 @@ const (
 type ClientStorage interface {
 	Connect() error
 
-	GetBankCard(cardNumber string, userID int) (cvc, date, bankName, metadatabankCard string, err error)
-	GetFile(fileName string, userID int) (string, string, error)
-	GetPassword(application string, userID int) (password, metadata string, err error)
+	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, err error)
+	GetFile(fileName, userName string) (string, string, error)
+	GetPassword(application, userName string) (password, metadata string, err error)
 
-	DeleteBankCard(cardNumber string, userID int) error
-	DeleteFile(fileName string, userID int) error
-	DeletePassword(application string, userID int) error
+	DeleteBankCard(cardNumber, userName string) error
+	DeleteFile(fileName, userName string) error
+	DeletePassword(application, userName string) error
 
-	UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime string, userID int) error
-	UploadFile(fileName, filePath, metadata, uploadTime string, userID int) error
-	UploadPassword(application, password, metadata, uploadTime string, userID int) error
+	UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, userName string) error
+	UploadFile(fileName, filePath, metadata, uploadTime, userName string) error
+	UploadPassword(application, password, metadata, uploadTime, userName string) error
 
-	SaveCardOperation(cardNumber string, operation Operation, fields []string, time string, userID int) error
-	SaveFileOperation(fileName string, operation Operation, fields []string, time string, userID int) error
-	SavePasswordOperation(application string, operation Operation, fields []string, time string, userID int) error
+	SaveCardOperation(cardNumber string, operation Operation, fields []string, time string) error
+	SaveFileOperation(fileName string, operation Operation, fields []string, time string) error
+	SavePasswordOperation(application string, operation Operation, fields []string, time string) error
 }
