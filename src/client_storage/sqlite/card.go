@@ -171,7 +171,7 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 	return nil
 }
 
-func (cache *SQLite) GetAllCardOperation() (result map[string][]string, err error) {
+func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err error) {
 
 	var userName, cardNumber string
 

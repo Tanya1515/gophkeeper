@@ -9,3 +9,9 @@ var User string
 type Client struct {
 	ClientStorage cs.ClientStorage
 }
+
+type UserData struct {
+	user              string
+	JWTtoken          string
+	dataIdentificator string
+}

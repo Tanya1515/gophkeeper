@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
+	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
@@ -70,7 +71,7 @@ func (c *Client) SendFile() *cobra.Command {
 
 			stream, err := clientGRPC.UploadFile(ctx)
 			if err != nil {
-				fmt.Printf("error while openning GRPC stream to send file: %s", err)
+				fmt.Printf("error while openning GRPC stream to send file: %s\n", err)
 				return
 			}
 			var retryCount = 1
@@ -269,7 +270,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 
 			stream, err := clientGRPC.UpdateFile(ctx)
 			if err != nil {
-				fmt.Printf("error while openning GRPC stream to update file: %s", err)
+				fmt.Printf("error while openning GRPC stream to update file: %s\n", err)
 				return
 			}
 
@@ -378,4 +379,156 @@ func (c *Client) DeleteFile() *cobra.Command {
 	}
 
 	return DeleteFile
+}
+
+func ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePath string, file *pb.FileMessage) {
+
+	md := metadata.New(map[string]string{"Authorization": userJWT})
+
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	certPath, envExists := os.LookupEnv("CERT_PATH")
+	if !(envExists) {
+		certPath = "../../test_certs/"
+	}
+
+	connection, err := ClientConnection(certPath)
+	if err != nil {
+		fmt.Println("Error while creating GRPC connection to server: ", err)
+	}
+
+	clientGRPC := pb.NewGophkeeperClient(connection)
+
+	switch operation {
+	case cs.Create:
+		stream, err := clientGRPC.UploadFile(ctx)
+		if err != nil {
+			fmt.Printf("Error while openning GRPC stream to send file: %s\n", err)
+		}
+
+		if filePath != "" {
+			fileDesc, err := os.Open(filePath)
+			if err != nil {
+				fmt.Printf("failed to open file: %v\n", err)
+			}
+			defer fileDesc.Close()
+
+			const chunkSize = 64 * 1024
+			buffer := make([]byte, chunkSize)
+
+			for {
+				n, err := fileDesc.Read(buffer)
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					fmt.Printf("Error while sending file chunk: %s", err)
+					return
+				}
+				file.Content = buffer[:n]
+				if err := stream.Send(file); err != nil {
+					fmt.Printf("Error while sending file chunk: %s", err)
+					return
+				}
+			}
+		} else {
+			err = stream.Send(file)
+			if err != nil {
+				fmt.Println("Error while sending new file: ", err)
+			}
+		}
+
+		_, err = stream.CloseAndRecv()
+		if err != nil {
+			fmt.Println("Error while closing connection to gophkeeper: ", err)
+		}
+
+		// SQLite
+	case cs.Get:
+		fileGetter, err := clientGRPC.GetFile(ctx, &pb.SensetiveDataMessage{
+			Identificator: file.FileName,
+		})
+		if err != nil {
+			fmt.Println("Error while getting file from gophkeeper: ", err)
+		}
+
+		fileToSave, err := os.Create(filePath)
+		if err != nil {
+			fmt.Printf("Error while creating file with path %s: %s\n", filePath, err)
+		}
+		var chunkFile *pb.FileMessage
+		for {
+			chunkFile, err = fileGetter.Recv()
+			if err != nil && err != io.EOF {
+				fmt.Printf("Error while recieving new data portion of file %s: %s\n", filePath, err)
+				break
+			} else if err == io.EOF {
+				fmt.Printf("Error while recieving content for file %s: %w\n", file.FileName, err)
+			}
+
+			_, err = fileToSave.Write(chunkFile.Content)
+			if err != nil {
+				fmt.Printf("Error while writting chunk of file %s: %s\n", filePath, err)
+				return
+			}
+		}
+
+		err = fileToSave.Close()
+		if err != nil {
+			fmt.Printf("Error while closing file with path %s: %s\n", file.FileName, err)
+			return
+		}
+		// SQLite
+	case cs.Update:
+
+		stream, err := clientGRPC.UpdateFile(ctx)
+		if err != nil {
+			fmt.Printf("error while openning GRPC stream to update file: %s\n", err)
+		}
+
+		if filePath != "" {
+			fileDesc, err := os.Open(filePath)
+			if err != nil {
+				fmt.Printf("failed to open file: %v\n", err)
+			}
+			defer fileDesc.Close()
+
+			const chunkSize = 64 * 1024
+			buffer := make([]byte, chunkSize)
+
+			for {
+				n, err := fileDesc.Read(buffer)
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					fmt.Printf("Error while sending file chunk: %s", err)
+					return
+				}
+				file.Content = buffer[:n]
+				if err := stream.Send(file); err != nil {
+					fmt.Printf("Error while sending file chunk: %s", err)
+					return
+				}
+			}
+		} else {
+			err = stream.Send(file)
+			if err != nil {
+				fmt.Println("Error while sending file to update: ", err)
+			}
+		}
+
+		_, err = stream.CloseAndRecv()
+		if err != nil {
+			fmt.Println("Error while closing stream for updating file: ", err)
+		}
+
+		// SQLite
+	case cs.Delete:
+		_, err = clientGRPC.DeleteFile(ctx, &pb.SensetiveDataMessage{
+			Identificator: file.FileName,
+		})
+		if err != nil {
+			fmt.Println("Error while deleting file: ", err)
+		}
+		// SQLite
+	}
 }

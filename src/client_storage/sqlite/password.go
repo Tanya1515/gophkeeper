@@ -168,7 +168,7 @@ func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime,
 	return
 }
 
-func (cache *SQLite) GetAllPasswordOperation() (result map[string][]string, err error) {
+func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, err error) {
 	var userName, application string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -203,4 +203,35 @@ func (cache *SQLite) GetAllPasswordOperation() (result map[string][]string, err 
 		return nil, fmt.Errorf("error after scanning all operations with passwords: %w", err)
 	}
 	return
+}
+
+func (cache *SQLite) GetPasswordOperationInfo(user, application string) (err error) {
+
+	var oprationUploadTime, operationName, field string
+	var fields []string
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctxCache, "SELECT operationName, operationUploadTime, Field FROM PasswordsOperations JOIN OperationPasswordDiff ON "+
+		"PasswordsOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordsOperations.userName=$1 AND PasswordsOperations.application=$2", user, application)
+
+	for rows.Next() {
+		err = rows.Scan(&operationName, &oprationUploadTime, &field)
+
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return fmt.Errorf("error while scanning password data: %w", err)
+	}
+	return
+
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
+	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
@@ -419,4 +420,54 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 	}
 	return UpdateCard
 
+}
+
+func ExecuteCardsOperations(operation cs.Operation, userJWT, uploadTime string, bankCard *pb.BankCardMessage) {
+
+	md := metadata.New(map[string]string{"Authorization": userJWT})
+
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	certPath, envExists := os.LookupEnv("CERT_PATH")
+	if !(envExists) {
+		certPath = "../../test_certs/"
+	}
+
+	connection, err := ClientConnection(certPath)
+	if err != nil {
+		fmt.Println("Error while creating GRPC connection to server: ", err)
+	}
+
+	clientGRPC := pb.NewGophkeeperClient(connection)
+
+	switch operation {
+	case cs.Create:
+		_, err = clientGRPC.UploadBankCard(ctx, bankCard)
+		if err != nil {
+			fmt.Println("Error while uploading bank card: ", err)
+		}
+		// SQLite
+	case cs.Get:
+		bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+			Identificator: bankCard.CardNumber,
+		})
+		if err != nil {
+			fmt.Println("Error while getting bank card credentials: ", err)
+		}
+		// SQLite
+	case cs.Update:
+		_, err = clientGRPC.UpdateBankCardCreds(ctx, bankCard)
+		if err != nil {
+			fmt.Println("Error while updating bank card credentials: ", err)
+		}
+		// SQLite
+	case cs.Delete:
+		_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+			Identificator: bankCard.CardNumber,
+		})
+		if err != nil {
+			fmt.Println("Error while deleting bank card credentials: ", err)
+		}
+		// SQLite
+	}
 }

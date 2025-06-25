@@ -87,6 +87,7 @@ func (cache *SQLite) Connect() error {
 		"fileName TEXT, " +
 		"operationName TEXT, " +
 		"operationUploadTime TEXT, " +
+		"filePath TEXT, " +
 		"FOREIGN KEY(fileName) REFERENCES Files(fileName) ON DELETE CASCADE) " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {

@@ -1,107 +1,112 @@
 package client
 
 import (
-	"context"
 	"fmt"
-	"os"
+	"strings"
 
-	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
-	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
-	"google.golang.org/grpc/metadata"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
-func ExecuteOperationFiles(operation cs.Operation, userJWT, uploadTime string, fieldName, fieldValue []string) {
+func (c *Client) CardWorker(data <-chan UserData, result chan<- string) {
+	for d := range data {
 
-	md := metadata.New(map[string]string{"Authorization": userJWT})
-
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
-
-	certPath, envExists := os.LookupEnv("CERT_PATH")
-	if !(envExists) {
-		certPath = "../../test_certs/"
-	}
-
-	connection, err := ClientConnection(certPath)
-	if err != nil {
-		fmt.Println("Error while creating GRPC connection to server: ", err)
-	}
-
-	clientGRPC := pb.NewGophkeeperClient(connection)
-
-	switch operation {
-	case cs.Create:
-	case cs.Get:
-	case cs.Update:
-	case cs.Delete:
 	}
 }
 
-func ExecuteOperationCards(operation cs.Operation, userJWT, uploadTime string, fieldName, fieldValue []string) {
+func (c *Client) FileWorker(data <-chan UserData, result chan<- string) {
+	for d := range data {
 
-	md := metadata.New(map[string]string{"Authorization": userJWT})
-
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
-
-	certPath, envExists := os.LookupEnv("CERT_PATH")
-	if !(envExists) {
-		certPath = "../../test_certs/"
-	}
-
-	connection, err := ClientConnection(certPath)
-	if err != nil {
-		fmt.Println("Error while creating GRPC connection to server: ", err)
-	}
-
-	clientGRPC := pb.NewGophkeeperClient(connection)
-
-	switch operation {
-	case cs.Create:
-	case cs.Get:
-	case cs.Update:
-	case cs.Delete:
 	}
 }
 
-func ExecuteOperationPasswords(operation cs.Operation, userJWT, uploadTime string, fieldName, fieldValue []string) {
+func (c *Client) PasswordWorker(data <-chan UserData, result chan<- string) {
+	var password, metadata string
+	for d := range data {
+		password, metadata, err := c.ClientStorage.GetPassword(d.dataIdentificator, d.user)
+		if err != nil {
+			fmt.Println(err)
+		}
 
-	md := metadata.New(map[string]string{"Authorization": userJWT})
-
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
-
-	certPath, envExists := os.LookupEnv("CERT_PATH")
-	if !(envExists) {
-		certPath = "../../test_certs/"
-	}
-
-	connection, err := ClientConnection(certPath)
-	if err != nil {
-		fmt.Println("Error while creating GRPC connection to server: ", err)
-	}
-
-	clientGRPC := pb.NewGophkeeperClient(connection)
-
-	switch operation {
-	case cs.Create:
-	case cs.Get:
-	case cs.Update:
-	case cs.Delete:
+		c.ExecutePasswordsOperation()
 	}
 }
 
 func (c *Client) SendCacheData() {
-	cardOprations, err := c.ClientStorage.GetAllCardOperation()
+	cardOperations, err := c.ClientStorage.GetAllCardWithOperation()
 	if err != nil {
 		return
 	}
 
-	filesOperations, err := c.ClientStorage.GetAllFileOperation()
+	jobsCards := make(chan UserData, 10)
+	jobsFiles := make(chan UserData, 10)
+	jobsPasswords := make(chan UserData, 10)
+	resultsCards := make(chan string, 10)
+	resultsFiles := make(chan string, 10)
+	resultsPasswords := make(chan string, 10)
+
+	for j := 1; j <= 10; j++ {
+		go c.CardWorker(jobsCards, resultsCards)
+		go c.FileWorker(jobsFiles, resultsFiles)
+		go c.PasswordWorker(jobsPasswords, resultsPasswords)
+	}
+
+	for user, cardsNumber := range cardOperations {
+		JWTToken, err := ut.GetJWT(User)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err)
+		} else if err != nil {
+			fmt.Printf("Error while getting user %s credentials for executing again requests with bank cards credenbtials: %s\n", User, err)
+		}
+		data := UserData{user, JWTToken, ""}
+		for _, cardNumber := range cardsNumber {
+			data.dataIdentificator = cardNumber
+			jobsCards <- data
+		}
+
+	}
+
+	filesOperations, err := c.ClientStorage.GetAllFileWithOperation()
 	if err != nil {
 		return
 	}
 
-	passwordsOperations, err := c.ClientStorage.GetAllPasswordOperation()
+	for user, filesName := range filesOperations {
+		JWTToken, err := ut.GetJWT(User)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err.Error())
+		} else if err != nil {
+			fmt.Printf("Error while getting user %s credentials for executing again requests with files: %s\n", User, err)
+		}
+		data := UserData{user, JWTToken, ""}
+		for _, fileName := range filesName {
+			data.dataIdentificator = fileName
+			jobsFiles <- data
+		}
+	}
+
+	passwordsOperations, err := c.ClientStorage.GetAllPasswordWithOperation()
 	if err != nil {
 		return
 	}
+
+	for user, passwords := range passwordsOperations {
+		JWTToken, err := ut.GetJWT(User)
+		if err != nil && strings.Contains(err.Error(), "please login or register") {
+			fmt.Print(err)
+		} else if err != nil {
+			fmt.Printf("Error while getting user %s credentials for executing again requests with passwords: %s\n", User, err)
+		}
+		data := UserData{user, JWTToken, ""}
+		for _, password := range passwords {
+			data.dataIdentificator = password
+			jobsPasswords <- data
+		}
+	}
+
+	close(jobsPasswords)
+	close(jobsCards)
+	close(jobsFiles)
+
+	return
 
 }

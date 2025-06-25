@@ -34,10 +34,10 @@ type ClientStorage interface {
 	UploadPassword(application, password, metadata, uploadTime, userName string) error
 
 	SaveCardOperation(cardNumber, userName string, operation Operation, fields []string, time string) error
-	SaveFileOperation(fileName, userName string, operation Operation, fields []string, time string) error
+	SaveFileOperation(fileName, userName string, operation Operation, fields []string, time, filePath string) error
 	SavePasswordOperation(application, userName string, operation Operation, fields []string, time string) error
 
-	GetAllCardOperation() (map[string][]string, error)
-	GetAllFileOperation() (map[string][]string, error)
-	GetAllPasswordOperation() (map[string][]string, error)
+	GetAllCardWithOperation() (map[string][]string, error)
+	GetAllFileWithOperation() (map[string][]string, error)
+	GetAllPasswordWithOperation() (map[string][]string, error)
 }

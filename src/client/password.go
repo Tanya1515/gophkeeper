@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
+	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
@@ -304,5 +305,54 @@ func (c *Client) UpdatePassword() *cobra.Command {
 	}
 
 	return UpdatePassword
+}
 
+func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT, uploadTime string, password *pb.PasswordMessage) {
+
+	md := metadata.New(map[string]string{"Authorization": userJWT})
+
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	certPath, envExists := os.LookupEnv("CERT_PATH")
+	if !(envExists) {
+		certPath = "../../test_certs/"
+	}
+
+	connection, err := ClientConnection(certPath)
+	if err != nil {
+		fmt.Println("Error while creating GRPC connection to server: ", err)
+	}
+
+	clientGRPC := pb.NewGophkeeperClient(connection)
+
+	switch operation {
+	case cs.Create:
+		_, err = clientGRPC.UploadPassword(ctx, password)
+		if err != nil {
+			fmt.Println("Error while uploading password: ", err)
+		}
+		// SQLite
+	case cs.Get:
+		password, err = clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
+			Identificator: password.Application,
+		})
+		if err != nil {
+			fmt.Println("Error while getting password: ", err)
+		}
+		// SQLite
+	case cs.Update:
+		_, err = clientGRPC.UpdatePassword(ctx, password)
+		if err != nil {
+			fmt.Println("Error while updating password: ", err)
+		}
+		// SQLite
+	case cs.Delete:
+		_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
+			Identificator: password.Application,
+		})
+		if err != nil {
+			fmt.Println("Error while deleting password: ", err)
+		}
+		// SQLite
+	}
 }
