@@ -69,6 +69,8 @@ func (c *Client) SendPassword() *cobra.Command {
 
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
 			var retryCount = 1
 			_, err = clientGRPC.UploadPassword(ctx, &pb.PasswordMessage{
 				Password:    password,
@@ -76,7 +78,7 @@ func (c *Client) SendPassword() *cobra.Command {
 				MetaData:    metadataPassword,
 			})
 
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UploadPassword(ctx, &pb.PasswordMessage{
 					Password:    password,
 					Application: application,
@@ -86,9 +88,18 @@ func (c *Client) SendPassword() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			// SQLite
-
-			fmt.Printf("Your password for application %s has been successfully uploaded!\n", application)
+			if err == nil {
+				fmt.Printf("Your password for application %s has been successfully uploaded!\n", application)
+			} else {
+				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Create, nil, opTime)
+				if err != nil {
+					fmt.Println("Error while saving info about password operation: %w", err)
+				}
+			}
+			err = c.ClientStorage.UploadPassword(application, password, metadataPassword, opTime, User)
+			if err != nil {
+				fmt.Printf("Error while writting password data to SQLite: %s", err)
+			}
 		},
 	}
 
@@ -140,7 +151,9 @@ func (c *Client) GetPassword() *cobra.Command {
 				Identificator: application,
 			})
 
-			for err != nil || retryCount == 3 {
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
+			for err != nil && retryCount != 3 {
 				passwordApp, err = clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
 					Identificator: application,
 				})
@@ -148,11 +161,16 @@ func (c *Client) GetPassword() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			// SQLite
-
-			fmt.Printf("Application: %s\n", application)
-			fmt.Printf("Password: %s\n", passwordApp.Password)
-			fmt.Printf("Additioanl information: %s\n", passwordApp.MetaData)
+			if err == nil {
+				fmt.Printf("Application: %s\n", application)
+				fmt.Printf("Password: %s\n", passwordApp.Password)
+				fmt.Printf("Additioanl information: %s\n", passwordApp.MetaData)
+			} else {
+				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Get, nil, opTime)
+				if err != nil {
+					fmt.Println("Error while saving info about password operation: %w", err)
+				}
+			}
 		},
 	}
 
@@ -200,21 +218,35 @@ func (c *Client) DeletePassword() *cobra.Command {
 
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
+
 			var retryCount = 1
 			_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
 				Identificator: application,
 			})
 
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
 					Identificator: application,
 				})
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
 			}
-			// SQLite
 
-			fmt.Printf("All sensetive data regarding to application %s was successfully removed from gophkeeper", application)
+			errLocal := c.ClientStorage.DeletePassword(application, User)
+			if errLocal != nil {
+				fmt.Printf("Error while deleting password for application %s from local storage: %s \n", application, err)
+			}
+			if err == nil {
+				fmt.Printf("All sensetive data regarding to application %s was successfully removed from gophkeeper", application)
+			} else {
+				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Delete, nil, opTime)
+				if err != nil {
+					fmt.Println("Error while saving info about password operation: %w", err)
+				}
+			}
+
 		},
 	}
 
@@ -282,6 +314,9 @@ func (c *Client) UpdatePassword() *cobra.Command {
 
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
+
 			var retryCount = 1
 			_, err = clientGRPC.UpdatePassword(ctx, &pb.PasswordMessage{
 				Password:    newPassword,
@@ -289,7 +324,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 				MetaData:    passwordMetadata,
 			})
 
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UpdatePassword(ctx, &pb.PasswordMessage{
 					Password:    newPassword,
 					Application: application,
@@ -298,16 +333,33 @@ func (c *Client) UpdatePassword() *cobra.Command {
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
 			}
-			// SQLite
+			if err == nil {
+				fmt.Printf("Your password for application %s has been successfully updated!\n", application)
+			} else {
+				fields := make([]string, 2)
+				if newPassword != "" {
+					fields[0] = "password"
+				}
+				if passwordMetadata != "" {
+					fields[1] = "metadata"
+				}
+				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Update, fields, opTime)
+				if err != nil {
+					fmt.Printf("Error while saving information about update operation for sensetive data of application %s: %s\n", application, err)
+				}
+			}
+			err = c.ClientStorage.UploadPassword(application, newPassword, passwordMetadata, opTime, User)
+			if err != nil {
+				fmt.Printf("Error while updating  password sensetive data for application %s: %s\n", application, err)
+			}
 
-			fmt.Printf("Your password for application %s has been successfully updated!\n", application)
 		},
 	}
 
 	return UpdatePassword
 }
 
-func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT, uploadTime string, password *pb.PasswordMessage) {
+func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT, uploadTime string, password *pb.PasswordMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
@@ -321,6 +373,7 @@ func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT, uplo
 	connection, err := ClientConnection(certPath)
 	if err != nil {
 		fmt.Println("Error while creating GRPC connection to server: ", err)
+		return fmt.Errorf("error while creating GRPC connection to server: %w", err)
 	}
 
 	clientGRPC := pb.NewGophkeeperClient(connection)
@@ -330,29 +383,31 @@ func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT, uplo
 		_, err = clientGRPC.UploadPassword(ctx, password)
 		if err != nil {
 			fmt.Println("Error while uploading password: ", err)
+			return fmt.Errorf("error while uploading password: %w", err)
 		}
-		// SQLite
 	case cs.Get:
 		password, err = clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
 			Identificator: password.Application,
 		})
 		if err != nil {
 			fmt.Println("Error while getting password: ", err)
+			return fmt.Errorf("error while getting password: %w", err)
 		}
-		// SQLite
 	case cs.Update:
 		_, err = clientGRPC.UpdatePassword(ctx, password)
 		if err != nil {
 			fmt.Println("Error while updating password: ", err)
+			return fmt.Errorf("error while updating password: %w", err)
 		}
-		// SQLite
 	case cs.Delete:
 		_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
 			Identificator: password.Application,
 		})
 		if err != nil {
 			fmt.Println("Error while deleting password: ", err)
+			return fmt.Errorf("error while deleting password: %w", err)
 		}
-		// SQLite
 	}
+
+	return nil
 }

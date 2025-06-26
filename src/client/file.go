@@ -75,7 +75,7 @@ func (c *Client) SendFile() *cobra.Command {
 				return
 			}
 			var retryCount = 1
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				stream, err = clientGRPC.UploadFile(ctx)
 				if err != nil {
 					fmt.Printf("error while openning GRPC stream to send file: %s", err)
@@ -107,7 +107,7 @@ func (c *Client) SendFile() *cobra.Command {
 				})
 
 				retryCount = 1
-				for err != nil || retryCount == 3 {
+				for err != nil && retryCount != 3 {
 					err = stream.Send(&pb.FileMessage{
 						Content:  buffer[:n],
 						FileName: fileName,
@@ -381,7 +381,7 @@ func (c *Client) DeleteFile() *cobra.Command {
 	return DeleteFile
 }
 
-func ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePath string, file *pb.FileMessage) {
+func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePath string, file *pb.FileMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
@@ -395,6 +395,7 @@ func ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePat
 	connection, err := ClientConnection(certPath)
 	if err != nil {
 		fmt.Println("Error while creating GRPC connection to server: ", err)
+		return fmt.Errorf("error while creating GRPC connection to server: %w", err)
 	}
 
 	clientGRPC := pb.NewGophkeeperClient(connection)
@@ -404,12 +405,14 @@ func ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePat
 		stream, err := clientGRPC.UploadFile(ctx)
 		if err != nil {
 			fmt.Printf("Error while openning GRPC stream to send file: %s\n", err)
+			return fmt.Errorf("error while openning GRPC stream to send file: %w", err)
 		}
 
 		if filePath != "" {
 			fileDesc, err := os.Open(filePath)
 			if err != nil {
-				fmt.Printf("failed to open file: %v\n", err)
+				fmt.Printf("Failed to open file: %s\n", err)
+				return fmt.Errorf("failed to open file: %s", err)
 			}
 			defer fileDesc.Close()
 
@@ -421,39 +424,41 @@ func ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePat
 				if err == io.EOF {
 					break
 				} else if err != nil {
-					fmt.Printf("Error while sending file chunk: %s", err)
-					return
+					fmt.Printf("Error while reading file chunk: %s", err)
+					return fmt.Errorf("error while reading file chunk: %w", err)
 				}
 				file.Content = buffer[:n]
 				if err := stream.Send(file); err != nil {
 					fmt.Printf("Error while sending file chunk: %s", err)
-					return
+					return fmt.Errorf("error while sending file chunk: %w", err)
 				}
 			}
 		} else {
 			err = stream.Send(file)
 			if err != nil {
-				fmt.Println("Error while sending new file: ", err)
+				fmt.Printf("Error while sending file %s: %s\n", file.FileName, err)
+				return fmt.Errorf("error while sending file %s: %w", file.FileName, err)
 			}
 		}
 
 		_, err = stream.CloseAndRecv()
 		if err != nil {
 			fmt.Println("Error while closing connection to gophkeeper: ", err)
+			return fmt.Errorf("error while closing connection to gophkeeper: %w", err)
 		}
-
-		// SQLite
 	case cs.Get:
 		fileGetter, err := clientGRPC.GetFile(ctx, &pb.SensetiveDataMessage{
 			Identificator: file.FileName,
 		})
 		if err != nil {
 			fmt.Println("Error while getting file from gophkeeper: ", err)
+			return fmt.Errorf("error while getting file from gophkeeper: %w", err)
 		}
 
 		fileToSave, err := os.Create(filePath)
 		if err != nil {
 			fmt.Printf("Error while creating file with path %s: %s\n", filePath, err)
+			return fmt.Errorf("error while creating file with path %s: %w", filePath, err)
 		}
 		var chunkFile *pb.FileMessage
 		for {
@@ -463,32 +468,34 @@ func ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePat
 				break
 			} else if err == io.EOF {
 				fmt.Printf("Error while recieving content for file %s: %w\n", file.FileName, err)
+				return fmt.Errorf("error while recieving content for file %s: %w", file.FileName, err)
 			}
 
 			_, err = fileToSave.Write(chunkFile.Content)
 			if err != nil {
 				fmt.Printf("Error while writting chunk of file %s: %s\n", filePath, err)
-				return
+				return fmt.Errorf("Error while writting chunk of file %s: %w", filePath, err)
 			}
 		}
 
 		err = fileToSave.Close()
 		if err != nil {
 			fmt.Printf("Error while closing file with path %s: %s\n", file.FileName, err)
-			return
+			return fmt.Errorf("Error while closing file with path %s: %w", file.FileName, err)
 		}
-		// SQLite
 	case cs.Update:
 
 		stream, err := clientGRPC.UpdateFile(ctx)
 		if err != nil {
-			fmt.Printf("error while openning GRPC stream to update file: %s\n", err)
+			fmt.Printf("Error while openning GRPC stream to update file: %s\n", err)
+			return fmt.Errorf("error while openning GRPC stream to update file: %w", err)
 		}
 
 		if filePath != "" {
 			fileDesc, err := os.Open(filePath)
 			if err != nil {
-				fmt.Printf("failed to open file: %v\n", err)
+				fmt.Printf("Failed to open file: %s\n", err)
+				return fmt.Errorf("failed to open file: %w", err)
 			}
 			defer fileDesc.Close()
 
@@ -501,34 +508,36 @@ func ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePat
 					break
 				} else if err != nil {
 					fmt.Printf("Error while sending file chunk: %s", err)
-					return
+					return fmt.Errorf("error while reading file chunk: %w", err)
 				}
 				file.Content = buffer[:n]
 				if err := stream.Send(file); err != nil {
 					fmt.Printf("Error while sending file chunk: %s", err)
-					return
+					return fmt.Errorf("error while sending file chunk: %w", err)
 				}
 			}
 		} else {
 			err = stream.Send(file)
 			if err != nil {
 				fmt.Println("Error while sending file to update: ", err)
+				return fmt.Errorf("error while sending file to update: %w", err)
 			}
 		}
 
 		_, err = stream.CloseAndRecv()
 		if err != nil {
 			fmt.Println("Error while closing stream for updating file: ", err)
+			return fmt.Errorf("error while closing stream for updating file: %w", err)
 		}
-
-		// SQLite
 	case cs.Delete:
 		_, err = clientGRPC.DeleteFile(ctx, &pb.SensetiveDataMessage{
 			Identificator: file.FileName,
 		})
 		if err != nil {
 			fmt.Println("Error while deleting file: ", err)
+			return fmt.Errorf("error while deleting file: %w", err)
 		}
-		// SQLite
 	}
+
+	return nil
 }

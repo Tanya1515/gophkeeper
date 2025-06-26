@@ -68,17 +68,6 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 		return fmt.Errorf("error after scanning all operations for bank card with number %s: %w", cardNumber, err)
 	}
 
-	if operation == cs.Delete {
-		statement, err := db.Prepare("DELETE from CardOperations WHERE cardNumber=? AND userName=?")
-		if err != nil {
-			return fmt.Errorf("error while making request for deleting all operations with bank card %s: %w", cardNumber, err)
-		}
-		_, err = statement.ExecContext(ctxCache, cardNumber, userName)
-		if err != nil {
-			return fmt.Errorf("error while deleting all operations with bank card %s: %w", cardNumber, err)
-		}
-	}
-
 	statement, err := db.Prepare("INSERT INTO CardOperations (operationID, userName, cardNumber, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with bank card %s: %w", operation, cardNumber, err)
@@ -207,4 +196,46 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 		return nil, fmt.Errorf("error after scanning all operations with cards: %w", err)
 	}
 	return
+}
+
+func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]cs.OperationInfo, error) {
+	var field, operationID string
+
+	var operationCardsInfo cs.OperationInfo
+	operationsCardsInfo := make(map[string]cs.OperationInfo, 20)
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return operationsCardsInfo, fmt.Errorf("error while openning connection to get operations info with bank card %s: %w", cardNumber, err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctxCache, "SELECT operationID operationName, operationUploadTime, Field FROM CardOperations JOIN OperationBankCardDiff ON "+
+		"CardOperations.operationID = OperationBankCardDiff.operationID WHERE CardOperations.userName=$1 AND CardOperations.cardNumber=$2", user, cardNumber)
+
+	if err != nil {
+		return operationsCardsInfo, fmt.Errorf("error while reading data about bank card opearions: %w", err)
+	}
+	for rows.Next() {
+		err = rows.Scan(&operationID, &operationCardsInfo.OperationName, &operationCardsInfo.OperationTime, &field)
+		if err != nil {
+			return operationsCardsInfo, fmt.Errorf("error while getting info about operations of application %s: %w", cardNumber, err)
+		}
+		opInfo, exists := operationsCardsInfo[operationID]
+		if !exists {
+			operationsCardsInfo[operationID] = operationCardsInfo
+		}
+		opInfo.Fields = append(opInfo.Fields, field)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return operationsCardsInfo, fmt.Errorf("error while scanning operations info about bank card %s: %w", cardNumber, err)
+	}
+
+	return operationsCardsInfo, nil
 }

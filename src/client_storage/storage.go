@@ -4,25 +4,13 @@
 // if server is not available.
 package client_storage
 
-// Custom type, that describes operations in application
-type Operation string
-
-// Constants, that are related to type Operations.
-// The values describe CRUD operations with objects.
-const (
-	Get    Operation = "get"
-	Update Operation = "update"
-	Delete Operation = "delete"
-	Create Operation = "create"
-)
-
 // ClientStorage - interface for describeng storage for caching
 // sensetive data on client side.
 type ClientStorage interface {
 	Connect() error
 
 	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, err error)
-	GetFile(fileName, userName string) (string, string, error)
+	GetFile(fileName, userName string) (string, string, []byte, error)
 	GetPassword(application, userName string) (password, metadata string, err error)
 
 	DeleteBankCard(cardNumber, userName string) error
@@ -40,4 +28,10 @@ type ClientStorage interface {
 	GetAllCardWithOperation() (map[string][]string, error)
 	GetAllFileWithOperation() (map[string][]string, error)
 	GetAllPasswordWithOperation() (map[string][]string, error)
+
+	GetPasswordOperationsInfo(user, application string) (map[string]OperationInfo, error)
+	GetCardOperationsInfo(user, cardNumber string) (map[string]OperationInfo, error)
+	GetFileOpearionsInfo(user, fileName string) (map[string]OperationInfo, error)
+
+	DeleteOperaionByID(operationID, dataType string) error
 }

@@ -67,17 +67,6 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 		return fmt.Errorf("error after scanning all operations for file %s: %w", fileName, err)
 	}
 
-	if operation == cs.Delete {
-		statement, err := db.Prepare("DELETE from FileOperations WHERE fileName=? AND userName=?")
-		if err != nil {
-			return fmt.Errorf("error while making request for deleting all operations with file %s: %w", fileName, err)
-		}
-		_, err = statement.ExecContext(ctxCache, fileName, userName)
-		if err != nil {
-			return fmt.Errorf("error while deleting all operations with file %s: %w", fileName, err)
-		}
-	}
-
 	statement, err := db.Prepare("INSERT INTO FileOperations (operationID, filePath, userName, fileName, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with password for application %s: %w", operation, fileName, err)
@@ -113,14 +102,13 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 
 // GetFile - function for getting file from application cache or return path to local file.
 // The function is also checks if data is up to date.
-func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile string, err error) {
+func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile string, fileContent []byte, err error) {
 	var lastUpdated, uploadTime string
 	var accessCount int
-	var fileContent []byte
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return "", "", fmt.Errorf("error while openning connection to update data about application %s or add new one: %w", fileName, err)
+		return "", "", nil, fmt.Errorf("error while openning connection to update data about application %s or add new one: %w", fileName, err)
 	}
 
 	defer db.Close()
@@ -132,26 +120,11 @@ func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile stri
 
 	err = row.Scan(&pathFile, &fileContent, &metadata, &lastUpdated, &accessCount, &uploadTime)
 	if err != nil {
-		return "", "", fmt.Errorf("error while scanning all data about file %s: %w", fileName, err)
+		return "", "", nil, fmt.Errorf("error while scanning all data about file %s: %w", fileName, err)
 	}
 
 	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
 
-	if pathFile != "" {
-		return
-	}
-
-	file, err := os.OpenFile("/tmp/"+fileName, os.O_RDWR|os.O_CREATE, 0777)
-	if err != nil {
-		return "", "", fmt.Errorf("error while openning file /tmp/%s", fileName)
-	}
-
-	_, err = file.Write(fileContent)
-	if err != nil {
-		return "", "", fmt.Errorf("error while writting data to file /tmp/%s", fileName)
-	}
-	defer file.Close()
-	pathFile = "/tmp/" + fileName
 	return
 }
 
@@ -255,4 +228,47 @@ func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err 
 		return nil, fmt.Errorf("error after scanning all operations with files: %w", err)
 	}
 	return
+}
+
+func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.OperationInfo, error) {
+	var field string
+	var operationID string
+	var operationFilesInfo cs.OperationInfo
+	operationsFilesInfo := make(map[string]cs.OperationInfo, 20)
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return operationsFilesInfo, fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
+	}
+
+	defer db.Close()
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctxCache, "SELECT operationID, operationName, operationUploadTime, Field FROM FileOperations JOIN OperationsFileDiff ON "+
+		"FileOperations.operationID = OperationsFileDiff.operationID WHERE FileOperations.userName=$1 AND FileOperations.fileName=$2", user, fileName)
+
+	if err != nil {
+		return operationsFilesInfo, fmt.Errorf("error while getting operations info from SQLite: %w", err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&operationID, &operationFilesInfo.OperationName, &operationFilesInfo.OperationTime, &field)
+		if err != nil {
+			return operationsFilesInfo, fmt.Errorf("error while getting info about operations of file %s: %w", fileName, err)
+		}
+		opInfo, exists := operationsFilesInfo[operationID]
+		if !exists {
+			operationsFilesInfo[operationID] = operationFilesInfo
+		}
+		opInfo.Fields = append(opInfo.Fields, field)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return operationsFilesInfo, fmt.Errorf("error while scanning info about operations of file %s: %w", fileName, err)
+	}
+
+	return operationsFilesInfo, nil
 }

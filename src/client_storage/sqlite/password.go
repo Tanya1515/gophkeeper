@@ -67,17 +67,6 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 		return fmt.Errorf("error after scanning all operations for application %s: %w", application, err)
 	}
 
-	if operation == cs.Delete {
-		statement, err := db.Prepare("DELETE from PasswordOperations WHERE application=? AND userName = ?")
-		if err != nil {
-			return fmt.Errorf("error while making request for deleting all operations with password for application %s: %w", application, err)
-		}
-		_, err = statement.ExecContext(ctxCache, application, userName)
-		if err != nil {
-			return fmt.Errorf("error while deleting all operations with password for application %s: %w", application, err)
-		}
-	}
-
 	statement, err := db.Prepare("INSERT INTO PasswordOperations (operationID, userName, application, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with password for application %s: %w", operation, application, err)
@@ -205,14 +194,16 @@ func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, 
 	return
 }
 
-func (cache *SQLite) GetPasswordOperationInfo(user, application string) (err error) {
+func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[string]cs.OperationInfo, error) {
 
-	var oprationUploadTime, operationName, field string
-	var fields []string
+	var field, operationID string
+
+	var operationPasswordsInfo cs.OperationInfo
+	operationsPasswordsInfo := make(map[string]cs.OperationInfo, 20)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
+		return operationsPasswordsInfo, fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
 	}
 
 	defer db.Close()
@@ -220,18 +211,28 @@ func (cache *SQLite) GetPasswordOperationInfo(user, application string) (err err
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctxCache, "SELECT operationName, operationUploadTime, Field FROM PasswordsOperations JOIN OperationPasswordDiff ON "+
+	rows, err := db.QueryContext(ctxCache, "SELECT operationID, operationName, operationUploadTime, Field FROM PasswordsOperations JOIN OperationPasswordDiff ON "+
 		"PasswordsOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordsOperations.userName=$1 AND PasswordsOperations.application=$2", user, application)
-
+	if err != nil {
+		return operationsPasswordsInfo, fmt.Errorf("error while getting all data about password operations: %w", err)
+	}
 	for rows.Next() {
-		err = rows.Scan(&operationName, &oprationUploadTime, &field)
-
+		err = rows.Scan(&operationID, &operationPasswordsInfo.OperationName, &operationPasswordsInfo.OperationTime, &field)
+		if err != nil {
+			return operationsPasswordsInfo, fmt.Errorf("error while getting info about operations of application %s: %w", application, err)
+		}
+		opInfo, exists := operationsPasswordsInfo[operationID]
+		if !exists {
+			operationsPasswordsInfo[operationID] = operationPasswordsInfo
+		}
+		opInfo.Fields = append(opInfo.Fields, field)
 	}
 
 	err = rows.Err()
 	if err != nil {
-		return fmt.Errorf("error while scanning password data: %w", err)
+		return operationsPasswordsInfo, fmt.Errorf("error while scanning password data: %w", err)
 	}
-	return
+
+	return operationsPasswordsInfo, nil
 
 }

@@ -148,7 +148,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 				Metadata:   metadatabankCard,
 			})
 
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UploadBankCard(ctx, &pb.BankCardMessage{
 					CardNumber: cardNumber,
 					CvcCode:    cvc,
@@ -215,7 +215,7 @@ func (c *Client) GetBankCard() *cobra.Command {
 				Identificator: cardNumber,
 			})
 
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 					Identificator: cardNumber,
 				})
@@ -282,7 +282,7 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 				Identificator: cardNumber,
 			})
 
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 					Identificator: cardNumber,
 				})
@@ -400,7 +400,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				Metadata:   metadatabankCard,
 			})
 
-			for err != nil || retryCount == 3 {
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
 					CardNumber: cardNumber,
 					CvcCode:    cvc,
@@ -422,7 +422,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 
 }
 
-func ExecuteCardsOperations(operation cs.Operation, userJWT, uploadTime string, bankCard *pb.BankCardMessage) {
+func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT, uploadTime string, bankCard *pb.BankCardMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
@@ -436,6 +436,7 @@ func ExecuteCardsOperations(operation cs.Operation, userJWT, uploadTime string, 
 	connection, err := ClientConnection(certPath)
 	if err != nil {
 		fmt.Println("Error while creating GRPC connection to server: ", err)
+		return fmt.Errorf("error while creating GRPC connection to server: %w", err)
 	}
 
 	clientGRPC := pb.NewGophkeeperClient(connection)
@@ -445,29 +446,31 @@ func ExecuteCardsOperations(operation cs.Operation, userJWT, uploadTime string, 
 		_, err = clientGRPC.UploadBankCard(ctx, bankCard)
 		if err != nil {
 			fmt.Println("Error while uploading bank card: ", err)
+			return fmt.Errorf("error while uploading bank card: %w", err)
 		}
-		// SQLite
 	case cs.Get:
 		bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 			Identificator: bankCard.CardNumber,
 		})
 		if err != nil {
 			fmt.Println("Error while getting bank card credentials: ", err)
+			return fmt.Errorf("error while getting bank card credentials: %w", err)
 		}
-		// SQLite
 	case cs.Update:
 		_, err = clientGRPC.UpdateBankCardCreds(ctx, bankCard)
 		if err != nil {
 			fmt.Println("Error while updating bank card credentials: ", err)
+			return fmt.Errorf("error while updating bank card credentials: %w", err)
 		}
-		// SQLite
 	case cs.Delete:
 		_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 			Identificator: bankCard.CardNumber,
 		})
 		if err != nil {
 			fmt.Println("Error while deleting bank card credentials: ", err)
+			return fmt.Errorf("error while deleting bank card credentials: %w", err)
 		}
-		// SQLite
 	}
+
+	return nil
 }
