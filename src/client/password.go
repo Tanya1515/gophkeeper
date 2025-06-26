@@ -246,7 +246,6 @@ func (c *Client) DeletePassword() *cobra.Command {
 					fmt.Println("Error while saving info about password operation: %w", err)
 				}
 			}
-
 		},
 	}
 

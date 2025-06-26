@@ -140,6 +140,9 @@ func (c *Client) SendBankCard() *cobra.Command {
 
 			var retryCount = 1
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
 			_, err = clientGRPC.UploadBankCard(ctx, &pb.BankCardMessage{
 				CardNumber: cardNumber,
 				CvcCode:    cvc,
@@ -160,9 +163,19 @@ func (c *Client) SendBankCard() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			// SQLite
+			if err == nil {
+				fmt.Println("Bank card credentials successfully have been uploaded!")
+			} else {
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Create, nil, opTime)
+				if err != nil {
+					fmt.Println("Error while saving info about bank card operation: %w", err)
+				}
+			}
+			err = c.ClientStorage.UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, opTime, User)
+			if err != nil {
+				fmt.Printf("Error while writting bank card to SQLite: %s", err)
+			}
 
-			fmt.Println("Bank card credentials successfully have been uploaded!")
 		},
 	}
 
@@ -210,6 +223,9 @@ func (c *Client) GetBankCard() *cobra.Command {
 
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
+
 			var retryCount = 1
 			bankCard, err := clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 				Identificator: cardNumber,
@@ -223,13 +239,19 @@ func (c *Client) GetBankCard() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			// SQLite
+			if err == nil {
+				fmt.Printf("Card number: %s\n", cardNumber)
+				fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
+				fmt.Printf("Card date: %s\n", bankCard.Data)
+				fmt.Printf("Card bank: %s\n", bankCard.Bank)
+				fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
+			} else {
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Get, nil, opTime)
+				if err != nil {
+					fmt.Println("Error while saving info about password operation: %w", err)
+				}
+			}
 
-			fmt.Printf("Card number: %s\n", cardNumber)
-			fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
-			fmt.Printf("Card date: %s\n", bankCard.Data)
-			fmt.Printf("Card bank: %s\n", bankCard.Bank)
-			fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
 		},
 	}
 
@@ -278,6 +300,8 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 			var retryCount = 1
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
 			_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 				Identificator: cardNumber,
 			})
@@ -290,9 +314,19 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			// SQLite
+			errLocal := c.ClientStorage.DeleteBankCard(cardNumber, User)
+			if errLocal != nil {
+				fmt.Printf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
+			}
+			if err == nil {
+				fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper", cardNumber)
+			} else {
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
+				if err != nil {
+					fmt.Println("Error while saving info about password operation: %w", err)
+				}
+			}
 
-			fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper", cardNumber)
 		},
 	}
 
@@ -391,6 +425,9 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+			uploadTime := time.Now()
+			opTime := uploadTime.Format("RFC3339")
+
 			var retryCount = 1
 			_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
 				CardNumber: cardNumber,
@@ -412,9 +449,31 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			// SQLite
-
-			fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
+			if err == nil {
+				fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
+			} else {
+				fields := make([]string, 5)
+				if cvc != "" {
+					fields[0] = "cvc"
+				}
+				if cardDate != "" {
+					fields[1] = "date"
+				}
+				if bankName != "" {
+					fields[2] = "bank"
+				}
+				if metadatabankCard != "" {
+					fields[3] = "metadata"
+				}
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Update, fields, opTime)
+				if err != nil {
+					fmt.Printf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
+				}
+			}
+			err = c.ClientStorage.UploadBankCard(cardNumber, cvc, cardDate, bankName, metadatabankCard, opTime, User)
+			if err != nil {
+				fmt.Printf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
+			}
 
 		},
 	}
