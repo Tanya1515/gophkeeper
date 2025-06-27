@@ -16,7 +16,7 @@ type SQLite struct{}
 // tables for saving data.
 func (cache *SQLite) Connect() error {
 
-	db, err := sql.Open("sqlite3", "./data_cahce.db")
+	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
 		fmt.Printf("Error while openning connection to SQLite: %s\n", err)
 	}
@@ -35,7 +35,7 @@ func (cache *SQLite) Connect() error {
 		"userName TEXT, " +
 		"password TEXT, " +
 		"metadata TEXT, " +
-		"accessCount INTEGER, " +
+		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
 		"PRIMARY KEY (application, userName)" +
@@ -53,7 +53,7 @@ func (cache *SQLite) Connect() error {
 		"date TEXT, " +
 		"bank TEXT, " +
 		"metadata TEXT, " +
-		"accessCount INTEGER, " +
+		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT," +
 		"PRIMARY KEY (userName, cardNumber) " +
@@ -70,7 +70,7 @@ func (cache *SQLite) Connect() error {
 		"filePath TEXT, " +
 		"content BLOB, " +
 		"metadata TEXT, " +
-		"accessCount INTEGER, " +
+		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
 		"PRIMARY KEY (fileName, userName)" +
@@ -82,19 +82,22 @@ func (cache *SQLite) Connect() error {
 
 	statement.Exec()
 
-	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS FileOperations (operationID TEXT PRIMARY KEY, " +
-		"userName TEXT, " +
-		"fileName TEXT, " +
-		"operationName TEXT, " +
-		"operationUploadTime TEXT, " +
-		"filePath TEXT, " +
-		"FOREIGN KEY(fileName) REFERENCES Files(fileName) ON DELETE CASCADE) " +
-		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
+	statement, err = db.Prepare(`
+    CREATE TABLE IF NOT EXISTS FileOperations (
+        operationID TEXT PRIMARY KEY,
+        userName TEXT,
+        fileName TEXT,
+        operationName TEXT,
+        operationUploadTime TEXT,
+        filePath TEXT,
+        FOREIGN KEY (userName) REFERENCES Users(userName) ON DELETE CASCADE,
+        FOREIGN KEY (userName, fileName) REFERENCES Files(userName, fileName) ON DELETE CASCADE
+    )
+`)
 	if err != nil {
 		log.Println("Error while creating table for operations with files: ", err)
 		return err
 	}
-
 	statement.Exec()
 	// по идее надо раздрабить - чтобы не было дублирующих полей (ID меньше весят, чем строки).
 	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS PasswordOperations (operationID TEXT PRIMARY KEY, " +
@@ -102,8 +105,8 @@ func (cache *SQLite) Connect() error {
 		"application TEXT, " +
 		"operationName TEXT, " +
 		"operationUploadTime TEXT, " +
-		"FOREIGN KEY(application) REFERENCES Passwords(application) ON DELETE CASCADE) " +
-		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
+		"FOREIGN KEY (application, userName) REFERENCES Passwords(application, userName) ON DELETE CASCADE " +
+		"FOREIGN KEY (userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for operations with passwords: ", err)
 		return err
@@ -116,7 +119,7 @@ func (cache *SQLite) Connect() error {
 		"cardNumber TEXT, " +
 		"operationName TEXT, " +
 		"operationUploadTime TEXT, " +
-		"FOREIGN KEY(cardNumber) REFERENCES Cards(cardNumber) ON DELETE CASCADE) " +
+		"FOREIGN KEY(cardNumber, userName) REFERENCES Cards(cardNumber, userName) ON DELETE CASCADE " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for operations with cards: ", err)

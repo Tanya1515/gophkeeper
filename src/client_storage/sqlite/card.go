@@ -151,7 +151,7 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 		"bank = CASE WHEN excluded.bank <> '' THEN excluded.bank ELSE bank END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
 		"lastUpdated = excluded.lastUpdated, "+
-		"Cards.accessCount = Cards.accessCount + 1 WHERE Cards.cardNumber = Cards.cardNumber AND Cards.userName = Cards.userName", cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, uploadTime, userName)
+		"accessCount = Cards.accessCount + 1", cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, uploadTime, userName)
 
 	if err != nil {
 		return fmt.Errorf("error while updating existing bank card %s or inserting new one: %w", cardNumber, err)

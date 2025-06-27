@@ -48,7 +48,7 @@ func (pg *PostgreSQLConnection) UpdatePassword(ctx context.Context, password, ap
 			"password = CASE WHEN $1 <> '' THEN $1 ELSE password END, "+
 			"metaData = CASE WHEN $2 <> '' THEN $2 ELSE metaData END, "+
 			"initVector = CASE WHEN $3::bytea IS NOT NULL THEN $3::bytea ELSE initVector END "+
-			"WHERE application=$4 AND userID=$2", password, md, initVector, app, ctx.Value(ut.IDKey))
+			"WHERE application=$4 AND userID=$5", password, md, initVector, app, ctx.Value(ut.IDKey))
 
 	if err != nil {
 		return fmt.Errorf("error while updating password for application %s : %w", app, err)

@@ -13,9 +13,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "client",
-	Short: "A brief description of your CLI application",
-	Long: `A longer description that explains your CLI application in detail, 
-    including available commands and their usage.`,
+	Short: "Console client for save, update, delete and get sensetive data",
+	Long:  `Console client to save, update, delete and get sensetive data of different types: files, bank card credentials, passwords.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Welcome to client! Use --help for usage.")
 	},
@@ -60,18 +59,12 @@ func Execute() {
 	}
 }
 
-func main() {
-	err := ut.CreateJWTPath()
-	if err != nil {
-		fmt.Println("Error while file for JWT initialization: ", err)
-	}
-	Execute()
-
+func init() {
 	sqliteCache := &sql.SQLite{}
 
 	consoleClient := client.Client{ClientStorage: sqliteCache}
 
-	err = consoleClient.ClientStorage.Connect()
+	err := consoleClient.ClientStorage.Connect()
 	if err != nil {
 		fmt.Println("Error while connecting to client storage: ", err)
 		return
@@ -142,4 +135,14 @@ func main() {
 	updateCmd.AddCommand(updatePasswordCmd)
 	updatePasswordCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	updatePasswordCmd.MarkFlagRequired("user")
+
+}
+
+func main() {
+	err := ut.CreateJWTPath()
+	if err != nil {
+		fmt.Println("Error while file for JWT initialization: ", err)
+	}
+	Execute()
+
 }

@@ -182,7 +182,7 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, userNa
 			"filePath = CASE WHEN excluded.filePath <> '' THEN excluded.filePath ELSE filePath END, "+
 			"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
 			"lastUpdated = excluded.lastUpdated, "+
-			"Files.accessCount = Files.accessCount + 1 WHERE Files.fileName = excluded.fileName AND Files.userName = excluded.userName", fileName, filePath, metadata, uploadTime, uploadTime, userName)
+			"accessCount = Files.accessCount + 1 WHERE Files.fileName = excluded.fileName AND Files.userName = excluded.userName", fileName, filePath, metadata, uploadTime, uploadTime, userName)
 
 		if err != nil {
 			return fmt.Errorf("error while updating existing file %s or inserting new one with content: %w", filePath, err)

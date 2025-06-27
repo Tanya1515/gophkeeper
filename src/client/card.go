@@ -208,47 +208,58 @@ func (c *Client) GetBankCard() *cobra.Command {
 				ok = CheckCardNumber(cardNumber)
 			}
 
-			certPath, envExists := os.LookupEnv("CERT_PATH")
-			if !(envExists) {
-				certPath = "../../test_certs/"
-			}
+			cvc, date, bankName, metadataCard, err := c.ClientStorage.GetBankCard(cardNumber, User)
+			fmt.Println(cvc)
+			fmt.Println(err)
+			if err == nil && cvc != "" {
+				fmt.Printf("Card number: %s\n", cardNumber)
+				fmt.Printf("Card cvc code: %s\n", cvc)
+				fmt.Printf("Card date: %s\n", date)
+				fmt.Printf("Card bank: %s\n", bankName)
+				fmt.Printf("Additioanl information: %s\n", metadataCard)
+			} else {
+				certPath, envExists := os.LookupEnv("CERT_PATH")
+				if !(envExists) {
+					certPath = "../../test_certs/"
+				}
 
-			connection, err := ClientConnection(certPath)
-			if err != nil {
-				fmt.Println("Error while creating GRPC connection to server: ", err)
-			}
+				connection, err := ClientConnection(certPath)
+				if err != nil {
+					fmt.Println("Error while creating GRPC connection to server: ", err)
+				}
 
-			clientGRPC := pb.NewGophkeeperClient(connection)
-			md := metadata.New(map[string]string{"Authorization": JWTToken})
+				clientGRPC := pb.NewGophkeeperClient(connection)
+				md := metadata.New(map[string]string{"Authorization": JWTToken})
 
-			ctx := metadata.NewOutgoingContext(context.Background(), md)
+				ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-			uploadTime := time.Now()
-			opTime := uploadTime.Format("RFC3339")
+				uploadTime := time.Now()
+				opTime := uploadTime.Format("RFC3339")
 
-			var retryCount = 1
-			bankCard, err := clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
-				Identificator: cardNumber,
-			})
-
-			for err != nil && retryCount != 3 {
-				bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+				var retryCount = 1
+				bankCard, err := clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 					Identificator: cardNumber,
 				})
-				retryCount++
-				time.Sleep(time.Duration(retryCount))
-			}
 
-			if err == nil {
-				fmt.Printf("Card number: %s\n", cardNumber)
-				fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
-				fmt.Printf("Card date: %s\n", bankCard.Data)
-				fmt.Printf("Card bank: %s\n", bankCard.Bank)
-				fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
-			} else {
-				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Get, nil, opTime)
-				if err != nil {
-					fmt.Println("Error while saving info about password operation: %w", err)
+				for err != nil && retryCount != 3 {
+					bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+						Identificator: cardNumber,
+					})
+					retryCount++
+					time.Sleep(time.Duration(retryCount))
+				}
+
+				if err == nil {
+					fmt.Printf("Card number: %s\n", cardNumber)
+					fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
+					fmt.Printf("Card date: %s\n", bankCard.Data)
+					fmt.Printf("Card bank: %s\n", bankCard.Bank)
+					fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
+				} else {
+					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Get, nil, opTime)
+					if err != nil {
+						fmt.Println("Error while saving info about password operation: %w", err)
+					}
 				}
 			}
 
