@@ -61,11 +61,13 @@ func (c *Client) RegisterClient() *cobra.Command {
 
 			if err != nil {
 				fmt.Println("Error while checking if OTP is correct")
+				return
 			}
 
 			err = ut.SaveJWT(result.JWTtoken, login)
 			if err != nil {
 				fmt.Printf("Error while saving user %s JWTToken %s", login, err)
+				return
 			}
 
 			fmt.Println(login, " has been successfully registered!")

@@ -186,6 +186,7 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err error) {
 
 	var userName, cardNumber string
+	result = make(map[string][]string, 10)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -203,7 +204,7 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctxCache, "SELECT userName, cardNumber FROM CardOperations GROUP BY (userName, cardNumber)")
+	rows, err := db.QueryContext(ctxCache, "SELECT userName, cardNumber FROM CardOperations GROUP BY userName, cardNumber")
 	if err != nil {
 		return nil, fmt.Errorf("error while getting all operations with cards: %w", err)
 	}
@@ -228,8 +229,8 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 }
 
 func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]cs.OperationInfo, error) {
-	var field, operationID string
-
+	var operationID string
+	var field sql.NullString
 	var operationCardsInfo cs.OperationInfo
 	operationsCardsInfo := make(map[string]cs.OperationInfo, 20)
 
@@ -249,7 +250,7 @@ func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctxCache, "SELECT operationID operationName, operationUploadTime, Field FROM CardOperations JOIN OperationBankCardDiff ON "+
+	rows, err := db.QueryContext(ctxCache, "SELECT CardOperations.operationID, CardOperations.operationName, CardOperations.operationUploadTime, OperationBankCardDiff.Field FROM CardOperations LEFT JOIN OperationBankCardDiff ON "+
 		"CardOperations.operationID = OperationBankCardDiff.operationID WHERE CardOperations.userName=$1 AND CardOperations.cardNumber=$2", user, cardNumber)
 
 	if err != nil {
@@ -261,10 +262,15 @@ func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]
 			return operationsCardsInfo, fmt.Errorf("error while getting info about operations of application %s: %w", cardNumber, err)
 		}
 		opInfo, exists := operationsCardsInfo[operationID]
+		fmt.Println(operationID)
+		fmt.Println(operationCardsInfo)
 		if !exists {
 			operationsCardsInfo[operationID] = operationCardsInfo
 		}
-		opInfo.Fields = append(opInfo.Fields, field)
+		if field.Valid {
+			opInfo.Fields = append(opInfo.Fields, field.String)
+		}
+
 	}
 
 	err = rows.Err()

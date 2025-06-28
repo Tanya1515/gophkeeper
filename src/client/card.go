@@ -171,6 +171,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 			}
 			if err == nil {
 				fmt.Println("Bank card credentials successfully have been uploaded!")
+				c.SendCacheData()
 			} else {
 				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Create, nil, opTime)
 				if err != nil {
@@ -255,6 +256,7 @@ func (c *Client) GetBankCard() *cobra.Command {
 					fmt.Printf("Card date: %s\n", bankCard.Data)
 					fmt.Printf("Card bank: %s\n", bankCard.Bank)
 					fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
+					c.SendCacheData()
 				} else if !errors.Is(err, sql.ErrNoRows) {
 					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Get, nil, opTime)
 					if err != nil {
@@ -331,6 +333,7 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			}
 			if err == nil {
 				fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper", cardNumber)
+				c.SendCacheData()
 			} else {
 				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
 				if err != nil {
@@ -462,6 +465,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 
 			if err == nil {
 				fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
+				c.SendCacheData()
 			} else {
 				fields := make([]string, 0)
 				if cvc != "" {

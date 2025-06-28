@@ -59,16 +59,19 @@ func (c *Client) LoginClient() *cobra.Command {
 
 			if err != nil {
 				fmt.Println("Error while checking if OTP is correct")
+				return
 			}
 
 			err = ut.SaveJWT(result.JWTtoken, login)
 			if err != nil {
 				fmt.Printf("Error while saving user %s JWTToken %s", login, err)
+				return
 			}
 
 			err = c.ClientStorage.CreateUser(login)
 			if err != nil {
 				fmt.Println(err)
+				return
 			}
 
 			defer connection.Close()

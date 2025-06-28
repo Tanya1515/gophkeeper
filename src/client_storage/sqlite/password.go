@@ -196,6 +196,7 @@ func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime,
 
 func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, err error) {
 	var userName, application string
+	result = make(map[string][]string, 10)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -213,7 +214,7 @@ func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctxCache, "SELECT userName, application FROM PasswordOperations GROUP BY (userName, application)")
+	rows, err := db.QueryContext(ctxCache, "SELECT userName, application FROM PasswordOperations GROUP BY userName, application")
 	if err != nil {
 		return nil, fmt.Errorf("error while getting all operations with passwords: %w", err)
 	}
@@ -239,7 +240,8 @@ func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, 
 
 func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[string]cs.OperationInfo, error) {
 
-	var field, operationID string
+	var field sql.NullString
+	var operationID string
 
 	var operationPasswordsInfo cs.OperationInfo
 	operationsPasswordsInfo := make(map[string]cs.OperationInfo, 20)
@@ -260,8 +262,8 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[st
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctxCache, "SELECT operationID, operationName, operationUploadTime, Field FROM PasswordsOperations JOIN OperationPasswordDiff ON "+
-		"PasswordsOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordsOperations.userName=$1 AND PasswordsOperations.application=$2", user, application)
+	rows, err := db.QueryContext(ctxCache, "SELECT PasswordOperations.operationID, PasswordOperations.operationName, PasswordOperations.operationUploadTime, OperationPasswordDiff.Field FROM PasswordOperations LEFT JOIN OperationPasswordDiff ON "+
+		"PasswordOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordOperations.userName=$1 AND PasswordOperations.application=$2", user, application)
 	if err != nil {
 		return operationsPasswordsInfo, fmt.Errorf("error while getting all data about password operations: %w", err)
 	}
@@ -274,7 +276,10 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[st
 		if !exists {
 			operationsPasswordsInfo[operationID] = operationPasswordsInfo
 		}
-		opInfo.Fields = append(opInfo.Fields, field)
+		if field.Valid {
+			opInfo.Fields = append(opInfo.Fields, field.String)
+		}
+
 	}
 
 	err = rows.Err()

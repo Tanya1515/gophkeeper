@@ -96,6 +96,7 @@ func (c *Client) SendPassword() *cobra.Command {
 			}
 			if err == nil {
 				fmt.Printf("Your password for application %s has been successfully uploaded!\n", application)
+				c.SendCacheData()
 			} else {
 				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Create, nil, opTime)
 				if err != nil {
@@ -174,6 +175,7 @@ func (c *Client) GetPassword() *cobra.Command {
 					fmt.Printf("Application: %s\n", application)
 					fmt.Printf("Password: %s\n", passwordApp.Password)
 					fmt.Printf("Additioanl information: %s\n", passwordApp.MetaData)
+					c.SendCacheData()
 				} else if !errors.Is(err, sql.ErrNoRows) {
 					err = c.ClientStorage.SavePasswordOperation(application, User, cs.Get, nil, opTime)
 					if err != nil {
@@ -250,6 +252,7 @@ func (c *Client) DeletePassword() *cobra.Command {
 			}
 			if err == nil {
 				fmt.Printf("All sensetive data regarding to application %s was successfully removed from gophkeeper", application)
+				c.SendCacheData()
 			} else {
 				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Delete, nil, opTime)
 				if err != nil {
@@ -344,6 +347,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 			}
 			if err == nil {
 				fmt.Printf("Your password for application %s has been successfully updated!\n", application)
+				c.SendCacheData()
 			} else {
 				fields := make([]string, 0)
 				if newPassword != "" {

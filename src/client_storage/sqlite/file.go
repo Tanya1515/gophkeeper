@@ -230,6 +230,7 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, userNa
 func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err error) {
 
 	var userName, fileName string
+	result = make(map[string][]string, 10)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -247,7 +248,7 @@ func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctxCache, "SELECT userName, fileName FROM FileOperations GROUP BY (userName, fileName)")
+	rows, err := db.QueryContext(ctxCache, "SELECT userName, fileName FROM FileOperations GROUP BY userName, fileName")
 	if err != nil {
 		return nil, fmt.Errorf("error while getting all operations with files: %w", err)
 	}
@@ -272,7 +273,7 @@ func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err 
 }
 
 func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.OperationInfo, error) {
-	var field string
+	var field sql.NullString
 	var operationID string
 	var operationFilesInfo cs.OperationInfo
 	operationsFilesInfo := make(map[string]cs.OperationInfo, 20)
@@ -293,7 +294,7 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctxCache, "SELECT operationID, operationName, operationUploadTime, Field FROM FileOperations JOIN OperationsFileDiff ON "+
+	rows, err := db.QueryContext(ctxCache, "SELECT FileOperations.operationID, FileOperations.operationName, FileOperations.operationUploadTime, OperationsFileDiff.Field FROM FileOperations LEFT JOIN OperationsFileDiff ON "+
 		"FileOperations.operationID = OperationsFileDiff.operationID WHERE FileOperations.userName=$1 AND FileOperations.fileName=$2", user, fileName)
 
 	if err != nil {
@@ -309,7 +310,9 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.
 		if !exists {
 			operationsFilesInfo[operationID] = operationFilesInfo
 		}
-		opInfo.Fields = append(opInfo.Fields, field)
+		if field.Valid {
+			opInfo.Fields = append(opInfo.Fields, field.String)
+		}
 	}
 
 	err = rows.Err()
