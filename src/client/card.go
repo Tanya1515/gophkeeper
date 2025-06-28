@@ -3,6 +3,8 @@ package client
 import (
 	"bufio"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -163,6 +165,10 @@ func (c *Client) SendBankCard() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
+			errUpload := c.ClientStorage.UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, opTime, User)
+			if errUpload != nil {
+				fmt.Printf("Error while writting bank card to SQLite: %s", err)
+			}
 			if err == nil {
 				fmt.Println("Bank card credentials successfully have been uploaded!")
 			} else {
@@ -170,10 +176,6 @@ func (c *Client) SendBankCard() *cobra.Command {
 				if err != nil {
 					fmt.Println("Error while saving info about bank card operation: %w", err)
 				}
-			}
-			err = c.ClientStorage.UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, opTime, User)
-			if err != nil {
-				fmt.Printf("Error while writting bank card to SQLite: %s", err)
 			}
 
 		},
@@ -209,8 +211,6 @@ func (c *Client) GetBankCard() *cobra.Command {
 			}
 
 			cvc, date, bankName, metadataCard, err := c.ClientStorage.GetBankCard(cardNumber, User)
-			fmt.Println(cvc)
-			fmt.Println(err)
 			if err == nil && cvc != "" {
 				fmt.Printf("Card number: %s\n", cardNumber)
 				fmt.Printf("Card cvc code: %s\n", cvc)
@@ -255,10 +255,10 @@ func (c *Client) GetBankCard() *cobra.Command {
 					fmt.Printf("Card date: %s\n", bankCard.Data)
 					fmt.Printf("Card bank: %s\n", bankCard.Bank)
 					fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
-				} else {
+				} else if !errors.Is(err, sql.ErrNoRows) {
 					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Get, nil, opTime)
 					if err != nil {
-						fmt.Println("Error while saving info about password operation: %w", err)
+						fmt.Println("Error while saving info about password operation: ", err)
 					}
 				}
 			}
@@ -334,7 +334,7 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			} else {
 				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
 				if err != nil {
-					fmt.Println("Error while saving info about password operation: %w", err)
+					fmt.Println("Error while saving info about password operation: ", err)
 				}
 			}
 
@@ -463,18 +463,18 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 			if err == nil {
 				fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
 			} else {
-				fields := make([]string, 5)
+				fields := make([]string, 0)
 				if cvc != "" {
-					fields[0] = "cvc"
+					fields = append(fields, "cvc")
 				}
 				if cardDate != "" {
-					fields[1] = "date"
+					fields = append(fields, "date")
 				}
 				if bankName != "" {
-					fields[2] = "bank"
+					fields = append(fields, "bank")
 				}
 				if metadatabankCard != "" {
-					fields[3] = "metadata"
+					fields = append(fields, "metadata")
 				}
 				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Update, fields, opTime)
 				if err != nil {

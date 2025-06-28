@@ -69,6 +69,11 @@ func (c *Client) RegisterClient() *cobra.Command {
 			}
 
 			fmt.Println(login, " has been successfully registered!")
+
+			err = c.ClientStorage.CreateUser(login)
+			if err != nil {
+				fmt.Println(err)
+			}
 			defer connection.Close()
 		},
 	}

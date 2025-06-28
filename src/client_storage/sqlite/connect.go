@@ -23,6 +23,12 @@ func (cache *SQLite) Connect() error {
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return err
+	}
+
 	statement, err := db.Prepare("CREATE TABLE IF NOT EXISTS Users (userName TEXT PRIMARY KEY, cache_miss INTEGER)")
 	if err != nil {
 		log.Println("Error while creating table for users: ", err)
@@ -38,7 +44,7 @@ func (cache *SQLite) Connect() error {
 		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
-		"PRIMARY KEY (application, userName)" +
+		"PRIMARY KEY (application, userName), " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for passwords: ", err)
@@ -56,7 +62,7 @@ func (cache *SQLite) Connect() error {
 		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT," +
-		"PRIMARY KEY (userName, cardNumber) " +
+		"PRIMARY KEY (userName, cardNumber), " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for cards: ", err)
@@ -73,10 +79,10 @@ func (cache *SQLite) Connect() error {
 		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
-		"PRIMARY KEY (fileName, userName)" +
+		"PRIMARY KEY (fileName, userName), " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
-		log.Println("Error while creating table for files: ", err)
+		log.Println("Error whcdile creating table for files: ", err)
 		return err
 	}
 
@@ -90,8 +96,7 @@ func (cache *SQLite) Connect() error {
         operationName TEXT,
         operationUploadTime TEXT,
         filePath TEXT,
-        FOREIGN KEY (userName) REFERENCES Users(userName) ON DELETE CASCADE,
-        FOREIGN KEY (userName, fileName) REFERENCES Files(userName, fileName) ON DELETE CASCADE
+        FOREIGN KEY (userName) REFERENCES Users(userName) ON DELETE CASCADE
     )
 `)
 	if err != nil {
@@ -105,7 +110,6 @@ func (cache *SQLite) Connect() error {
 		"application TEXT, " +
 		"operationName TEXT, " +
 		"operationUploadTime TEXT, " +
-		"FOREIGN KEY (application, userName) REFERENCES Passwords(application, userName) ON DELETE CASCADE " +
 		"FOREIGN KEY (userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for operations with passwords: ", err)
@@ -119,7 +123,6 @@ func (cache *SQLite) Connect() error {
 		"cardNumber TEXT, " +
 		"operationName TEXT, " +
 		"operationUploadTime TEXT, " +
-		"FOREIGN KEY(cardNumber, userName) REFERENCES Cards(cardNumber, userName) ON DELETE CASCADE " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
 		log.Println("Error while creating table for operations with cards: ", err)

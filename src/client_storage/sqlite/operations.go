@@ -18,6 +18,12 @@ func (cache *SQLite) DeleteOperaionByID(operationID, dataType string) error {
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

@@ -21,6 +21,12 @@ func (cache *SQLite) DeleteFile(fileName, userName string) error {
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -46,6 +52,12 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -67,6 +79,16 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 		return fmt.Errorf("error after scanning all operations for file %s: %w", fileName, err)
 	}
 
+	if operation == cs.Delete {
+		ctxCacheDelete, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_, err = db.ExecContext(ctxCacheDelete, "DELETE FROM FileOperations WHERE fileName=$1 AND userName=$2", fileName, userName)
+		if err != nil {
+			return fmt.Errorf("error while delete all operations for file %s: %w", fileName, err)
+		}
+	}
+
 	statement, err := db.Prepare("INSERT INTO FileOperations (operationID, filePath, userName, fileName, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with password for application %s: %w", operation, fileName, err)
@@ -79,17 +101,18 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 	if operation == cs.Update {
 		for _, field := range fields {
 			fieldID := uuid.New()
-			_, err = db.ExecContext(ctxCache, "INSERT INTO OperationsFileDiff (diffID, operationID, field) VALUES ($1,$2,$3,)"+
+			_, err = db.ExecContext(ctxCache, "INSERT INTO OperationsFileDiff (diffID, operationID, field) VALUES ($1,$2,$3)"+
 				"ON CONFLICT (field) DO "+
-				"UPDATE SET operationID = excluded.operationID, diffID = excluded.diffID WHERE PasswordOperations.field = excluded.field", fieldID, operationID, field)
+				"UPDATE SET operationID = excluded.operationID, diffID = excluded.diffID", fieldID, operationID, field)
 			if err != nil {
 				return fmt.Errorf("error while inserting field %s for file %s for update operation: %w", field, fileName, err)
 			}
 		}
 
-		_, err = db.ExecContext(ctxCache, "DELETE FROM OperationsFileDiff "+
+		_, err = db.ExecContext(ctxCache, "DELETE FROM FileOperations "+
 			"WHERE NOT EXISTS "+
-			"(SELECT 1 FROM fields WHERE OperationFileDiff.operationID = FileOperations.operationID)")
+			"(SELECT 1 FROM OperationsFileDiff WHERE OperationqFileDiff.operationID = FileOperations.operationID) "+
+			"AND fileName = $1 AND userName = $2 AND oprationName = $3", fileName, userName, cs.Update)
 
 		if err != nil {
 			return fmt.Errorf("error while deleting all operations without fields to update: %w", err)
@@ -112,6 +135,12 @@ func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile stri
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return "", "", nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -137,6 +166,12 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, userNa
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -203,6 +238,12 @@ func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err 
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -242,6 +283,12 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return operationsFilesInfo, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

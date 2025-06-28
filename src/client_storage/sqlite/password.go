@@ -24,6 +24,12 @@ func (cache *SQLite) DeletePassword(application, userName string) error {
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return err
+	}
+
 	statement, err := db.Prepare("DELETE from Passwords WHERE application=? AND userName = ?")
 	if err != nil {
 		return fmt.Errorf("error while making request for deleting password for application %s: %w", application, err)
@@ -46,6 +52,12 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -65,6 +77,16 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 	err = rows.Err()
 	if err != nil {
 		return fmt.Errorf("error after scanning all operations for application %s: %w", application, err)
+	}
+
+	if operation == cs.Delete {
+		ctxCacheDelete, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_, err = db.ExecContext(ctxCacheDelete, "DELETE FROM PasswordOperations WHERE application=$1 AND userName=$2", application, userName)
+		if err != nil {
+			return fmt.Errorf("error while delete all operations for application %s: %w", application, err)
+		}
 	}
 
 	statement, err := db.Prepare("INSERT INTO PasswordOperations (operationID, userName, application, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
@@ -87,10 +109,12 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 			}
 		}
 
-		_, err = db.ExecContext(ctxCache, "DELETE FROM PasswordOperations"+
-			"WHERE NOT EXISTS "+
-			"(SELECT 1 FROM fields WHERE OperationPasswordDiff.operationID = PasswordOperations.operationID)")
-
+		_, err = db.ExecContext(ctxCache,
+			"DELETE FROM PasswordOperations "+
+				"WHERE NOT EXISTS "+
+				"(SELECT 1 FROM OperationPasswordDiff WHERE OperationPasswordDiff.operationID = PasswordOperations.operationID) "+
+				"AND PasswordOperations.application = $1 AND PasswordOperations.userName = $2 AND PasswordOperations.operationName = $3",
+			application, userName, cs.Update)
 		if err != nil {
 			return fmt.Errorf("error while deleting all operations without fields to update: %w", err)
 		}
@@ -112,6 +136,12 @@ func (cache *SQLite) GetPassword(application, userName string) (password string,
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return "", "", fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -138,6 +168,12 @@ func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime,
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -167,6 +203,12 @@ func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, 
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -208,6 +250,12 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[st
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return operationsPasswordsInfo, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

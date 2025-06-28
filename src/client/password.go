@@ -3,6 +3,8 @@ package client
 import (
 	"bufio"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -88,18 +90,19 @@ func (c *Client) SendPassword() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
+			errUpload := c.ClientStorage.UploadPassword(application, password, metadataPassword, opTime, User)
+			if errUpload != nil {
+				fmt.Printf("Error while writting password data to SQLite: %s", err)
+			}
 			if err == nil {
 				fmt.Printf("Your password for application %s has been successfully uploaded!\n", application)
 			} else {
 				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Create, nil, opTime)
 				if err != nil {
-					fmt.Println("Error while saving info about password operation: %w", err)
+					fmt.Println("Error while saving info about password operation: ", err)
 				}
 			}
-			err = c.ClientStorage.UploadPassword(application, password, metadataPassword, opTime, User)
-			if err != nil {
-				fmt.Printf("Error while writting password data to SQLite: %s", err)
-			}
+
 		},
 	}
 
@@ -132,8 +135,6 @@ func (c *Client) GetPassword() *cobra.Command {
 			}
 
 			password, metadataPassword, err := c.ClientStorage.GetPassword(application, User)
-			fmt.Println(password)
-			fmt.Println(err)
 			if err == nil && password != "" {
 				fmt.Printf("Application: %s\n", application)
 				fmt.Printf("Password: %s\n", password)
@@ -173,10 +174,10 @@ func (c *Client) GetPassword() *cobra.Command {
 					fmt.Printf("Application: %s\n", application)
 					fmt.Printf("Password: %s\n", passwordApp.Password)
 					fmt.Printf("Additioanl information: %s\n", passwordApp.MetaData)
-				} else {
+				} else if !errors.Is(err, sql.ErrNoRows) {
 					err = c.ClientStorage.SavePasswordOperation(application, User, cs.Get, nil, opTime)
 					if err != nil {
-						fmt.Println("Error while saving info about password operation: %w", err)
+						fmt.Println("Error while saving info about password operation: ", err)
 					}
 				}
 			}
@@ -252,7 +253,7 @@ func (c *Client) DeletePassword() *cobra.Command {
 			} else {
 				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Delete, nil, opTime)
 				if err != nil {
-					fmt.Println("Error while saving info about password operation: %w", err)
+					fmt.Println("Error while saving info about password operation: ", err)
 				}
 			}
 		},
@@ -344,12 +345,12 @@ func (c *Client) UpdatePassword() *cobra.Command {
 			if err == nil {
 				fmt.Printf("Your password for application %s has been successfully updated!\n", application)
 			} else {
-				fields := make([]string, 2)
+				fields := make([]string, 0)
 				if newPassword != "" {
-					fields[0] = "password"
+					fields = append(fields, "password")
 				}
 				if passwordMetadata != "" {
-					fields[1] = "metadata"
+					fields = append(fields, "metadata")
 				}
 				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Update, fields, opTime)
 				if err != nil {

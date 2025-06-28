@@ -66,6 +66,11 @@ func (c *Client) LoginClient() *cobra.Command {
 				fmt.Printf("Error while saving user %s JWTToken %s", login, err)
 			}
 
+			err = c.ClientStorage.CreateUser(login)
+			if err != nil {
+				fmt.Println(err)
+			}
+
 			defer connection.Close()
 		},
 	}

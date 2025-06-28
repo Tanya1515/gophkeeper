@@ -20,6 +20,12 @@ func (cache *SQLite) DeleteBankCard(cardNumber, userName string) error {
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -47,6 +53,12 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -68,6 +80,16 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 		return fmt.Errorf("error after scanning all operations for bank card with number %s: %w", cardNumber, err)
 	}
 
+	if operation == cs.Delete {
+		ctxCacheDelete, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_, err = db.ExecContext(ctxCacheDelete, "DELETE FROM CardOperations WHERE cardNumber=$1 AND userName=$2", cardNumber, userName)
+		if err != nil {
+			return fmt.Errorf("error while delete all operations for card %s: %w", cardNumber, err)
+		}
+	}
+
 	statement, err := db.Prepare("INSERT INTO CardOperations (operationID, userName, cardNumber, operationName, operationUploadTime) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("error while creating request for adding new operation %s with bank card %s: %w", operation, cardNumber, err)
@@ -80,9 +102,9 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 	if operation == cs.Update {
 		for _, field := range fields {
 			fieldID := uuid.New()
-			_, err = db.ExecContext(ctxCache, "INSERT INTO OperationBankCardDiff (diffID, operationID, field) VALUES ($1,$2,$3,)"+
+			_, err = db.ExecContext(ctxCache, "INSERT INTO OperationBankCardDiff (diffID, operationID, field) VALUES ($1,$2,$3)"+
 				"ON CONFLICT (field) DO "+
-				"UPDATE SET operationID = excluded.operationID, diffID = excluded.diffID WHERE CardOperations.field = excluded.field", fieldID, operationID, field)
+				"UPDATE SET operationID = excluded.operationID, diffID = excluded.diffID", fieldID, operationID, field)
 			if err != nil {
 				return fmt.Errorf("error while inserting field %s for bank card %s for update operation: %w", field, cardNumber, err)
 			}
@@ -90,7 +112,8 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 
 		_, err = db.ExecContext(ctxCache, "DELETE FROM CardOperations "+
 			"WHERE NOT EXISTS "+
-			"(SELECT 1 FROM fields WHERE OperationBankCardDiff.operationID=CardOperations.operationID)")
+			"(SELECT 1 FROM OperationBankCardDiff WHERE OperationBankCardDiff.operationID=CardOperations.operationID) "+
+			"AND cardNumber = $1 AND userName = $2 AND operationName = $3", cardNumber, userName, cs.Update)
 
 		if err != nil {
 			return fmt.Errorf("error while deleting all operations without fields to update: %w", err)
@@ -147,7 +170,7 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 		"ON CONFLICT (cardNumber, userName) DO "+
 		"UPDATE SET "+
 		"cvcCode = CASE WHEN excluded.cvcCode <> '' THEN excluded.cvcCode ELSE cvcCode END, "+
-		"date = CASE WHEN excluded.date <> '' THEN excluded.date ELSE cvcCode END, "+
+		"date = CASE WHEN excluded.date <> '' THEN excluded.date ELSE date END, "+
 		"bank = CASE WHEN excluded.bank <> '' THEN excluded.bank ELSE bank END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
 		"lastUpdated = excluded.lastUpdated, "+
@@ -170,6 +193,12 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -210,6 +239,12 @@ func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]
 	}
 
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return operationsCardsInfo, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

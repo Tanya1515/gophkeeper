@@ -9,6 +9,8 @@ package client_storage
 type ClientStorage interface {
 	Connect() error
 
+	CreateUser(userName string) error
+
 	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, err error)
 	GetFile(fileName, userName string) (string, string, []byte, error)
 	GetPassword(application, userName string) (password, metadata string, err error)
