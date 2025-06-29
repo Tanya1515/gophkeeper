@@ -126,13 +126,13 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 
 // GetPassword - function for getting password and data about it from application cache.
 // The function also checks, if the data is up to date.
-func (cache *SQLite) GetPassword(application, userName string) (password string, metadata string, err error) {
-	var lastUpdated, uploadTime string
+func (cache *SQLite) GetPassword(application, userName string) (password, uploadTime, metadata string, exists bool, err error) {
+	var lastUpdated string
 	var accessCount int
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return "", "", fmt.Errorf("error while openning connection to get data about application %s: %w", application, err)
+		return "", "", "", false, fmt.Errorf("error while openning connection to get data about application %s: %w", application, err)
 	}
 
 	defer db.Close()
@@ -140,7 +140,7 @@ func (cache *SQLite) GetPassword(application, userName string) (password string,
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
 		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
-		return "", "", fmt.Errorf("error while adding foreign_key extension: %w", err)
+		return "", "", "", false, fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -150,8 +150,10 @@ func (cache *SQLite) GetPassword(application, userName string) (password string,
 
 	err = row.Scan(&password, &metadata, &lastUpdated, &accessCount, &uploadTime)
 	if err != nil {
-		return "", "", fmt.Errorf("error while getting data for password of application %s: %w", application, err)
+		return "", "", "", false, fmt.Errorf("error while getting data for password of application %s: %w", application, err)
 	}
+
+	exists = true
 	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
 
 	// логика по рашисфровке пароля
@@ -263,7 +265,7 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[st
 	defer cancel()
 
 	rows, err := db.QueryContext(ctxCache, "SELECT PasswordOperations.operationID, PasswordOperations.operationName, PasswordOperations.operationUploadTime, OperationPasswordDiff.Field FROM PasswordOperations LEFT JOIN OperationPasswordDiff ON "+
-		"PasswordOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordOperations.userName=$1 AND PasswordOperations.application=$2", user, application)
+		"PasswordOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordOperations.userName=$1 AND PasswordOperations.application=$2 ORDER BY PasswordOperations.operationUploadTime", user, application)
 	if err != nil {
 		return operationsPasswordsInfo, fmt.Errorf("error while getting all data about password operations: %w", err)
 	}

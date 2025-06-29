@@ -15,9 +15,9 @@ import (
 func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.PasswordMessage) (*emptypb.Empty, error) {
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	s.Logger.Infoln("Recieved password: ", passwordData.Password)
+
 	password, initVector := s.EncryptData(passwordData.Password)
-	s.Logger.Infoln("Encoded password: ", password)
+
 	err := s.DataStorage.UploadPassword(ctxDB, password, passwordData.Application, passwordData.MetaData, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while uploading password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)

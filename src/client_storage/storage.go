@@ -11,9 +11,9 @@ type ClientStorage interface {
 
 	CreateUser(userName string) error
 
-	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, err error)
-	GetFile(fileName, userName string) (string, string, []byte, error)
-	GetPassword(application, userName string) (password, metadata string, err error)
+	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, exists bool, err error)
+	GetFile(fileName, userName string) (string, string, bool, []byte, error)
+	GetPassword(application, userName string) (password, metadata, uploadTime string, exists bool, err error)
 
 	DeleteBankCard(cardNumber, userName string) error
 	DeleteFile(fileName, userName string) error

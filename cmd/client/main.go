@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	client "github.com/Tanya1515/gophkeeper.git/src/client"
 	sql "github.com/Tanya1515/gophkeeper.git/src/client_storage/sqlite"
@@ -139,10 +141,26 @@ func init() {
 }
 
 func main() {
-	err := ut.CreateJWTPath()
+	var err error
+
+	clientLoggerConfig := zap.NewProductionConfig()
+	clientLoggerConfig.OutputPaths = []string{"client.log"}
+	clientLoggerConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger, err := clientLoggerConfig.Build()
 	if err != nil {
-		fmt.Println("Error while file for JWT initialization: ", err)
+		panic(err)
+	}
+
+	defer logger.Sync()
+
+	loggerApp := *logger.Sugar()
+
+	err = ut.CreateJWTPath()
+	if err != nil {
+		loggerApp.Errorf("Error while file for JWT initialization: %s", err)
 	}
 	Execute()
 
+	loggerApp.Info("Client for processing sensetive data in Gophkeeper.")
 }

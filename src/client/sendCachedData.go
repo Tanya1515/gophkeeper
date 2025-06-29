@@ -9,13 +9,14 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// FileWorker - function for getting all info about missed operations with files and execute them.
 func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationResult, processFile *sync.WaitGroup) {
 	var operationResult OperationResult
 	var wg sync.WaitGroup
 	defer processFile.Done()
 	for d := range data {
 		fmt.Println("Start process file ", d.dataIdentificator)
-		metaData, filePath, fileContent, err := c.ClientStorage.GetFile(d.dataIdentificator, d.user)
+		metaData, filePath, _, fileContent, err := c.ClientStorage.GetFile(d.dataIdentificator, d.user)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -51,13 +52,14 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 	wg.Wait()
 }
 
+// CardWorker - function for getting all info about missed operations with cards and execute them.
 func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationResult, processCard *sync.WaitGroup) {
 	var wg sync.WaitGroup
 	var operationResult OperationResult
 	defer processCard.Done()
 	for d := range data {
 		fmt.Println("Start process bank card ", d.dataIdentificator)
-		cvc, date, bankName, metadataBankCard, err := c.ClientStorage.GetBankCard(d.dataIdentificator, d.user)
+		cvc, date, bankName, metadataBankCard, _, err := c.ClientStorage.GetBankCard(d.dataIdentificator, d.user)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -98,6 +100,7 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 	wg.Wait()
 }
 
+// PasswordWorker - function for getting all info about missed operations with passwords and execute them.
 func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- OperationResult, processPassword *sync.WaitGroup) {
 	var password, metadata string
 	var err error
@@ -106,7 +109,7 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 	defer processPassword.Done()
 	for d := range data {
 		fmt.Println("Start process application ", d.dataIdentificator)
-		password, metadata, err = c.ClientStorage.GetPassword(d.dataIdentificator, d.user)
+		password, metadata, _, _, err = c.ClientStorage.GetPassword(d.dataIdentificator, d.user)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -142,6 +145,8 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 	wg.Wait()
 }
 
+// SendCacheData - function that executes all missed operations with sensetive data for every user:
+// files, passwords and bank card credentials.
 func (c *Client) SendCacheData() {
 
 	var wg sync.WaitGroup

@@ -126,13 +126,13 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 
 // GetBankCard - function for getting bank card credentials from application cache.
 // The function also checks if data is up to date.
-func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date string, bankName string, metadatabankCard string, err error) {
+func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date string, bankName string, metadatabankCard string, exists bool, err error) {
 	var lastUpdated, uploadTime string
 	var accessCount int
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("error while openning connection to get data about bank card %s: %w", cardNumber, err)
+		return "", "", "", "", false, fmt.Errorf("error while openning connection to get data about bank card %s: %w", cardNumber, err)
 	}
 
 	defer db.Close()
@@ -144,8 +144,10 @@ func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date 
 
 	err = row.Scan(&cvc, &date, &bankName, &metadatabankCard, &lastUpdated, &accessCount, &uploadTime)
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("error while getting data for bank Card %s: %w", cardNumber, err)
+		return "", "", "", "", false, fmt.Errorf("error while getting data for bank Card %s: %w", cardNumber, err)
 	}
+
+	exists = true
 
 	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
 
@@ -251,7 +253,7 @@ func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]
 	defer cancel()
 
 	rows, err := db.QueryContext(ctxCache, "SELECT CardOperations.operationID, CardOperations.operationName, CardOperations.operationUploadTime, OperationBankCardDiff.Field FROM CardOperations LEFT JOIN OperationBankCardDiff ON "+
-		"CardOperations.operationID = OperationBankCardDiff.operationID WHERE CardOperations.userName=$1 AND CardOperations.cardNumber=$2", user, cardNumber)
+		"CardOperations.operationID = OperationBankCardDiff.operationID WHERE CardOperations.userName=$1 AND CardOperations.cardNumber=$2 ORDER BY CardOperations.operationUploadTime", user, cardNumber)
 
 	if err != nil {
 		return operationsCardsInfo, fmt.Errorf("error while reading data about bank card opearions: %w", err)
