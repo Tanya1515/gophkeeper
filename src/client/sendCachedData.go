@@ -15,18 +15,16 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 	var wg sync.WaitGroup
 	defer processFile.Done()
 	for d := range data {
-		fmt.Println("Start process file ", d.dataIdentificator)
+		c.ClientLogger.Infoln("Start processing file ", d.dataIdentificator)
 		metaData, filePath, _, fileContent, err := c.ClientStorage.GetFile(d.dataIdentificator, d.user)
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 		}
 		operationsInfo, err := c.ClientStorage.GetFileOpearionsInfo(d.user, d.dataIdentificator)
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 		}
-		fmt.Println(operationsInfo)
 		for operationID, opInfo := range operationsInfo {
-			fmt.Printf("Get  %s operation Info for file %s\n", opInfo.OperationName, d.dataIdentificator)
 			fileToExecute := &pb.FileMessage{FileName: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "content" {
@@ -38,7 +36,7 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				fmt.Printf("Execute  %s operation Info for file %s\n", opInfo.OperationName, d.dataIdentificator)
+				c.ClientLogger.Infof("Execute %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
 				err = c.ExecuteFilesOperations(opInfo.OperationName, d.JWTtoken, opInfo.OperationTime, filePath, fileToExecute)
 				if err != nil {
 					operationResult = OperationResult{operationID: operationID, result: err.Error()}
@@ -46,6 +44,7 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 					operationResult = OperationResult{operationID: operationID, result: "Success"}
 				}
 				resultFile <- operationResult
+				c.ClientLogger.Infof("Successfuly completed %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
 			}()
 		}
 	}
@@ -58,18 +57,16 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 	var operationResult OperationResult
 	defer processCard.Done()
 	for d := range data {
-		fmt.Println("Start process bank card ", d.dataIdentificator)
+		c.ClientLogger.Infoln("Start processing bank card credentials for ", d.dataIdentificator)
 		cvc, date, bankName, metadataBankCard, _, err := c.ClientStorage.GetBankCard(d.dataIdentificator, d.user)
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 		}
 		operationsInfo, err := c.ClientStorage.GetCardOperationsInfo(d.user, d.dataIdentificator)
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 		}
-		fmt.Println(operationsInfo)
 		for operationID, opInfo := range operationsInfo {
-			fmt.Printf("Get  %s operation Info for bank card %s\n", opInfo.OperationName, d.dataIdentificator)
 			bankCardToExecute := &pb.BankCardMessage{CardNumber: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "cvc" {
@@ -85,7 +82,7 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				fmt.Printf("Execute  %s operation for bank card %s\n", opInfo.OperationName, d.dataIdentificator)
+				c.ClientLogger.Infof("Execute %s operation with bank card %s\n", opInfo.OperationName, d.dataIdentificator)
 				err = c.ExecuteCardsOperations(opInfo.OperationName, d.JWTtoken, opInfo.OperationTime, bankCardToExecute)
 				if err != nil {
 					operationResult = OperationResult{operationID: operationID, result: err.Error()}
@@ -93,6 +90,7 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 					operationResult = OperationResult{operationID: operationID, result: "Success"}
 				}
 				resultCard <- operationResult
+				c.ClientLogger.Infof("Successfuly completed %s operation with bank card %s\n", opInfo.OperationName, d.dataIdentificator)
 			}()
 
 		}
@@ -108,17 +106,16 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 	var wg sync.WaitGroup
 	defer processPassword.Done()
 	for d := range data {
-		fmt.Println("Start process application ", d.dataIdentificator)
+		c.ClientLogger.Infoln("Start processing application and its' sensetive data ", d.dataIdentificator)
 		password, metadata, _, _, err = c.ClientStorage.GetPassword(d.dataIdentificator, d.user)
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 		}
 		operationsInfo, err := c.ClientStorage.GetPasswordOperationsInfo(d.user, d.dataIdentificator)
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 		}
 		for operationID, opInfo := range operationsInfo {
-			fmt.Printf("Get  %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
 			passwordToExecute := &pb.PasswordMessage{Application: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "password" {
@@ -131,7 +128,7 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				fmt.Printf("Exxecute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
+				c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
 				err = c.ExecutePasswordsOperation(opInfo.OperationName, d.JWTtoken, opInfo.OperationTime, passwordToExecute)
 				if err != nil {
 					operationResult = OperationResult{operationID: operationID, result: err.Error()}
@@ -139,6 +136,7 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 					operationResult = OperationResult{operationID: operationID, result: "Success"}
 				}
 				resultPassword <- operationResult
+				c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
 			}()
 		}
 	}
@@ -171,15 +169,14 @@ func (c *Client) SendCacheData() {
 	go func() {
 		defer close(jobsCards)
 		cardOperations, err := c.ClientStorage.GetAllCardWithOperation()
-		fmt.Println("Get all card operations")
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 			return
 		}
 		for user, cardsNumber := range cardOperations {
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
-				fmt.Print(err)
+				c.ClientLogger.Errorln(err)
 			} else if err != nil {
 				fmt.Printf("Error while getting user %s credentials for executing again requests with bank cards credenbtials: %s\n", User, err)
 			}
@@ -196,16 +193,15 @@ func (c *Client) SendCacheData() {
 	go func() {
 		defer close(jobsFiles)
 		filesOperations, err := c.ClientStorage.GetAllFileWithOperation()
-		fmt.Println("Get all file operations")
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 			return
 		}
 
 		for user, filesName := range filesOperations {
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
-				fmt.Print(err.Error())
+				c.ClientLogger.Errorln(err.Error())
 			} else if err != nil {
 				fmt.Printf("Error while getting user %s credentials for executing again requests with files: %s\n", User, err)
 			}
@@ -219,17 +215,15 @@ func (c *Client) SendCacheData() {
 
 	go func() {
 		defer close(jobsPasswords)
-		fmt.Println("Start processing password operations")
 		passwordsOperations, err := c.ClientStorage.GetAllPasswordWithOperation()
 		if err != nil {
-			fmt.Println(err)
+			c.ClientLogger.Errorln(err)
 			return
 		}
-		fmt.Println("Get all password operations")
 		for user, passwords := range passwordsOperations {
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
-				fmt.Print(err)
+				c.ClientLogger.Errorln(err)
 			} else if err != nil {
 				fmt.Printf("Error while getting user %s credentials for executing again requests with passwords: %s\n", User, err)
 			}
@@ -263,7 +257,7 @@ func (c *Client) SendCacheData() {
 			if resCard.result == "Success" {
 				err := c.ClientStorage.DeleteOperaionByID(resCard.operationID, "card")
 				if err != nil {
-					fmt.Println("Error while deleting operation for card: ", err)
+					c.ClientLogger.Errorln("Error while deleting operation for card: ", err)
 				}
 			}
 		}
@@ -276,7 +270,7 @@ func (c *Client) SendCacheData() {
 			if resFile.result == "Success" {
 				err := c.ClientStorage.DeleteOperaionByID(resFile.operationID, "file")
 				if err != nil {
-					fmt.Println("Error while deleting operation for file: ", err)
+					c.ClientLogger.Errorln("Error while deleting operation for file: ", err)
 				}
 			}
 		}
@@ -289,7 +283,7 @@ func (c *Client) SendCacheData() {
 			if resPassword.result == "Success" {
 				err := c.ClientStorage.DeleteOperaionByID(resPassword.operationID, "password")
 				if err != nil {
-					fmt.Println("Error while deleting operation for password: ", err)
+					c.ClientLogger.Errorln("Error while deleting operation for password: ", err)
 				}
 			}
 		}

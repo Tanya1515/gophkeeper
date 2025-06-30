@@ -104,7 +104,7 @@ func (c *Client) GetUserData() *cobra.Command {
 				certPath = "../../test_certs/"
 			}
 
-			connection, err := ClientConnection(certPath)
+			connection, err := c.ClientConnection(certPath)
 			if err != nil {
 				fmt.Println("Error while creating GRPC connection to server: ", err)
 			}

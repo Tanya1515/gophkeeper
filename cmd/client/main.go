@@ -61,26 +61,28 @@ func Execute() {
 	}
 }
 
+var ConsoleClient client.Client
+
 func init() {
 	sqliteCache := &sql.SQLite{}
 
-	consoleClient := client.Client{ClientStorage: sqliteCache}
+	ConsoleClient.ClientStorage = sqliteCache
 
-	err := consoleClient.ClientStorage.Connect()
+	err := ConsoleClient.ClientStorage.Connect()
 	if err != nil {
 		fmt.Println("Error while connecting to client storage: ", err)
 		return
 	}
 
-	loginCmd := consoleClient.LoginClient()
-	registerCmd := consoleClient.RegisterClient()
+	loginCmd := ConsoleClient.LoginClient()
+	registerCmd := ConsoleClient.RegisterClient()
 
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(registerCmd)
 
-	sendPasswordCmd := consoleClient.SendPassword()
-	sendBankCardCmd := consoleClient.SendBankCard()
-	sendFileCmd := consoleClient.SendFile()
+	sendPasswordCmd := ConsoleClient.SendPassword()
+	sendBankCardCmd := ConsoleClient.SendBankCard()
+	sendFileCmd := ConsoleClient.SendFile()
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.AddCommand(sendPasswordCmd)
 	sendPasswordCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
@@ -92,10 +94,10 @@ func init() {
 	sendFileCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	sendFileCmd.MarkFlagRequired("user")
 
-	getCardCmd := consoleClient.GetBankCard()
-	getFileCmd := consoleClient.GetFile()
-	getPasswordCmd := consoleClient.GetPassword()
-	getUserDataCmd := consoleClient.GetUserData()
+	getCardCmd := ConsoleClient.GetBankCard()
+	getFileCmd := ConsoleClient.GetFile()
+	getPasswordCmd := ConsoleClient.GetPassword()
+	getUserDataCmd := ConsoleClient.GetUserData()
 	rootCmd.AddCommand(getCmd)
 	getCmd.AddCommand(getCardCmd)
 	getCardCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
@@ -110,9 +112,9 @@ func init() {
 	getUserDataCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	getUserDataCmd.MarkFlagRequired("user")
 
-	deleteFileCmd := consoleClient.DeleteFile()
-	deleteCardCmd := consoleClient.DeleteBankCard()
-	deletePasswordCmd := consoleClient.DeletePassword()
+	deleteFileCmd := ConsoleClient.DeleteFile()
+	deleteCardCmd := ConsoleClient.DeleteBankCard()
+	deletePasswordCmd := ConsoleClient.DeletePassword()
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.AddCommand(deleteFileCmd)
 	deleteFileCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
@@ -124,9 +126,9 @@ func init() {
 	deletePasswordCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
 	deletePasswordCmd.MarkFlagRequired("user")
 
-	updateFileCmd := consoleClient.UpdateFile()
-	updateCardCmd := consoleClient.UpdateBankCard()
-	updatePasswordCmd := consoleClient.UpdatePassword()
+	updateFileCmd := ConsoleClient.UpdateFile()
+	updateCardCmd := ConsoleClient.UpdateBankCard()
+	updatePasswordCmd := ConsoleClient.UpdatePassword()
 	rootCmd.AddCommand(updateCmd)
 	updateCmd.AddCommand(updateFileCmd)
 	updateFileCmd.Flags().StringVarP(&client.User, "user", "u", "", "User login (required)")
@@ -161,6 +163,6 @@ func main() {
 		loggerApp.Errorf("Error while file for JWT initialization: %s", err)
 	}
 	Execute()
-
-	loggerApp.Info("Client for processing sensetive data in Gophkeeper.")
+	ConsoleClient.ClientLogger = loggerApp
+	ConsoleClient.ClientLogger.Info("Client for processing sensetive data in Gophkeeper.")
 }

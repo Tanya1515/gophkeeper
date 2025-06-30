@@ -94,45 +94,60 @@ func (c *Client) SendBankCard() *cobra.Command {
 			var bankName string
 			var metadatabankCard string
 
+			reader := bufio.NewReader(os.Stdin)
+
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 			}
 
 			fmt.Print("Please enter card number: ")
-			fmt.Fscan(os.Stdin, &cardNumber)
+			cardNumber, _ = reader.ReadString('\n')
+			cardNumber = strings.TrimRight(cardNumber, "\n")
+
 			for {
 				if CheckCardNumber(cardNumber) {
 					break
 				}
 				fmt.Print("Your card number was invalid, please enter again: ")
-				fmt.Fscan(os.Stdin, &cardNumber)
+				cardNumber, _ = reader.ReadString('\n')
+				cardNumber = strings.TrimRight(cardNumber, "\n")
 			}
 			fmt.Print("Please enter cvc code of the card: ")
-			fmt.Fscan(os.Stdin, &cvc)
+
+			cvc, _ = reader.ReadString('\n')
+			cvc = strings.TrimRight(cvc, "\n")
+
 			fmt.Print("Please enter card date: ")
-			fmt.Fscan(os.Stdin, &date)
+
+			date, _ = reader.ReadString('\n')
+			date = strings.TrimRight(date, "\n")
 			for {
 				if CheckDateFormat(date) {
 					break
 				}
 				fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
-				fmt.Fscan(os.Stdin, &date)
+				date, _ = reader.ReadString('\n')
+				date = strings.TrimRight(date, "\n")
 			}
 			fmt.Print("Please enter bank name: ")
-			fmt.Fscan(os.Stdin, &bankName)
+
+			bankName, _ = reader.ReadString('\n')
+			bankName = strings.TrimRight(bankName, "\n")
+
 			fmt.Print("Please enter metadata for sensetive data: ")
-			fmt.Fscan(os.Stdin, &metadatabankCard)
+			metadatabankCard, _ = reader.ReadString('\n')
+			metadatabankCard = strings.TrimRight(metadatabankCard, "\n")
 
 			certPath, envExists := os.LookupEnv("CERT_PATH")
 			if !(envExists) {
 				certPath = "../../test_certs/"
 			}
 
-			connection, err := ClientConnection(certPath)
+			connection, err := c.ClientConnection(certPath)
 			if err != nil {
 				fmt.Println("Error while creating GRPC connection to server: ", err)
 			}
@@ -195,21 +210,25 @@ func (c *Client) GetBankCard() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			var cardNumber string
 
+			reader := bufio.NewReader(os.Stdin)
+
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 			}
 
 			fmt.Print("Please enter card number: ")
-			fmt.Fscan(os.Stdin, &cardNumber)
+			cardNumber, _ = reader.ReadString('\n')
+			cardNumber = strings.TrimRight(cardNumber, "\n")
 
 			ok := CheckCardNumber(cardNumber)
 			for !ok {
 				fmt.Print("Card number is incorrect, please enter again: ")
-				fmt.Fscan(os.Stdin, &cardNumber)
+				cardNumber, _ = reader.ReadString('\n')
+				cardNumber = strings.TrimRight(cardNumber, "\n")
 				ok = CheckCardNumber(cardNumber)
 			}
 			fmt.Println("Process your bank card...")
@@ -228,9 +247,9 @@ func (c *Client) GetBankCard() *cobra.Command {
 					certPath = "../../test_certs/"
 				}
 
-				connection, err := ClientConnection(certPath)
+				connection, err := c.ClientConnection(certPath)
 				if err != nil {
-					fmt.Println("Error while creating GRPC connection to server: ", err)
+					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 				}
 
 				clientGRPC := pb.NewGophkeeperClient(connection)
@@ -263,7 +282,7 @@ func (c *Client) GetBankCard() *cobra.Command {
 				} else if !errors.Is(err, sql.ErrNoRows) {
 					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Get, nil, opTime)
 					if err != nil {
-						fmt.Println("Error while saving info about password operation: ", err)
+						c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 					}
 				}
 			}
@@ -283,20 +302,25 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			var cardNumber string
 
+			reader := bufio.NewReader(os.Stdin)
+
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 			}
 
 			fmt.Print("Please enter card number, that is going to be deleted: ")
-			fmt.Fscan(os.Stdin, &cardNumber)
+			cardNumber, _ = reader.ReadString('\n')
+			cardNumber = strings.TrimRight(cardNumber, "\n")
+
 			ok := CheckCardNumber(cardNumber)
 			for !ok {
 				fmt.Print("Card number is incorrect, please enter again: ")
-				fmt.Fscan(os.Stdin, &cardNumber)
+				cardNumber, _ = reader.ReadString('\n')
+				cardNumber = strings.TrimRight(cardNumber, "\n")
 				ok = CheckCardNumber(cardNumber)
 			}
 			fmt.Println("Process your bank card...")
@@ -308,9 +332,9 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 					certPath = "../../test_certs/"
 				}
 
-				connection, err := ClientConnection(certPath)
+				connection, err := c.ClientConnection(certPath)
 				if err != nil {
-					fmt.Println("Error while creating GRPC connection to server: ", err)
+					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 				}
 
 				clientGRPC := pb.NewGophkeeperClient(connection)
@@ -335,15 +359,14 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 
 				errLocal := c.ClientStorage.DeleteBankCard(cardNumber, User)
 				if errLocal != nil {
-					fmt.Printf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
+					c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
 				}
 				if err == nil {
-					fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper", cardNumber)
-					c.SendCacheData()
+					c.ClientLogger.Errorf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
 				} else {
 					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
 					if err != nil {
-						fmt.Println("Error while saving info about password operation: ", err)
+						c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 					}
 				}
 			} else {
@@ -376,7 +399,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 			}
 
 			fmt.Print("Please enter card number you would like to change: ")
@@ -440,9 +463,9 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 					certPath = "../../test_certs/"
 				}
 
-				connection, err := ClientConnection(certPath)
+				connection, err := c.ClientConnection(certPath)
 				if err != nil {
-					fmt.Println("Error while creating GRPC connection to server: ", err)
+					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 				}
 
 				clientGRPC := pb.NewGophkeeperClient(connection)
@@ -494,12 +517,12 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 					}
 					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Update, fields, opTime)
 					if err != nil {
-						fmt.Printf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
+						c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
 					}
 				}
 				err = c.ClientStorage.UploadBankCard(cardNumber, cvc, cardDate, bankName, metadatabankCard, opTime, User)
 				if err != nil {
-					fmt.Printf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
+					c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
 				}
 
 			} else {
@@ -522,9 +545,8 @@ func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT, uploadT
 		certPath = "../../test_certs/"
 	}
 
-	connection, err := ClientConnection(certPath)
+	connection, err := c.ClientConnection(certPath)
 	if err != nil {
-		fmt.Println("Error while creating GRPC connection to server: ", err)
 		return fmt.Errorf("error while creating GRPC connection to server: %w", err)
 	}
 
@@ -534,7 +556,6 @@ func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT, uploadT
 	case cs.Create:
 		_, err = clientGRPC.UploadBankCard(ctx, bankCard)
 		if err != nil {
-			fmt.Println("Error while uploading bank card: ", err)
 			return fmt.Errorf("error while uploading bank card: %w", err)
 		}
 	case cs.Get:
@@ -542,13 +563,11 @@ func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT, uploadT
 			Identificator: bankCard.CardNumber,
 		})
 		if err != nil {
-			fmt.Println("Error while getting bank card credentials: ", err)
 			return fmt.Errorf("error while getting bank card credentials: %w", err)
 		}
 	case cs.Update:
 		_, err = clientGRPC.UpdateBankCardCreds(ctx, bankCard)
 		if err != nil {
-			fmt.Println("Error while updating bank card credentials: ", err)
 			return fmt.Errorf("error while updating bank card credentials: %w", err)
 		}
 	case cs.Delete:
@@ -556,7 +575,6 @@ func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT, uploadT
 			Identificator: bankCard.CardNumber,
 		})
 		if err != nil {
-			fmt.Println("Error while deleting bank card credentials: ", err)
 			return fmt.Errorf("error while deleting bank card credentials: %w", err)
 		}
 	}

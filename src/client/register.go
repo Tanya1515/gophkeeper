@@ -35,9 +35,9 @@ func (c *Client) RegisterClient() *cobra.Command {
 				certPath = "../../test_certs/"
 			}
 
-			connection, err := ClientConnection(certPath)
+			connection, err := c.ClientConnection(certPath)
 			if err != nil {
-				fmt.Println("Error while creating GRPC connection to server: ", err)
+				c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 			}
 
 			clientGRPC := pb.NewGophkeeperClient(connection)
@@ -48,7 +48,7 @@ func (c *Client) RegisterClient() *cobra.Command {
 			})
 
 			if err != nil {
-				fmt.Println("Error while sending request to grpc server ", err)
+				c.ClientLogger.Errorln("Error while sending request to grpc server ", err)
 				return
 			}
 
@@ -60,13 +60,13 @@ func (c *Client) RegisterClient() *cobra.Command {
 			})
 
 			if err != nil {
-				fmt.Println("Error while checking if OTP is correct")
+				c.ClientLogger.Errorln("Error while checking if OTP is correct")
 				return
 			}
 
 			err = ut.SaveJWT(result.JWTtoken, login)
 			if err != nil {
-				fmt.Printf("Error while saving user %s JWTToken %s", login, err)
+				c.ClientLogger.Errorf("Error while saving user %s JWTToken %s", login, err)
 				return
 			}
 
@@ -74,7 +74,7 @@ func (c *Client) RegisterClient() *cobra.Command {
 
 			err = c.ClientStorage.CreateUser(login)
 			if err != nil {
-				fmt.Println(err)
+				c.ClientLogger.Errorln(err)
 			}
 			defer connection.Close()
 		},

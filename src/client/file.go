@@ -27,21 +27,25 @@ func (c *Client) SendFile() *cobra.Command {
 			var filePath string
 			var metadataFile string
 
+			reader := bufio.NewReader(os.Stdin)
+
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 				return
 			}
 
 			fmt.Print("Please enter metadata for sensetive data: ")
-			fmt.Fscan(os.Stdin, &metadataFile)
+			metadataFile, _ = reader.ReadString('\n')
+			metadataFile = strings.TrimRight(metadataFile, "\n")
 
 			for filePath == "" {
 				fmt.Print("Please enter absolute path for file to save: ")
-				fmt.Fscan(os.Stdin, &filePath)
+				filePath, _ = reader.ReadString('\n')
+				filePath = strings.TrimRight(filePath, "\n")
 			}
 
 			fmt.Println("Start processing file with sensetive data...")
@@ -49,7 +53,7 @@ func (c *Client) SendFile() *cobra.Command {
 
 			file, err := os.Open(filePath)
 			if err != nil {
-				fmt.Printf("failed to open file: %v\n", err)
+				c.ClientLogger.Errorf("Failed to open file: %v\n", err)
 				return
 			}
 			defer file.Close()
@@ -61,10 +65,9 @@ func (c *Client) SendFile() *cobra.Command {
 				certPath = "../../test_certs/"
 			}
 
-			connection, err := ClientConnection(certPath)
+			connection, err := c.ClientConnection(certPath)
 			if err != nil {
-				fmt.Println("Error while creating GRPC connection to server: ", err)
-				return
+				c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 			}
 
 			clientGRPC := pb.NewGophkeeperClient(connection)
@@ -74,8 +77,7 @@ func (c *Client) SendFile() *cobra.Command {
 
 			stream, err := clientGRPC.UploadFile(ctx)
 			if err != nil {
-				fmt.Printf("error while openning GRPC stream to send file: %s\n", err)
-				return
+				c.ClientLogger.Errorf("error while openning GRPC stream to send file: %s\n", err)
 			}
 			uploadTime := time.Now()
 			opTime := uploadTime.Format(time.RFC3339)
@@ -83,8 +85,7 @@ func (c *Client) SendFile() *cobra.Command {
 			for err != nil && retryCount != 3 {
 				stream, err = clientGRPC.UploadFile(ctx)
 				if err != nil {
-					fmt.Printf("error while openning GRPC stream to send file: %s", err)
-					return
+					c.ClientLogger.Errorf("Error while openning GRPC stream to send file: %s", err)
 				}
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
@@ -104,8 +105,7 @@ func (c *Client) SendFile() *cobra.Command {
 				if err == io.EOF {
 					break
 				} else if err != nil {
-					fmt.Printf("Error while sending file chunk: %s", err)
-					return
+					c.ClientLogger.Errorf("Error while reading file %s chunk: %s", filePath, err)
 				}
 
 				err = stream.Send(&pb.FileMessage{
@@ -129,15 +129,13 @@ func (c *Client) SendFile() *cobra.Command {
 			if err != nil {
 				err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Create, nil, opTime, filePath)
 				if err != nil {
-					fmt.Printf("Error while saving info about create operation for file %s: %s\n", fileName, err)
-					return
+					c.ClientLogger.Errorf("Error while saving info about create operation for file %s: %s\n", fileName, err)
 				}
 			}
 
 			err = c.ClientStorage.UploadFile(fileName, filePath, metadataFile, opTime, User)
 			if err != nil {
-				fmt.Printf("Error while saving file %s to local client storage: %s\n", fileName, err)
-				return
+				c.ClientLogger.Errorf("Error while saving file %s to local client storage: %s\n", fileName, err)
 			}
 
 			fmt.Printf("File with name %s was successfully sent.", fileName)
@@ -158,20 +156,24 @@ func (c *Client) GetFile() *cobra.Command {
 			var fileName string
 			var filePath string
 
+			reader := bufio.NewReader(os.Stdin)
+
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 			}
 
 			for filePath == "" {
 				fmt.Print("Please enter path for saving file from gophkeeper: ")
-				fmt.Fscan(os.Stdin, &filePath)
+				filePath, _ = reader.ReadString('\n')
+				filePath = strings.TrimRight(filePath, "\n")
 			}
 			fmt.Print("Please enter file to get from gophkeeper: ")
-			fmt.Fscan(os.Stdin, &fileName)
+			fileName, _ = reader.ReadString('\n')
+			fileName = strings.TrimRight(fileName, "\n")
 
 			fmt.Println("Start processing file with sensetive data...")
 			c.SendCacheData()
@@ -179,28 +181,25 @@ func (c *Client) GetFile() *cobra.Command {
 			if exists {
 				fileToSave, err := os.Create(filePath)
 				if err != nil {
-					fmt.Printf("Error while creating file with path %s: %s\n", filePath, err)
-					return
+					c.ClientLogger.Errorf("Error while creating file with path %s: %s\n", filePath, err)
 				}
 				defer fileToSave.Close()
+
 				if len(fileContent) == 0 {
 					fileExists, err := os.Open(pathToFile)
 					if err != nil {
-						fmt.Printf("Error while openning existing file %s with data: %s", pathToFile, err)
-						return
+						c.ClientLogger.Errorf("Error while openning existing file %s with data: %s", pathToFile, err)
 					}
 					_, err = io.Copy(fileExists, fileToSave)
 					if err != nil {
-						fmt.Printf("Error while copying data from existing file %s to user file %s: %s\n", filePath, pathToFile, err)
-						return
+						c.ClientLogger.Errorf("Error while copying data from existing file %s to user file %s: %s\n", filePath, pathToFile, err)
 					}
 					defer fileExists.Close()
 				} else {
 
 					_, err = fileToSave.Write(fileContent)
 					if err != nil {
-						fmt.Printf("Error while writting content of file %s to path %s: %s\n", fileName, filePath, err)
-						return
+						c.ClientLogger.Errorf("Error while writting content of file %s to path %s: %s\n", fileName, filePath, err)
 					}
 				}
 				fmt.Printf("File %s was successfully recieved!\n", fileName)
@@ -211,7 +210,7 @@ func (c *Client) GetFile() *cobra.Command {
 					certPath = "../../test_certs/"
 				}
 
-				connection, err := ClientConnection(certPath)
+				connection, err := c.ClientConnection(certPath)
 				if err != nil {
 					fmt.Println("Error while creating GRPC connection to server: ", err)
 				}
@@ -224,19 +223,18 @@ func (c *Client) GetFile() *cobra.Command {
 				fileGetter, err := clientGRPC.GetFile(ctx, &pb.SensetiveDataMessage{
 					Identificator: fileName,
 				})
-
 				if err != nil {
-					fmt.Printf("Error while getting file %s: %s\n", fileName, err)
+					c.ClientLogger.Errorf("Error while getting file %s: %s\n", fileName, err)
 				}
 				fileToSave, err := os.Create(filePath)
 				if err != nil {
-					fmt.Printf("Error while creating file with path %s: %s\n", filePath, err)
+					c.ClientLogger.Errorf("Error while creating file with path %s: %s\n", filePath, err)
 				}
 				var chunkFile *pb.FileMessage
 				for {
 					chunkFile, err = fileGetter.Recv()
 					if err != nil && err != io.EOF {
-						fmt.Printf("Error while recieving new data portion of file %s: %s\n", fileName, err)
+						c.ClientLogger.Errorf("Error while recieving new data portion of file %s: %s\n", fileName, err)
 						break
 					} else if err == io.EOF {
 						break
@@ -250,10 +248,10 @@ func (c *Client) GetFile() *cobra.Command {
 
 				err = fileToSave.Close()
 				if err != nil {
-					fmt.Printf("Error while closing file with path %s: %s\n", filePath, err)
+					c.ClientLogger.Errorf("Error while closing file with path %s: %s\n", filePath, err)
 				}
 
-				fmt.Printf("File %s was successfully recieved!\n", fileName)
+				c.ClientLogger.Errorf("File %s was successfully recieved!\n", fileName)
 			}
 
 		},
@@ -280,7 +278,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 			}
 
 			for fileName == "" {
@@ -309,9 +307,9 @@ func (c *Client) UpdateFile() *cobra.Command {
 					certPath = "../../test_certs/"
 				}
 
-				connection, err := ClientConnection(certPath)
+				connection, err := c.ClientConnection(certPath)
 				if err != nil {
-					fmt.Println("Error while creating GRPC connection to server: ", err)
+					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 				}
 
 				clientGRPC := pb.NewGophkeeperClient(connection)
@@ -325,13 +323,13 @@ func (c *Client) UpdateFile() *cobra.Command {
 				var retryCount = 1
 				stream, err := clientGRPC.UpdateFile(ctx)
 				if err != nil {
-					fmt.Printf("error while openning GRPC stream to update file: %s\n", err)
+					c.ClientLogger.Errorf("error while openning GRPC stream to update file: %s\n", err)
 				}
 
 				for err != nil && retryCount != 3 {
 					stream, err = clientGRPC.UpdateFile(ctx)
 					if err != nil {
-						fmt.Printf("error while openning GRPC stream to update file: %s\n", err)
+						c.ClientLogger.Errorf("Error while openning GRPC stream to update file: %s\n", err)
 					}
 					retryCount++
 					time.Sleep(time.Duration(retryCount))
@@ -344,7 +342,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 				if filePath != "" && err == nil {
 					file, err := os.Open(filePath)
 					if err != nil {
-						fmt.Printf("failed to open file: %v\n", err)
+						c.ClientLogger.Errorf("Failed to open file: %s\n", err)
 					}
 
 					const chunkSize = 64 * 1024
@@ -358,7 +356,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 						if errFile == io.EOF {
 							break
 						} else if errFile != nil {
-							fmt.Printf("Error while sending file chunk: %s", err)
+							c.ClientLogger.Errorf("Error while reading file chunk: %s\n", err)
 						}
 
 						retryCount = 1
@@ -367,7 +365,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 							FileName: fileName,
 							MetaData: fileMetadata,
 						}); err != nil {
-							fmt.Printf("Error while sending file chunk: %s", err)
+							c.ClientLogger.Errorf("Error while sending file chunk: %s\n", err)
 							return
 						}
 
@@ -378,12 +376,13 @@ func (c *Client) UpdateFile() *cobra.Command {
 								MetaData: fileMetadata,
 							})
 							if err != nil {
-								fmt.Printf("Error while sending file chunk: %s", err)
+								c.ClientLogger.Errorf("Error while sending file chunk: %s", err)
 							}
 							retryCount++
 							time.Sleep(time.Duration(retryCount))
 						}
 						if err != nil {
+							c.ClientLogger.Errorf("Error while sending file %s to Gophkeeper: %s\n", filePath, err)
 							break
 						}
 					}
@@ -395,8 +394,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 						FileName: fileName,
 						MetaData: fileMetadata,
 					}); err != nil {
-						fmt.Printf("Error while sending file chunk: %s", err)
-						return
+						c.ClientLogger.Errorf("Error while sending file chunk: %s", err)
 					}
 					for err != nil && retryCount != 3 {
 						err = stream.Send(&pb.FileMessage{
@@ -404,11 +402,14 @@ func (c *Client) UpdateFile() *cobra.Command {
 							FileName: fileName,
 							MetaData: fileMetadata,
 						})
+						if err != nil {
+							c.ClientLogger.Errorf("Error while sending file chunk: %s", err)
+						}
 						retryCount++
 						time.Sleep(time.Duration(retryCount))
 					}
 				}
-				fmt.Println(err)
+
 				if err != nil {
 					fields := make([]string, 0)
 					if fileMetadata != "" {
@@ -420,13 +421,13 @@ func (c *Client) UpdateFile() *cobra.Command {
 
 					err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Update, fields, opTime, filePath)
 					if err != nil {
-						fmt.Printf("Error while saving info about create operation for file %s: %s\n", fileName, err)
+						c.ClientLogger.Errorf("Error while saving info about create operation for file %s: %s\n", fileName, err)
 					}
 				}
 
 				err = c.ClientStorage.UploadFile(fileName, filePath, fileMetadata, opTime, User)
 				if err != nil {
-					fmt.Printf("Error while uploading file %s to local storage: %s", fileName, err)
+					c.ClientLogger.Errorf("Error while uploading file %s to local storage: %s", fileName, err)
 					return
 				}
 
@@ -450,17 +451,20 @@ func (c *Client) DeleteFile() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			var fileName string
 
+			reader := bufio.NewReader(os.Stdin)
+
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
 				fmt.Print(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 			}
 
 			for fileName == "" {
 				fmt.Print("Please enter file to delete: ")
-				fmt.Fscan(os.Stdin, &fileName)
+				fileName, _ = reader.ReadString('\n')
+				fileName = strings.TrimRight(fileName, "\n")
 			}
 
 			fmt.Println("Start processing file with sensetive data...")
@@ -473,9 +477,9 @@ func (c *Client) DeleteFile() *cobra.Command {
 					certPath = "../../test_certs/"
 				}
 
-				connection, err := ClientConnection(certPath)
+				connection, err := c.ClientConnection(certPath)
 				if err != nil {
-					fmt.Println("Error while creating GRPC connection to server: ", err)
+					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 				}
 
 				uploadTime := time.Now()
@@ -489,24 +493,30 @@ func (c *Client) DeleteFile() *cobra.Command {
 				_, err = clientGRPC.DeleteFile(ctx, &pb.SensetiveDataMessage{
 					Identificator: fileName,
 				})
+				if err != nil {
+					c.ClientLogger.Error("Error while deleting file %s from Gophkeeper: %s\n", fileName, err)
+				}
 
 				for err != nil && retryCount != 3 {
 					_, err = clientGRPC.DeleteFile(ctx, &pb.SensetiveDataMessage{
 						Identificator: fileName,
 					})
+					if err != nil {
+						c.ClientLogger.Error("Error while deleting file %s from Gophkeeper: %s\n", fileName, err)
+					}
 					retryCount++
 					time.Sleep(time.Duration(retryCount))
 				}
 
 				errLocal := c.ClientStorage.DeleteFile(fileName, User)
 				if errLocal != nil {
-					fmt.Printf("Error while deleting file %s from local storage: %s \n", fileName, err)
+					c.ClientLogger.Errorf("Error while deleting file %s from local storage: %s \n", fileName, err)
 				}
 
 				if err != nil {
 					err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Delete, nil, opTime, "")
 					if err != nil {
-						fmt.Printf("Error while saving delete operation about file %s: %s\n", fileName, err)
+						c.ClientLogger.Errorf("Error while saving delete operation about file %s: %s\n", fileName, err)
 					}
 					fmt.Printf("Error while removing file %s: %s\n", fileName, err)
 					return
@@ -534,9 +544,8 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadT
 		certPath = "../../test_certs/"
 	}
 
-	connection, err := ClientConnection(certPath)
+	connection, err := c.ClientConnection(certPath)
 	if err != nil {
-		fmt.Println("Error while creating GRPC connection to server: ", err)
 		return fmt.Errorf("error while creating GRPC connection to server: %w", err)
 	}
 
@@ -546,14 +555,12 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadT
 	case cs.Create:
 		stream, err := clientGRPC.UploadFile(ctx)
 		if err != nil {
-			fmt.Printf("Error while openning GRPC stream to send file: %s\n", err)
 			return fmt.Errorf("error while openning GRPC stream to send file: %w", err)
 		}
 
 		if filePath != "" {
 			fileDesc, err := os.Open(filePath)
 			if err != nil {
-				fmt.Printf("Failed to open file: %s\n", err)
 				return fmt.Errorf("failed to open file: %s", err)
 			}
 			defer fileDesc.Close()
@@ -566,26 +573,22 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadT
 				if err == io.EOF {
 					break
 				} else if err != nil {
-					fmt.Printf("Error while reading file chunk: %s", err)
 					return fmt.Errorf("error while reading file chunk: %w", err)
 				}
 				file.Content = buffer[:n]
 				if err := stream.Send(file); err != nil {
-					fmt.Printf("Error while sending file chunk: %s", err)
 					return fmt.Errorf("error while sending file chunk: %w", err)
 				}
 			}
 		} else {
 			err = stream.Send(file)
 			if err != nil {
-				fmt.Printf("Error while sending file %s: %s\n", file.FileName, err)
 				return fmt.Errorf("error while sending file %s: %w", file.FileName, err)
 			}
 		}
 
 		_, err = stream.CloseAndRecv()
 		if err != nil {
-			fmt.Println("Error while closing connection to gophkeeper: ", err)
 			return fmt.Errorf("error while closing connection to gophkeeper: %w", err)
 		}
 	case cs.Get:
@@ -593,50 +596,42 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadT
 			Identificator: file.FileName,
 		})
 		if err != nil {
-			fmt.Println("Error while getting file from gophkeeper: ", err)
 			return fmt.Errorf("error while getting file from gophkeeper: %w", err)
 		}
 
 		fileToSave, err := os.Create(filePath)
 		if err != nil {
-			fmt.Printf("Error while creating file with path %s: %s\n", filePath, err)
 			return fmt.Errorf("error while creating file with path %s: %w", filePath, err)
 		}
 		var chunkFile *pb.FileMessage
 		for {
 			chunkFile, err = fileGetter.Recv()
 			if err != nil && err != io.EOF {
-				fmt.Printf("Error while recieving new data portion of file %s: %s\n", filePath, err)
 				break
 			} else if err == io.EOF {
-				fmt.Printf("Error while recieving content for file %s: %w\n", file.FileName, err)
 				return fmt.Errorf("error while recieving content for file %s: %w", file.FileName, err)
 			}
 
 			_, err = fileToSave.Write(chunkFile.Content)
 			if err != nil {
-				fmt.Printf("Error while writting chunk of file %s: %s\n", filePath, err)
 				return fmt.Errorf("Error while writting chunk of file %s: %w", filePath, err)
 			}
 		}
 
 		err = fileToSave.Close()
 		if err != nil {
-			fmt.Printf("Error while closing file with path %s: %s\n", file.FileName, err)
 			return fmt.Errorf("Error while closing file with path %s: %w", file.FileName, err)
 		}
 	case cs.Update:
 
 		stream, err := clientGRPC.UpdateFile(ctx)
 		if err != nil {
-			fmt.Printf("Error while openning GRPC stream to update file: %s\n", err)
 			return fmt.Errorf("error while openning GRPC stream to update file: %w", err)
 		}
 
 		if filePath != "" {
 			fileDesc, err := os.Open(filePath)
 			if err != nil {
-				fmt.Printf("Failed to open file: %s\n", err)
 				return fmt.Errorf("failed to open file: %w", err)
 			}
 			defer fileDesc.Close()
@@ -649,12 +644,10 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadT
 				if err == io.EOF {
 					break
 				} else if err != nil {
-					fmt.Printf("Error while sending file chunk: %s", err)
 					return fmt.Errorf("error while reading file chunk: %w", err)
 				}
 				file.Content = buffer[:n]
 				if err := stream.Send(file); err != nil {
-					fmt.Printf("Error while sending file chunk: %s", err)
 					return fmt.Errorf("error while sending file chunk: %w", err)
 				}
 			}
