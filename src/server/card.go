@@ -17,9 +17,17 @@ func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cvcCode, initVector := s.EncryptData(bankCardData.CvcCode)
+	cvcCode, initVector, err := s.EncryptData(bankCardData.CvcCode)
+	if err != nil {
+		s.Logger.Errorln()
+	}
 
-	err := s.DataStorage.UploadBankCard(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, initVector)
+	uploadAt, err := time.Parse(time.RFC3339, bankCardData.UploadTime)
+	if err != nil {
+		s.Logger.Errorf("Error while parsing uploadTime to time.Time: %s", err)
+		return nil, fmt.Errorf("Error while parsing uploadTime to time.Time: %w", err)
+	}
+	err = s.DataStorage.UploadBankCard(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, uploadAt, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while uploading bank card data for user %s for card number %s: %s", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)
 		return nil, fmt.Errorf("error while uploading bank card data for user %s for card number %s: %w", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)
@@ -66,14 +74,26 @@ func (s *GophkeeperServer) GetBankCardCredentials(ctx context.Context, bankCardC
 func (s *GophkeeperServer) UpdateBankCardCreds(ctx context.Context, bankCardData *pb.BankCardMessage) (*emptypb.Empty, error) {
 	var cvcCode string
 	var initVector []byte
+	var err error
+
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	if bankCardData.CvcCode != "\n" {
-		cvcCode, initVector = s.EncryptData(bankCardData.CvcCode)
+		cvcCode, initVector, err = s.EncryptData(bankCardData.CvcCode)
+		if err != nil {
+			s.Logger.Errorf("Error while encrypting data for bank card %s: %s", bankCardData.CardNumber, err)
+			return nil, fmt.Errorf("error while encrypting data for bank card %s: %w", bankCardData.CardNumber, err)
+		}
 	}
 
-	err := s.DataStorage.UpdateBankCardCreds(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, initVector)
+	uploadAt, err := time.Parse(time.RFC3339, bankCardData.UploadTime)
+	if err != nil {
+		s.Logger.Errorf("Error while parsing uploadTime to time.Time: %s", err)
+		return nil, fmt.Errorf("Error while parsing uploadTime to time.Time: %w", err)
+	}
+
+	err = s.DataStorage.UpdateBankCardCreds(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, uploadAt, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while updating bank card data for user %s for card number %s: %s", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)
 		return nil, fmt.Errorf("error while updating bank card data for user %s for card number %s: %w", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)

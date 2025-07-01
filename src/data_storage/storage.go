@@ -4,12 +4,13 @@ package datastorage
 
 import (
 	"context"
+	"time"
 
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 )
 
-// DataStorage - interface for describing storage for saving 
-// sensetive data. 
+// DataStorage - interface for describing storage for saving
+// sensetive data.
 type DataStorage interface {
 	Connect() error
 
@@ -19,11 +20,11 @@ type DataStorage interface {
 
 	CheckUserJWT(ctx context.Context, userLogin string) (string, error)
 
-	UploadPassword(ctx context.Context, passwrod, app, md string, initVector []byte) error
+	UploadPassword(ctx context.Context, passwrod, app, md string, updatedAt time.Time, initVector []byte) error
 
-	UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte) error
+	UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, updatedAt time.Time, initVector []byte) error
 
-	UploadFile(ctx context.Context, fileName, metaData string) error
+	UploadFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) error
 
 	DeleteFile(ctx context.Context, fileName string) error
 
@@ -41,9 +42,9 @@ type DataStorage interface {
 
 	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, []byte, error)
 
-	UpdatePassword(ctx context.Context, password, app, md string, initVector []byte) error
+	UpdatePassword(ctx context.Context, password, app, md string, updatedAt time.Time, initVector []byte) error
 
-	UpdateFile(ctx context.Context, fileName, metaData string) error
+	UpdateFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) error
 
-	UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte) error
+	UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string, updatedAt time.Time, initVector []byte) error
 }

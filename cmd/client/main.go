@@ -10,6 +10,7 @@ import (
 
 	client "github.com/Tanya1515/gophkeeper.git/src/client"
 	sql "github.com/Tanya1515/gophkeeper.git/src/client_storage/sqlite"
+	crypto "github.com/Tanya1515/gophkeeper.git/src/crypto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
@@ -68,7 +69,30 @@ func init() {
 
 	ConsoleClient.ClientStorage = sqliteCache
 
-	err := ConsoleClient.ClientStorage.Connect()
+	var cryptoStr crypto.Crypto
+	ConsoleClient.Crypto = cryptoStr
+
+	err := ConsoleClient.Crypto.CreateInitVector()
+	if err != nil {
+		panic(err)
+	}
+
+	clientLoggerConfig := zap.NewProductionConfig()
+	clientLoggerConfig.OutputPaths = []string{"client.log"}
+	clientLoggerConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger, err := clientLoggerConfig.Build()
+	if err != nil {
+		panic(err)
+	}
+
+	defer logger.Sync()
+
+	loggerApp := logger.Sugar()
+
+	ConsoleClient.ClientLogger = loggerApp
+
+	err = ConsoleClient.ClientStorage.Connect()
 	if err != nil {
 		fmt.Println("Error while connecting to client storage: ", err)
 		return
@@ -145,24 +169,9 @@ func init() {
 func main() {
 	var err error
 
-	clientLoggerConfig := zap.NewProductionConfig()
-	clientLoggerConfig.OutputPaths = []string{"client.log"}
-	clientLoggerConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	logger, err := clientLoggerConfig.Build()
-	if err != nil {
-		panic(err)
-	}
-
-	defer logger.Sync()
-
-	loggerApp := *logger.Sugar()
-
 	err = ut.CreateJWTPath()
 	if err != nil {
-		loggerApp.Errorf("Error while file for JWT initialization: %s", err)
+		ConsoleClient.ClientLogger.Errorf("Error while file for JWT initialization: %s", err)
 	}
 	Execute()
-	ConsoleClient.ClientLogger = loggerApp
-	ConsoleClient.ClientLogger.Info("Client for processing sensetive data in Gophkeeper.")
 }

@@ -25,9 +25,8 @@ func (c *Client) SendPassword() *cobra.Command {
 		Short: "Save password",
 		Long:  `Save password from third-party service`,
 		Run: func(cmd *cobra.Command, args []string) {
-			var password string
-			var application string
-			var metadataPassword string
+			var application, encryptedPassword, metadataPassword, password string
+			var initVector []byte
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -61,6 +60,13 @@ func (c *Client) SendPassword() *cobra.Command {
 				application, _ = reader.ReadString('\n')
 				application = strings.TrimRight(application, "\n")
 			}
+
+			encryptedPassword, initVector, err = c.EncryptData(password)
+			if err != nil {
+				c.ClientLogger.Errorln("Error while encrypt sensetive data for application %s: %s", application, err)
+				return
+			}
+			fmt.Println(encryptedPassword)
 
 			fmt.Print("Please enter metadata for sensetive data: ")
 			metadataPassword, _ = reader.ReadString('\n')
@@ -103,9 +109,9 @@ func (c *Client) SendPassword() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			errUpload := c.ClientStorage.UploadPassword(application, password, metadataPassword, opTime, User)
+			errUpload := c.ClientStorage.UploadPassword(application, encryptedPassword, metadataPassword, opTime, User, initVector)
 			if errUpload != nil {
-				c.ClientLogger.Errorln("Error while writting password data to SQLite: ", err)
+				c.ClientLogger.Errorln("Error while writting password data to SQLite: ", errUpload)
 			}
 			if err == nil {
 				fmt.Printf("Your password for application %s has been successfully uploaded!\n", application)
@@ -153,11 +159,15 @@ func (c *Client) GetPassword() *cobra.Command {
 			}
 			fmt.Println("Process your application sensetive data...")
 			c.SendCacheData()
-			password, uploadTime, metadataPassword, exists, err := c.ClientStorage.GetPassword(application, User)
+			password, uploadTime, metadataPassword, initVector, exists, err := c.ClientStorage.GetPassword(application, User)
 			if exists {
-				// проверка актуальности данных
+				passwordDecrypted, err := c.Crypto.DecryptData(password, initVector)
+				if err != nil {
+					c.ClientLogger.Errorln("Error while decrypting sensetive data for application %s: %s", application, err)
+					fmt.Println("Internal Gophkeeper error")
+				}
 				fmt.Printf("Application: %s\n", application)
-				fmt.Printf("Password: %s\n", password)
+				fmt.Printf("Password: %s\n", passwordDecrypted)
 				fmt.Printf("Upload date: %s\n", uploadTime)
 				fmt.Printf("Additioanl information: %s\n", metadataPassword)
 			} else {
@@ -246,7 +256,7 @@ func (c *Client) DeletePassword() *cobra.Command {
 
 			fmt.Println("Process your application sensetive data...")
 			c.SendCacheData()
-			_, _, _, exists, _ := c.ClientStorage.GetPassword(application, User)
+			_, _, _, _, exists, _ := c.ClientStorage.GetPassword(application, User)
 			if exists {
 				certPath, envExists := os.LookupEnv("CERT_PATH")
 				if !(envExists) {
@@ -314,9 +324,8 @@ func (c *Client) UpdatePassword() *cobra.Command {
 		Use:   "password",
 		Short: "Update password of the application from gophkeeper",
 		Run: func(cmd *cobra.Command, args []string) {
-			var application string
-			var newPassword string
-			var passwordMetadata string
+			var newPassword, passwordMetadata, application, encryptedPassword string
+			var initVector []byte
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -338,7 +347,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 			fmt.Println("Process your application sensetive data...")
 			c.SendCacheData()
 
-			_, _, _, exists, _ := c.ClientStorage.GetPassword(application, User)
+			_, _, _, _, exists, _ := c.ClientStorage.GetPassword(application, User)
 			if exists {
 				application = strings.TrimRight(application, "\n")
 
@@ -357,6 +366,14 @@ func (c *Client) UpdatePassword() *cobra.Command {
 
 					fmt.Println("Please enter metadata: ")
 					passwordMetadata, _ = reader.ReadString('\n')
+				}
+
+				if newPassword != "" {
+					encryptedPassword, initVector, err = c.EncryptData(newPassword)
+					if err != nil {
+						c.ClientLogger.Errorln("Error while encrypt sensetive data for application %s: %s", application, err)
+						return
+					}
 				}
 
 				certPath, envExists := os.LookupEnv("CERT_PATH")
@@ -416,7 +433,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 						c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of application %s: %s\n", application, err)
 					}
 				}
-				err = c.ClientStorage.UploadPassword(application, newPassword, passwordMetadata, opTime, User)
+				err = c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, User, initVector)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while updating  password sensetive data for application %s: %s\n", application, err)
 				}

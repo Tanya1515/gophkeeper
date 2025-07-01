@@ -11,17 +11,17 @@ type ClientStorage interface {
 
 	CreateUser(userName string) error
 
-	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, exists bool, err error)
+	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, initVector []byte, exists bool, err error)
 	GetFile(fileName, userName string) (string, string, bool, []byte, error)
-	GetPassword(application, userName string) (password, metadata, uploadTime string, exists bool, err error)
+	GetPassword(application, userName string) (password, metadata, uploadTime string, initVector []byte, exists bool, err error)
 
 	DeleteBankCard(cardNumber, userName string) error
 	DeleteFile(fileName, userName string) error
 	DeletePassword(application, userName string) error
 
-	UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, userName string) error
+	UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, userName string, initVector []byte) error
 	UploadFile(fileName, filePath, metadata, uploadTime, userName string) error
-	UploadPassword(application, password, metadata, uploadTime, userName string) error
+	UploadPassword(application, password, metadata, uploadTime, userName string, initVector []byte) error
 
 	SaveCardOperation(cardNumber, userName string, operation Operation, fields []string, time string) error
 	SaveFileOperation(fileName, userName string, operation Operation, fields []string, time, filePath string) error

@@ -2,6 +2,7 @@ package client
 
 import (
 	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
+	"github.com/Tanya1515/gophkeeper.git/src/crypto"
 	"go.uber.org/zap"
 )
 
@@ -10,8 +11,9 @@ var User string
 
 // Client - type, that constaints necessary data for client usage.
 type Client struct {
-	ClientStorage cs.ClientStorage  // Local client storage
-	ClientLogger  zap.SugaredLogger // Logger saves all server info
+	ClientStorage cs.ClientStorage   // Local client storage
+	ClientLogger  *zap.SugaredLogger // Logger saves all server info
+	crypto.Crypto                    // Crypto data for encryption/decryption sensetive information
 }
 
 // UserData - type, that containts all necessary information about

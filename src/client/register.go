@@ -30,6 +30,7 @@ func (c *Client) RegisterClient() *cobra.Command {
 			fmt.Print("User's email: ")
 			fmt.Fscan(os.Stdin, &email)
 
+			c.ClientLogger.Infof("Start processing user %s", User)
 			certPath, envExists := os.LookupEnv("CERT_PATH")
 			if !(envExists) {
 				certPath = "../../test_certs/"
@@ -76,6 +77,8 @@ func (c *Client) RegisterClient() *cobra.Command {
 			if err != nil {
 				c.ClientLogger.Errorln(err)
 			}
+
+			c.ClientLogger.Infof("Successfully registered user %s", User)
 			defer connection.Close()
 		},
 	}

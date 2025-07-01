@@ -88,11 +88,8 @@ func (c *Client) SendBankCard() *cobra.Command {
 		Short: "Save bank card sensetive data",
 		Long:  `Save bank card sensetive data: card number, cvc code, date`,
 		Run: func(cmd *cobra.Command, args []string) {
-			var cardNumber string
-			var cvc string
-			var date string
-			var bankName string
-			var metadatabankCard string
+			var cardNumber, metadatabankCard, cvc, date, bankName, encryptedCvc string
+			var initVector []byte
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -120,6 +117,12 @@ func (c *Client) SendBankCard() *cobra.Command {
 
 			cvc, _ = reader.ReadString('\n')
 			cvc = strings.TrimRight(cvc, "\n")
+
+			encryptedCvc, initVector, err = c.EncryptData(cvc)
+			if err != nil {
+				c.ClientLogger.Errorln("Error while encrypt sensetive data for bank card %s: %s", cardNumber, err)
+				return
+			}
 
 			fmt.Print("Please enter card date: ")
 
@@ -184,9 +187,9 @@ func (c *Client) SendBankCard() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			errUpload := c.ClientStorage.UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, opTime, User)
+			errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, initVector)
 			if errUpload != nil {
-				fmt.Printf("Error while writting bank card to SQLite: %s", err)
+				fmt.Printf("Error while writting bank card to SQLite: %s", errUpload)
 			}
 			if err == nil {
 				fmt.Println("Bank card credentials successfully have been uploaded!")
@@ -235,11 +238,17 @@ func (c *Client) GetBankCard() *cobra.Command {
 			}
 			fmt.Println("Process your bank card...")
 			c.SendCacheData()
-			cvc, date, bankName, metadataCard, exists, err := c.ClientStorage.GetBankCard(cardNumber, User)
+			cvc, date, bankName, metadataCard, initVector, exists, err := c.ClientStorage.GetBankCard(cardNumber, User)
 			if exists {
+				cvcDecrypted, err := c.Crypto.DecryptData(cvc, initVector)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while decrypting sensetive data for bank card %s: %s\n", cardNumber, err)
+					fmt.Println("Internal Gophkeeper error")
+					return
+				}
 				// проверка актуальности данных
 				fmt.Printf("Card number: %s\n", cardNumber)
-				fmt.Printf("Card cvc code: %s\n", cvc)
+				fmt.Printf("Card cvc code: %s\n", cvcDecrypted)
 				fmt.Printf("Card date: %s\n", date)
 				fmt.Printf("Card bank: %s\n", bankName)
 				fmt.Printf("Additioanl information: %s\n", metadataCard)
@@ -327,7 +336,7 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			}
 			fmt.Println("Process your bank card...")
 			c.SendCacheData()
-			_, _, _, _, exists, _ := c.ClientStorage.GetBankCard(cardNumber, User)
+			_, _, _, _, _, exists, _ := c.ClientStorage.GetBankCard(cardNumber, User)
 			if exists {
 				certPath, envExists := os.LookupEnv("CERT_PATH")
 				if !(envExists) {
@@ -392,7 +401,8 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 			var cvc string
 			var cardDate string
 			var bankName string
-			var metadatabankCard string
+			var metadatabankCard, cvcEncrypted string
+			var initVector []byte
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -417,7 +427,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 			}
 			fmt.Println("Process your bank card...")
 			c.SendCacheData()
-			_, _, _, _, exists, _ := c.ClientStorage.GetBankCard(cardNumber, User)
+			_, _, _, _, _, exists, _ := c.ClientStorage.GetBankCard(cardNumber, User)
 			if exists {
 				fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
 				cvc, _ = reader.ReadString('\n')
@@ -460,6 +470,9 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				bankName = strings.TrimRight(bankName, "\n")
 				metadatabankCard = strings.TrimRight(metadatabankCard, "\n")
 
+				if cvc != "" {
+					cvcEncrypted, initVector, err = c.Crypto.EncryptData(cvc)
+				}
 				certPath, envExists := os.LookupEnv("CERT_PATH")
 				if !(envExists) {
 					certPath = "../../test_certs/"
@@ -524,7 +537,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 						c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
 					}
 				}
-				err = c.ClientStorage.UploadBankCard(cardNumber, cvc, cardDate, bankName, metadatabankCard, opTime, User)
+				err = c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
 				}

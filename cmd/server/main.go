@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	crypto "github.com/Tanya1515/gophkeeper.git/src/crypto"
 	postgresql "github.com/Tanya1515/gophkeeper.git/src/data_storage/postgresql"
 	minio "github.com/Tanya1515/gophkeeper.git/src/file_storage/minio"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
@@ -115,9 +116,10 @@ func main() {
 		loggerApp.Errorln("Error while getting certificates for GRPC server ", err)
 	}
 
-	gophkeeper := &server.GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage}
+	var cryptoStr crypto.Crypto
+	gophkeeper := &server.GophkeeperServer{Logger: loggerApp, DataStorage: postgreSQL, FileStorage: minioStorage, Crypto: cryptoStr}
 
-	gophkeeper.Crypto.Aesgcm, err = server.CreateInitVector()
+	err = gophkeeper.CreateInitVector()
 	if err != nil {
 		loggerApp.Errorln("Error while generating initialization vector: %s", err)
 		return

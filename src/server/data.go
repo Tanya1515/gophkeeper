@@ -1,21 +1,15 @@
 package server
 
 import (
-	"crypto/cipher"
 	"sync"
 
 	"go.uber.org/zap"
 
+	crypto "github.com/Tanya1515/gophkeeper.git/src/crypto"
 	dataStorage "github.com/Tanya1515/gophkeeper.git/src/data_storage"
 	fileStorage "github.com/Tanya1515/gophkeeper.git/src/file_storage"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 )
-
-// Crypto - structure, that containts object for generating
-// key for encryption/decryption data.
-type Crypto struct {
-	Aesgcm cipher.AEAD
-}
 
 // GophkeeperServer - structure, that containts data about Gophkeeper application
 type GophkeeperServer struct {
@@ -29,7 +23,7 @@ type GophkeeperServer struct {
 
 	Mutex *sync.Mutex // Mutex for synchronization
 
-	Crypto // Crypto data for encryption/decryption sensetive information
+	crypto.Crypto // Crypto data for encryption/decryption sensetive information
 
 	pb.UnimplementedGophkeeperServer // type pb.Unimplemented<TypeName> is used for backward compatibility
 }

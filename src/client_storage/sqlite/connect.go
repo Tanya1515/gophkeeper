@@ -44,6 +44,7 @@ func (cache *SQLite) Connect() error {
 		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
+		"initVector BLOB, " +
 		"PRIMARY KEY (application, userName), " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {
@@ -62,6 +63,7 @@ func (cache *SQLite) Connect() error {
 		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT," +
+		"initVector BLOB, " +
 		"PRIMARY KEY (userName, cardNumber), " +
 		"FOREIGN KEY(userName) REFERENCES Users(userName) ON DELETE CASCADE)")
 	if err != nil {

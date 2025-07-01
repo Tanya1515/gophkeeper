@@ -126,13 +126,13 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 
 // GetBankCard - function for getting bank card credentials from application cache.
 // The function also checks if data is up to date.
-func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date string, bankName string, metadatabankCard string, exists bool, err error) {
+func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date string, bankName string, metadatabankCard string, initVector []byte, exists bool, err error) {
 	var lastUpdated, uploadTime string
 	var accessCount int
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return "", "", "", "", false, fmt.Errorf("error while openning connection to get data about bank card %s: %w", cardNumber, err)
+		return "", "", "", "", nil, false, fmt.Errorf("error while openning connection to get data about bank card %s: %w", cardNumber, err)
 	}
 
 	defer db.Close()
@@ -140,11 +140,11 @@ func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	row := db.QueryRowContext(ctxCache, "SELECT cvcCode, date, bank, metadata, lastUpdated, accessCount, uploadTime FROM Cards WHERE cardNumber=$1 AND userName=$2", cardNumber, userName)
+	row := db.QueryRowContext(ctxCache, "SELECT cvcCode, date, bank, metadata, initVector, lastUpdated, accessCount, uploadTime FROM Cards WHERE cardNumber=$1 AND userName=$2", cardNumber, userName)
 
-	err = row.Scan(&cvc, &date, &bankName, &metadatabankCard, &lastUpdated, &accessCount, &uploadTime)
+	err = row.Scan(&cvc, &date, &bankName, &metadatabankCard, &initVector, &lastUpdated, &accessCount, &uploadTime)
 	if err != nil {
-		return "", "", "", "", false, fmt.Errorf("error while getting data for bank Card %s: %w", cardNumber, err)
+		return "", "", "", "", nil, false, fmt.Errorf("error while getting data for bank Card %s: %w", cardNumber, err)
 	}
 
 	exists = true
@@ -157,7 +157,7 @@ func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date 
 }
 
 // UploadBankCard - function, that update existing bank card or insert new one.
-func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, userName string) (err error) {
+func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, userName string, initVector []byte) (err error) {
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
 		return fmt.Errorf("error while openning connection to update data about bank card %s or add new one: %w", cardNumber, err)
@@ -168,7 +168,7 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = db.ExecContext(ctxCache, "INSERT INTO Cards (cardNumber, cvcCode, date, bank, metadata, lastUpdated, uploadTime, userName) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) "+
+	_, err = db.ExecContext(ctxCache, "INSERT INTO Cards (cardNumber, cvcCode, date, bank, metadata, initVector, lastUpdated, uploadTime, userName) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) "+
 		"ON CONFLICT (cardNumber, userName) DO "+
 		"UPDATE SET "+
 		"cvcCode = CASE WHEN excluded.cvcCode <> '' THEN excluded.cvcCode ELSE cvcCode END, "+
@@ -176,7 +176,8 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 		"bank = CASE WHEN excluded.bank <> '' THEN excluded.bank ELSE bank END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
 		"lastUpdated = excluded.lastUpdated, "+
-		"accessCount = Cards.accessCount + 1", cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, uploadTime, userName)
+		"initVector = CASE WHEN excluded.initVector <> '' THEN excluded.initVector ELSE Cards.initVector END, "+
+		"accessCount = Cards.accessCount + 1", cardNumber, cvc, date, bankName, metadatabankCard, initVector, uploadTime, uploadTime, userName)
 
 	if err != nil {
 		return fmt.Errorf("error while updating existing bank card %s or inserting new one: %w", cardNumber, err)

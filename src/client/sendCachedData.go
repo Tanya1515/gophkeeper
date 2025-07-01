@@ -56,12 +56,20 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationResult, processCard *sync.WaitGroup) {
 	var wg sync.WaitGroup
 	var operationResult OperationResult
+	var cvcDecrypted string
+
 	defer processCard.Done()
 	for d := range data {
 		c.ClientLogger.Infoln("Start processing bank card credentials for ", d.dataIdentificator)
-		cvc, date, bankName, metadataBankCard, _, err := c.ClientStorage.GetBankCard(d.dataIdentificator, d.user)
+		cvc, date, bankName, metadataBankCard, initVector, _, err := c.ClientStorage.GetBankCard(d.dataIdentificator, d.user)
 		if err != nil {
 			c.ClientLogger.Errorln(err)
+		}
+		if cvc != "" {
+			cvcDecrypted, err = c.Crypto.DecryptData(cvc, initVector)
+			if err != nil {
+				c.ClientLogger.Errorf("Error while decrypring sensetive data for bank card %s: %s", d.dataIdentificator, err)
+			}
 		}
 		operationsInfo, err := c.ClientStorage.GetCardOperationsInfo(d.user, d.dataIdentificator)
 		if err != nil {
@@ -71,7 +79,7 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 			bankCardToExecute := &pb.BankCardMessage{CardNumber: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "cvc" {
-					bankCardToExecute.CvcCode = cvc
+					bankCardToExecute.CvcCode = cvcDecrypted
 				} else if value == "date" {
 					bankCardToExecute.Data = date
 				} else if value == "bankName" {
@@ -84,7 +92,7 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				c.ClientLogger.Infof("Execute %s operation with bank card %s\n", opInfo.OperationName, d.dataIdentificator)
+				c.ClientLogger.Infof("Execute %s operation with bank card %s", opInfo.OperationName, d.dataIdentificator)
 				err = c.ExecuteCardsOperations(opInfo.OperationName, d.JWTtoken, bankCardToExecute)
 				if err != nil {
 					operationResult = OperationResult{operationID: operationID, result: err.Error()}
@@ -102,16 +110,25 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 
 // PasswordWorker - function for getting all info about missed operations with passwords and execute them.
 func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- OperationResult, processPassword *sync.WaitGroup) {
-	var password, metadata string
+	var password, metadata, decryptedPassword string
 	var err error
 	var operationResult OperationResult
 	var wg sync.WaitGroup
+	var initVector []byte
+
 	defer processPassword.Done()
 	for d := range data {
 		c.ClientLogger.Infoln("Start processing application and its' sensetive data ", d.dataIdentificator)
-		password, metadata, _, _, err = c.ClientStorage.GetPassword(d.dataIdentificator, d.user)
+		password, metadata, _, initVector, _, err = c.ClientStorage.GetPassword(d.dataIdentificator, d.user)
 		if err != nil {
 			c.ClientLogger.Errorln(err)
+		}
+		if password != "" {
+			decryptedPassword, err = c.Crypto.DecryptData(password, initVector)
+			if err != nil {
+				c.ClientLogger.Errorf("Error while decrypting sensetive data for application %s: %s", d.dataIdentificator, err)
+				return
+			}
 		}
 		operationsInfo, err := c.ClientStorage.GetPasswordOperationsInfo(d.user, d.dataIdentificator)
 		if err != nil {
@@ -121,7 +138,7 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 			passwordToExecute := &pb.PasswordMessage{Application: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "password" {
-					passwordToExecute.Password = password
+					passwordToExecute.Password = decryptedPassword
 				} else if value == "metadata" {
 					passwordToExecute.MetaData = metadata
 				}
