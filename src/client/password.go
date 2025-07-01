@@ -89,6 +89,7 @@ func (c *Client) SendPassword() *cobra.Command {
 				Password:    password,
 				Application: application,
 				MetaData:    metadataPassword,
+				UploadTime:  opTime,
 			})
 
 			for err != nil && retryCount != 3 {
@@ -96,6 +97,7 @@ func (c *Client) SendPassword() *cobra.Command {
 					Password:    password,
 					Application: application,
 					MetaData:    metadataPassword,
+					UploadTime:  opTime,
 				})
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
@@ -380,6 +382,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 					Password:    newPassword,
 					Application: application,
 					MetaData:    passwordMetadata,
+					UploadTime:  opTime,
 				})
 				if err != nil {
 					c.ClientLogger.Errorf("Error while updating password for application %s: %s\n", application, err)
@@ -390,6 +393,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 						Password:    newPassword,
 						Application: application,
 						MetaData:    passwordMetadata,
+						UploadTime:  opTime,
 					})
 					if err != nil {
 						c.ClientLogger.Errorf("Error while updating password for application %s: %s\n", application, err)
@@ -426,7 +430,8 @@ func (c *Client) UpdatePassword() *cobra.Command {
 	return UpdatePassword
 }
 
-func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT, uploadTime string, password *pb.PasswordMessage) error {
+// ExecutePasswordsOperation - function for executing old operations with sensetive data for application.
+func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT string, password *pb.PasswordMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 

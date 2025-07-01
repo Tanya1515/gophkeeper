@@ -533,7 +533,8 @@ func (c *Client) DeleteFile() *cobra.Command {
 	return DeleteFile
 }
 
-func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadTime, filePath string, file *pb.FileMessage) error {
+// ExecuteFilesOperations - function for executing old operations with user files.
+func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, filePath string, file *pb.FileMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
@@ -614,13 +615,13 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, uploadT
 
 			_, err = fileToSave.Write(chunkFile.Content)
 			if err != nil {
-				return fmt.Errorf("Error while writting chunk of file %s: %w", filePath, err)
+				return fmt.Errorf("error while writting chunk of file %s: %w", filePath, err)
 			}
 		}
 
 		err = fileToSave.Close()
 		if err != nil {
-			return fmt.Errorf("Error while closing file with path %s: %w", file.FileName, err)
+			return fmt.Errorf("error while closing file with path %s: %w", file.FileName, err)
 		}
 	case cs.Update:
 

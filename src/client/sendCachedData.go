@@ -33,11 +33,12 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 					fileToExecute.MetaData = metaData
 				}
 			}
+			fileToExecute.UploadTime = opInfo.OperationTime
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				c.ClientLogger.Infof("Execute %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
-				err = c.ExecuteFilesOperations(opInfo.OperationName, d.JWTtoken, opInfo.OperationTime, filePath, fileToExecute)
+				err = c.ExecuteFilesOperations(opInfo.OperationName, d.JWTtoken, filePath, fileToExecute)
 				if err != nil {
 					operationResult = OperationResult{operationID: operationID, result: err.Error()}
 				} else {
@@ -79,11 +80,12 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 					bankCardToExecute.Metadata = metadataBankCard
 				}
 			}
+			bankCardToExecute.UploadTime = opInfo.OperationTime
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				c.ClientLogger.Infof("Execute %s operation with bank card %s\n", opInfo.OperationName, d.dataIdentificator)
-				err = c.ExecuteCardsOperations(opInfo.OperationName, d.JWTtoken, opInfo.OperationTime, bankCardToExecute)
+				err = c.ExecuteCardsOperations(opInfo.OperationName, d.JWTtoken, bankCardToExecute)
 				if err != nil {
 					operationResult = OperationResult{operationID: operationID, result: err.Error()}
 				} else {
@@ -124,12 +126,12 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 					passwordToExecute.MetaData = metadata
 				}
 			}
-
+			passwordToExecute.UploadTime = opInfo.OperationTime
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
-				err = c.ExecutePasswordsOperation(opInfo.OperationName, d.JWTtoken, opInfo.OperationTime, passwordToExecute)
+				err = c.ExecutePasswordsOperation(opInfo.OperationName, d.JWTtoken, passwordToExecute)
 				if err != nil {
 					operationResult = OperationResult{operationID: operationID, result: err.Error()}
 				} else {

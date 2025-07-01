@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	postgresql "github.com/Tanya1515/gophkeeper.git/src/data_storage/postgresql"
-	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	minio "github.com/Tanya1515/gophkeeper.git/src/file_storage/minio"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	server "github.com/Tanya1515/gophkeeper.git/src/server"
 )
 
@@ -47,7 +47,7 @@ func main() {
 
 	endpoint, envExists := os.LookupEnv("MINIO_HOST")
 	if !(envExists) {
-		loggerApp.Errorln("Error while getting postgreSQL address")
+		loggerApp.Errorln("Error while getting Minio address")
 		return
 	}
 

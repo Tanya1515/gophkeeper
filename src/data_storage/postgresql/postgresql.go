@@ -49,33 +49,36 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 	}
 
 	_, err = pg.dbConn.Exec(`CREATE TABLE IF NOT EXISTS BankCards (ID BIGSERIAL PRIMARY KEY,
-															userID BIGINT REFERENCES Users (id) ON DELETE CASCADE,
+															userID BIGINT,
 															cardNumber VARCHAR(100) NOT NULL UNIQUE, 
 															cvcCode VARCHAR(100) NOT NULL,
 															date DATE NOT NULL,
 															bank VARCHAR(100), 
 															metaData TEXT, 
-															initVector BYTEA);`)
+															initVector BYTEA,
+															FOREIGN KEY (userID) REFERENCES Users (id) ON DELETE CASCADE);`)
 
 	if err != nil {
 		return fmt.Errorf("error while creating table BankCards: %w", err)
 	}
 
 	_, err = pg.dbConn.Exec(`CREATE TABLE IF NOT EXISTS Credentials (ID BIGSERIAL PRIMARY KEY,
-																userID BIGINT REFERENCES Users (id) ON DELETE CASCADE,
+																userID BIGINT,
 																password VARCHAR(100) NOT NULL,
 																application VARCHAR(100) NOT NULL UNIQUE, 
 																metaData TEXT,
-																initVector BYTEA);`)
+																initVector BYTEA,
+																FOREIGN KEY (userID) REFERENCES Users (id) ON DELETE CASCADE);`)
 
 	if err != nil {
 		return fmt.Errorf("error while creating table Credentials: %w", err)
 	}
 
 	_, err = pg.dbConn.Exec(`CREATE TABLE IF NOT EXISTS UserFiles (ID BIGSERIAL PRIMARY KEY,
-																userID BIGINT REFERENCES Users (id) ON DELETE CASCADE,
+																userID BIGINT,
 																fileName VARCHAR(100) NOT NULL UNIQUE,
-																metaData TEXT);`)
+																metaData TEXT,
+																FOREIGN KEY (userID) REFERENCES Users (id) ON DELETE CASCADE);`)
 
 	if err != nil {
 		return fmt.Errorf("error while creating table UserFiles: %w", err)

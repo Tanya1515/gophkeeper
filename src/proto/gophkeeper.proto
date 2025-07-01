@@ -26,13 +26,15 @@ message PasswordMessage {
     string password = 1;
     string application = 2;
     string metaData = 3;
+    string uploadTime = 4;
 }
 
 message FileMessage {
     string fileName = 1;
     bytes content = 2;
     string metaData = 3;
-    bool end = 4;
+    string uploadTime = 4;
+    bool end = 5;
 }
 
 message BankCardMessage {
@@ -41,6 +43,7 @@ message BankCardMessage {
     string data = 3; 
     string bank = 4;
     string metadata = 5;
+    string uploadTime = 6;
 }
 
 message SensetiveDataMessage {

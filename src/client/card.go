@@ -168,6 +168,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 				Data:       date,
 				Bank:       bankName,
 				Metadata:   metadatabankCard,
+				UploadTime: opTime,
 			})
 
 			for err != nil && retryCount != 3 {
@@ -177,6 +178,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 					Data:       date,
 					Bank:       bankName,
 					Metadata:   metadatabankCard,
+					UploadTime: opTime,
 				})
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
@@ -484,6 +486,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 					Data:       cardDate,
 					Bank:       bankName,
 					Metadata:   metadatabankCard,
+					UploadTime: opTime,
 				})
 
 				for err != nil && retryCount != 3 {
@@ -493,6 +496,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 						Data:       cardDate,
 						Bank:       bankName,
 						Metadata:   metadatabankCard,
+						UploadTime: opTime,
 					})
 					retryCount++
 					time.Sleep(time.Duration(retryCount))
@@ -534,7 +538,8 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 
 }
 
-func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT, uploadTime string, bankCard *pb.BankCardMessage) error {
+// ExecuteCardsOperations - function for executing old operations with bank card credentials.
+func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT string, bankCard *pb.BankCardMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
