@@ -160,7 +160,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 			var retryCount = 1
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-			uploadTime := time.Now()
+			uploadTime := (time.Now()).UTC()
 			opTime := uploadTime.Format(time.RFC3339)
 			_, err = clientGRPC.UploadBankCard(ctx, &pb.BankCardMessage{
 				CardNumber: cardNumber,
@@ -257,7 +257,7 @@ func (c *Client) GetBankCard() *cobra.Command {
 
 				ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 
 				var retryCount = 1
@@ -343,7 +343,7 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 				ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 				var retryCount = 1
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 				_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 					Identificator: cardNumber,
@@ -474,7 +474,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 
 				ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 
 				var retryCount = 1

@@ -79,7 +79,7 @@ func (c *Client) SendFile() *cobra.Command {
 			if err != nil {
 				c.ClientLogger.Errorf("error while openning GRPC stream to send file: %s\n", err)
 			}
-			uploadTime := time.Now()
+			uploadTime := (time.Now()).UTC()
 			opTime := uploadTime.Format(time.RFC3339)
 			var retryCount = 1
 			for err != nil && retryCount != 3 {
@@ -317,7 +317,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 
 				ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 
 				var retryCount = 1
@@ -482,7 +482,7 @@ func (c *Client) DeleteFile() *cobra.Command {
 					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 				}
 
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 				clientGRPC := pb.NewGophkeeperClient(connection)
 				md := metadata.New(map[string]string{"Authorization": JWTToken})

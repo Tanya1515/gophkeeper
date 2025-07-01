@@ -82,7 +82,7 @@ func (c *Client) SendPassword() *cobra.Command {
 
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-			uploadTime := time.Now()
+			uploadTime := (time.Now()).UTC()
 			opTime := uploadTime.Format(time.RFC3339)
 			var retryCount = 1
 			_, err = clientGRPC.UploadPassword(ctx, &pb.PasswordMessage{
@@ -182,7 +182,7 @@ func (c *Client) GetPassword() *cobra.Command {
 					c.ClientLogger.Errorf("Error while getting password for application %s: %s\n", application, err)
 				}
 
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 				for err != nil && retryCount != 3 {
 					passwordApp, err = clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
@@ -261,7 +261,7 @@ func (c *Client) DeletePassword() *cobra.Command {
 
 				ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 
 				var retryCount = 1
@@ -372,7 +372,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 
 				ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-				uploadTime := time.Now()
+				uploadTime := (time.Now()).UTC()
 				opTime := uploadTime.Format(time.RFC3339)
 
 				var retryCount = 1
