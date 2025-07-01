@@ -55,7 +55,7 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 															date DATE NOT NULL,
 															bank VARCHAR(100), 
 															metaData TEXT,
-															updatedAt TIMESTAMP WITH TIME ZONE, 
+															updatedAt TIMESTAMP, 
 															initVector BYTEA,
 															FOREIGN KEY (userID) REFERENCES Users (id) ON DELETE CASCADE);`)
 
@@ -68,7 +68,7 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 																password VARCHAR(100) NOT NULL,
 																application VARCHAR(100) NOT NULL UNIQUE, 
 																metaData TEXT,
-																updatedAt TIMESTAMP WITH TIME ZONE,
+																updatedAt TIMESTAMP,
 																initVector BYTEA,
 																FOREIGN KEY (userID) REFERENCES Users (id) ON DELETE CASCADE);`)
 
@@ -80,7 +80,7 @@ func (pg *PostgreSQLConnection) Connect() (err error) {
 																userID BIGINT,
 																fileName VARCHAR(100) NOT NULL UNIQUE,
 																metaData TEXT,
-																updatedAt TIMESTAMP WITH TIME ZONE,
+																updatedAt TIMESTAMP,
 																FOREIGN KEY (userID) REFERENCES Users (id) ON DELETE CASCADE);`)
 
 	if err != nil {

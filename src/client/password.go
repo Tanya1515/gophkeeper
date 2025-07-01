@@ -66,7 +66,6 @@ func (c *Client) SendPassword() *cobra.Command {
 				c.ClientLogger.Errorln("Error while encrypt sensetive data for application %s: %s", application, err)
 				return
 			}
-			fmt.Println(encryptedPassword)
 
 			fmt.Print("Please enter metadata for sensetive data: ")
 			metadataPassword, _ = reader.ReadString('\n')

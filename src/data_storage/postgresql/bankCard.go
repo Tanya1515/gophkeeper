@@ -14,7 +14,7 @@ func (pg *PostgreSQLConnection) UploadBankCard(ctx context.Context, cardNumber, 
 
 	_, err := pg.dbConn.ExecContext(ctx, "INSERT INTO BankCards (userID, cardNumber, cvcCode, date, bank, metaData, initVector, updatedAt) VALUES ($1,$2,$3,TO_DATE($4, 'MM/YY'),$5,$6,$7,$8) "+
 		" ON CONFLICT (cardNumber) DO"+
-		" UPDATE SET date = excluded.date, metaData = excluded.metaData, initVector = excluded.initVector, updatedAt = excluded.updatedAt WHERE updatedAt =< excluded.updatedAt", ctx.Value(ut.IDKey), cardNumber, cvc, date, bank, md, initVector, updatedAt)
+		" UPDATE SET date = excluded.date, metaData = excluded.metaData, initVector = excluded.initVector, updatedAt = excluded.updatedAt WHERE BankCards.updatedAt <= excluded.updatedAt", ctx.Value(ut.IDKey), cardNumber, cvc, date, bank, md, initVector, updatedAt)
 
 	if err != nil {
 		return fmt.Errorf("error while inserting/updating bank card credentials for card number %s: %w", cardNumber, err)

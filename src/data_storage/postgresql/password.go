@@ -14,7 +14,7 @@ func (pg *PostgreSQLConnection) UploadPassword(ctx context.Context, password, ap
 
 	_, err := pg.dbConn.ExecContext(ctx, "INSERT INTO Credentials (userID, password, application, metaData, initVector, updatedAt) VALUES ($1,$2,$3,$4,$5,$6)"+
 		" ON CONFLICT (application) DO"+
-		" UPDATE SET password = excluded.password, metaData = excluded.metaData, initVector = excluded.initVector, updatedAt = excluded.updatedAt WHERE updatedAt =< excluded.updatedAt ", ctx.Value(ut.IDKey), password, app, md, initVector, updatedAt)
+		" UPDATE SET password = excluded.password, metaData = excluded.metaData, initVector = excluded.initVector, updatedAt = excluded.updatedAt WHERE Credentials.updatedAt <= excluded.updatedAt ", ctx.Value(ut.IDKey), password, app, md, initVector, updatedAt)
 
 	if err != nil {
 		return fmt.Errorf("error while inserting/updating password for application %s : %w", app, err)

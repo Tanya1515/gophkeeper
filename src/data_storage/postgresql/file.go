@@ -13,7 +13,7 @@ import (
 func (pg *PostgreSQLConnection) UploadFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) error {
 	_, err := pg.dbConn.ExecContext(ctx, "INSERT INTO UserFiles (userID, fileName, metaData, updatedAt) VALUES ($1, $2, $3, $4)"+
 		" ON CONFLICT (fileName, userID) DO"+
-		" UPDATE SET metaData = excluded.metaData WHERE updatedAt =< excluded.updatedAt", ctx.Value(ut.IDKey), fileName, metaData, updatedAt)
+		" UPDATE SET metaData = excluded.metaData WHERE UserFiles.updatedAt <= excluded.updatedAt", ctx.Value(ut.IDKey), fileName, metaData, updatedAt)
 
 	if err != nil {
 		return fmt.Errorf("error while inserting/updating file %s : %s", fileName, err)
