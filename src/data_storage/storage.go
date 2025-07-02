@@ -24,7 +24,7 @@ type DataStorage interface {
 
 	UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, updatedAt time.Time, initVector []byte) error
 
-	UploadFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) error
+	UploadFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) (bool, error)
 
 	DeleteFile(ctx context.Context, fileName string) error
 
@@ -41,10 +41,4 @@ type DataStorage interface {
 	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, []byte, error)
 
 	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, []byte, error)
-
-	UpdatePassword(ctx context.Context, password, app, md string, updatedAt time.Time, initVector []byte) error
-
-	UpdateFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) error
-
-	UpdateBankCardCreds(ctx context.Context, cardNumber, cvc, date, bank, md string, updatedAt time.Time, initVector []byte) error
 }

@@ -33,7 +33,7 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 	uploadAt, err := time.Parse(time.RFC3339, chunkFile.UploadTime)
 	if err != nil {
 		s.Logger.Errorf("Error while parsing uploadTime to time.Time: %s", err)
-		return fmt.Errorf("Error while parsing uploadTime to time.Time: %w", err)
+		return fmt.Errorf("error while parsing uploadTime to time.Time: %w", err)
 	}
 
 	fileName := chunkFile.FileName
@@ -65,19 +65,21 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	err = s.DataStorage.UploadFile(ctxDB, fileName, fileMetadata, uploadAt)
+	upload, err := s.DataStorage.UploadFile(ctxDB, fileName, fileMetadata, uploadAt)
 	if err != nil {
 		s.Logger.Errorln(err)
 		return err
 	}
 
-	ctxFileStore, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	if upload {
+		ctxFileStore, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
 
-	err = s.FileStorage.UploadFile(ctxFileStore, fileName, tempFileName)
-	if err != nil {
-		s.Logger.Errorln(err)
-		return err
+		err = s.FileStorage.UploadFile(ctxFileStore, fileName, tempFileName)
+		if err != nil {
+			s.Logger.Errorln(err)
+			return err
+		}
 	}
 
 	err = os.Remove(tempFileName)
@@ -155,6 +157,8 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 // UpdateFile - GRPC handler for updating file in file storage and metadata about the file.
 func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.FileMessage, emptypb.Empty]) error {
 
+	var upload bool
+
 	fileToSave, err := os.CreateTemp("/tmp/", "gophkeeper")
 	if err != nil {
 		s.Logger.Errorln("Error while creating temporary file: %s", err)
@@ -173,14 +177,14 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 	uploadAt, err := time.Parse(time.RFC3339, chunkFile.UploadTime)
 	if err != nil {
 		s.Logger.Errorf("Error while parsing uploadTime to time.Time: %s", err)
-		return fmt.Errorf("Error while parsing uploadTime to time.Time: %w", err)
+		return fmt.Errorf("error while parsing uploadTime to time.Time: %w", err)
 	}
 
 	fileName := chunkFile.FileName
 	fileMetadata := chunkFile.MetaData
 
 	if fileMetadata != "" {
-		err = s.DataStorage.UpdateFile(ctxDB, fileName, fileMetadata, uploadAt)
+		upload, err = s.DataStorage.UploadFile(ctxDB, fileName, fileMetadata, uploadAt)
 		if err != nil {
 			s.Logger.Errorln("Error while updating file metadata: ", err)
 			return fmt.Errorf("error while updating file %s metadata: %w", fileName, err)
@@ -189,7 +193,7 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 
 	tempFileName := fileToSave.Name()
 
-	if len(chunkFile.Content) != 0 {
+	if len(chunkFile.Content) != 0 && upload {
 		_, err = fileToSave.Write(chunkFile.Content)
 		if err != nil {
 			s.Logger.Errorln("Error while writting data to temporary file: ", err)

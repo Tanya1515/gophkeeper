@@ -109,17 +109,19 @@ func (c *Client) SendFile() *cobra.Command {
 				}
 
 				err = stream.Send(&pb.FileMessage{
-					Content:  buffer[:n],
-					FileName: fileName,
-					MetaData: metadataFile,
+					Content:    buffer[:n],
+					FileName:   fileName,
+					MetaData:   metadataFile,
+					UploadTime: opTime,
 				})
 
 				retryCount = 1
 				for err != nil && retryCount != 3 {
 					err = stream.Send(&pb.FileMessage{
-						Content:  buffer[:n],
-						FileName: fileName,
-						MetaData: metadataFile,
+						Content:    buffer[:n],
+						FileName:   fileName,
+						MetaData:   metadataFile,
+						UploadTime: opTime,
 					})
 					retryCount++
 					time.Sleep(time.Duration(retryCount))
@@ -361,9 +363,10 @@ func (c *Client) UpdateFile() *cobra.Command {
 
 						retryCount = 1
 						if err = stream.Send(&pb.FileMessage{
-							Content:  buffer[:n],
-							FileName: fileName,
-							MetaData: fileMetadata,
+							Content:    buffer[:n],
+							FileName:   fileName,
+							MetaData:   fileMetadata,
+							UploadTime: opTime,
 						}); err != nil {
 							c.ClientLogger.Errorf("Error while sending file chunk: %s\n", err)
 							return
@@ -371,9 +374,10 @@ func (c *Client) UpdateFile() *cobra.Command {
 
 						for err != nil && retryCount != 3 {
 							err = stream.Send(&pb.FileMessage{
-								Content:  buffer[:n],
-								FileName: fileName,
-								MetaData: fileMetadata,
+								Content:    buffer[:n],
+								FileName:   fileName,
+								MetaData:   fileMetadata,
+								UploadTime: opTime,
 							})
 							if err != nil {
 								c.ClientLogger.Errorf("Error while sending file chunk: %s", err)
@@ -390,17 +394,19 @@ func (c *Client) UpdateFile() *cobra.Command {
 				} else if err == nil {
 					retryCount = 1
 					if err = stream.Send(&pb.FileMessage{
-						Content:  []byte{},
-						FileName: fileName,
-						MetaData: fileMetadata,
+						Content:    []byte{},
+						FileName:   fileName,
+						MetaData:   fileMetadata,
+						UploadTime: opTime,
 					}); err != nil {
 						c.ClientLogger.Errorf("Error while sending file chunk: %s", err)
 					}
 					for err != nil && retryCount != 3 {
 						err = stream.Send(&pb.FileMessage{
-							Content:  []byte{},
-							FileName: fileName,
-							MetaData: fileMetadata,
+							Content:    []byte{},
+							FileName:   fileName,
+							MetaData:   fileMetadata,
+							UploadTime: opTime,
 						})
 						if err != nil {
 							c.ClientLogger.Errorf("Error while sending file chunk: %s", err)

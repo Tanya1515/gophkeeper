@@ -25,7 +25,7 @@ func (s *GophkeeperServer) UploadPassword(ctx context.Context, passwordData *pb.
 	uploadAt, err := time.Parse(time.RFC3339, passwordData.UploadTime)
 	if err != nil {
 		s.Logger.Errorf("Error while parsing uploadTime to time.Time: %s", err)
-		return nil, fmt.Errorf("Error while parsing uploadTime to time.Time: %w", err)
+		return nil, fmt.Errorf("error while parsing uploadTime to time.Time: %w", err)
 	}
 
 	err = s.DataStorage.UploadPassword(ctxDB, password, passwordData.Application, passwordData.MetaData, uploadAt, initVector)
@@ -91,10 +91,10 @@ func (s *GophkeeperServer) UpdatePassword(ctx context.Context, passwordData *pb.
 	uploadAt, err := time.Parse(time.RFC3339, passwordData.UploadTime)
 	if err != nil {
 		s.Logger.Errorf("Error while parsing uploadTime to time.Time: %s", err)
-		return nil, fmt.Errorf("Error while parsing uploadTime to time.Time: %w", err)
+		return nil, fmt.Errorf("error while parsing uploadTime to time.Time: %w", err)
 	}
 
-	err = s.DataStorage.UpdatePassword(ctxDB, password, passwordData.Application, passwordData.MetaData, uploadAt, initVector)
+	err = s.DataStorage.UploadPassword(ctxDB, password, passwordData.Application, passwordData.MetaData, uploadAt, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while updating password for user %s for application %s: %s", ctx.Value(ut.LoginKey), passwordData.Application, err)
 		return nil, fmt.Errorf("error while updating password for user %s for application %s: %w", ctx.Value(ut.LoginKey), passwordData.Application, err)
