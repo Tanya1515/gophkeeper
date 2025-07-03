@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -42,6 +44,7 @@ func main() {
 		panic(err)
 	}
 
+	shutdown := make(chan struct{})
 	defer logger.Sync()
 
 	loggerApp := *logger.Sugar()
@@ -125,7 +128,18 @@ func main() {
 		return
 	}
 
+	gracefulSutdown := make(chan os.Signal, 1)
+
+	signal.Notify(gracefulSutdown, syscall.SIGINT, syscall.SIGTERM)
+
 	s = grpc.NewServer(grpc.ChainStreamInterceptor(gophkeeper.StreamInterceptorLogger, gophkeeper.StreamInterceptorCheckJWTToken), grpc.ChainUnaryInterceptor(gophkeeper.InterceptorLogger, gophkeeper.InterceptorCheckJWTtoken), grpc.Creds(credsTLS))
+
+	go func() {
+		<-gracefulSutdown
+		s.GracefulStop()
+
+		close(shutdown)
+	}()
 
 	gophkeeper.UserOTP = make(map[string]string, 100)
 
@@ -136,4 +150,7 @@ func main() {
 		loggerApp.Errorln("Error, while trying to start grpc server: ", err)
 	}
 	loggerApp.Infoln("GRPC server for Gopherkeeper successfully started")
+
+	<-shutdown
+	loggerApp.Infoln("Gophkeeper successfully shutdown.")
 }

@@ -169,7 +169,7 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	chunkFile, err := inStream.Recv()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		s.Logger.Errorln("Error while recieving file from GRPC stream: ", err)
 		return fmt.Errorf("error while recieving file from GRPC stream: %w", err)
 	}
@@ -192,7 +192,7 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 	}
 
 	tempFileName := fileToSave.Name()
-
+	s.Logger.Error("UPLOAD: ", upload)
 	if len(chunkFile.Content) != 0 && upload {
 		_, err = fileToSave.Write(chunkFile.Content)
 		if err != nil {

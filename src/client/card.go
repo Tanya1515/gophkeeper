@@ -3,8 +3,6 @@ package client
 import (
 	"bufio"
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -121,6 +119,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 			encryptedCvc, initVector, err = c.EncryptData(cvc)
 			if err != nil {
 				c.ClientLogger.Errorln("Error while encrypt sensetive data for bank card %s: %s", cardNumber, err)
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				return
 			}
 
@@ -152,7 +151,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 
 			connection, err := c.ClientConnection(certPath)
 			if err != nil {
-				fmt.Println("Error while creating GRPC connection to server: ", err)
+				c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 			}
 
 			clientGRPC := pb.NewGophkeeperClient(connection)
@@ -189,7 +188,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 
 			errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, initVector)
 			if errUpload != nil {
-				fmt.Printf("Error while writting bank card to SQLite: %s", errUpload)
+				c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
 			}
 			if err == nil {
 				fmt.Println("Bank card credentials successfully have been uploaded!")
@@ -197,8 +196,9 @@ func (c *Client) SendBankCard() *cobra.Command {
 			} else {
 				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Create, nil, opTime)
 				if err != nil {
-					fmt.Println("Error while saving info about bank card operation: %w", err)
+					c.ClientLogger.Errorf("Error while saving info about bank card operation: %s\n", err)
 				}
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 			}
 
 		},
@@ -243,16 +243,18 @@ func (c *Client) GetBankCard() *cobra.Command {
 				cvcDecrypted, err := c.Crypto.DecryptData(cvc, initVector)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while decrypting sensetive data for bank card %s: %s\n", cardNumber, err)
-					fmt.Println("Internal Gophkeeper error")
+					fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 					return
 				}
-				// проверка актуальности данных
 				fmt.Printf("Card number: %s\n", cardNumber)
 				fmt.Printf("Card cvc code: %s\n", cvcDecrypted)
 				fmt.Printf("Card date: %s\n", date)
 				fmt.Printf("Card bank: %s\n", bankName)
 				fmt.Printf("Additioanl information: %s\n", metadataCard)
 			} else {
+				if err != nil {
+					c.ClientLogger.Errorf("Error while getting bank card %s credentials from local storage for user %s: %w", cardNumber, User, err)
+				}
 				certPath, envExists := os.LookupEnv("CERT_PATH")
 				if !(envExists) {
 					certPath = "../../test_certs/"
@@ -267,9 +269,6 @@ func (c *Client) GetBankCard() *cobra.Command {
 				md := metadata.New(map[string]string{"Authorization": JWTToken})
 
 				ctx := metadata.NewOutgoingContext(context.Background(), md)
-
-				uploadTime := (time.Now()).UTC()
-				opTime := uploadTime.Format(time.RFC3339)
 
 				var retryCount = 1
 				bankCard, err := clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
@@ -290,11 +289,10 @@ func (c *Client) GetBankCard() *cobra.Command {
 					fmt.Printf("Card date: %s\n", bankCard.Data)
 					fmt.Printf("Card bank: %s\n", bankCard.Bank)
 					fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
-				} else if !errors.Is(err, sql.ErrNoRows) {
-					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Get, nil, opTime)
-					if err != nil {
-						c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
-					}
+				} else if strings.Contains(strings.Split(err.Error(), "desc")[1], "no rows in result") {
+					fmt.Printf("Sensetive data for bank card %s do not exist\n", cardNumber)
+				} else {
+					fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				}
 			}
 
@@ -336,52 +334,48 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			}
 			fmt.Println("Process your bank card...")
 			c.SendCacheData()
-			_, _, _, _, _, exists, _ := c.ClientStorage.GetBankCard(cardNumber, User)
-			if exists {
-				certPath, envExists := os.LookupEnv("CERT_PATH")
-				if !(envExists) {
-					certPath = "../../test_certs/"
-				}
+			certPath, envExists := os.LookupEnv("CERT_PATH")
+			if !(envExists) {
+				certPath = "../../test_certs/"
+			}
 
-				connection, err := c.ClientConnection(certPath)
-				if err != nil {
-					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
-				}
+			connection, err := c.ClientConnection(certPath)
+			if err != nil {
+				c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
+			}
 
-				clientGRPC := pb.NewGophkeeperClient(connection)
-				md := metadata.New(map[string]string{"Authorization": JWTToken})
+			clientGRPC := pb.NewGophkeeperClient(connection)
+			md := metadata.New(map[string]string{"Authorization": JWTToken})
 
-				ctx := metadata.NewOutgoingContext(context.Background(), md)
+			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-				var retryCount = 1
-				uploadTime := (time.Now()).UTC()
-				opTime := uploadTime.Format(time.RFC3339)
+			var retryCount = 1
+			uploadTime := (time.Now()).UTC()
+			opTime := uploadTime.Format(time.RFC3339)
+			_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
+				Identificator: cardNumber,
+			})
+
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 					Identificator: cardNumber,
 				})
+				retryCount++
+				time.Sleep(time.Duration(retryCount))
+			}
 
-				for err != nil && retryCount != 3 {
-					_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
-						Identificator: cardNumber,
-					})
-					retryCount++
-					time.Sleep(time.Duration(retryCount))
-				}
-
-				errLocal := c.ClientStorage.DeleteBankCard(cardNumber, User)
-				if errLocal != nil {
-					c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
-				}
-				if err == nil {
-					c.ClientLogger.Errorf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
-				} else {
-					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
-					if err != nil {
-						c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
-					}
-				}
+			errLocal := c.ClientStorage.DeleteBankCard(cardNumber, User)
+			if errLocal != nil {
+				c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
+			}
+			if err == nil {
+				fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
 			} else {
-				fmt.Printf("Crdentials for bank card %s does not exist in Gophkeeper!\n", cardNumber)
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
+				if err != nil {
+					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
+				}
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 			}
 
 		},
@@ -425,74 +419,88 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				cardNumber, _ = reader.ReadString('\n')
 				cardNumber = strings.TrimRight(cardNumber, "\n")
 			}
-			fmt.Println("Process your bank card...")
-			c.SendCacheData()
-			_, _, _, _, _, exists, _ := c.ClientStorage.GetBankCard(cardNumber, User)
-			if exists {
-				fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
-				cvc, _ = reader.ReadString('\n')
 
-				fmt.Print("Please enter card date, if you would like to change it: ")
+			fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
+			cvc, _ = reader.ReadString('\n')
+
+			fmt.Print("Please enter card date, if you would like to change it: ")
+			cardDate, _ = reader.ReadString('\n')
+			cardDate = strings.TrimRight(cardDate, "\n")
+			for {
+				if CheckDateFormat(cardDate) || (cardDate == "") {
+					break
+				}
+				fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
 				cardDate, _ = reader.ReadString('\n')
 				cardDate = strings.TrimRight(cardDate, "\n")
+			}
+
+			fmt.Print("Please enter bank name, if you would like to change it: ")
+			bankName, _ = reader.ReadString('\n')
+			fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
+			metadatabankCard, _ = reader.ReadString('\n')
+			for metadatabankCard == "\n" && bankName == "\n" && cardDate == "\n" && cvc == "\n" {
+				fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
+				cvc, _ = reader.ReadString('\n')
+				fmt.Print("Please enter card date, if you would like to change it: ")
+				cardDate, _ = reader.ReadString('\n')
 				for {
-					if CheckDateFormat(cardDate) || (cardDate == "") {
+					if CheckDateFormat(cardDate) {
 						break
 					}
 					fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
 					cardDate, _ = reader.ReadString('\n')
-					cardDate = strings.TrimRight(cardDate, "\n")
 				}
-
 				fmt.Print("Please enter bank name, if you would like to change it: ")
 				bankName, _ = reader.ReadString('\n')
 				fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
 				metadatabankCard, _ = reader.ReadString('\n')
-				for metadatabankCard == "\n" && bankName == "\n" && cardDate == "\n" && cvc == "\n" {
-					fmt.Print("Please enter cvc code of the card, if you would like to change it: ")
-					cvc, _ = reader.ReadString('\n')
-					fmt.Print("Please enter card date, if you would like to change it: ")
-					cardDate, _ = reader.ReadString('\n')
-					for {
-						if CheckDateFormat(cardDate) {
-							break
-						}
-						fmt.Print("Your date was invalid, please enter againin formet MM/YY: ")
-						cardDate, _ = reader.ReadString('\n')
-					}
-					fmt.Print("Please enter bank name, if you would like to change it: ")
-					bankName, _ = reader.ReadString('\n')
-					fmt.Print("Please enter metadata for sensetive data, if you would like to change it: ")
-					metadatabankCard, _ = reader.ReadString('\n')
-				}
+			}
 
-				cvc = strings.TrimRight(cvc, "\n")
-				bankName = strings.TrimRight(bankName, "\n")
-				metadatabankCard = strings.TrimRight(metadatabankCard, "\n")
+			cvc = strings.TrimRight(cvc, "\n")
+			bankName = strings.TrimRight(bankName, "\n")
+			metadatabankCard = strings.TrimRight(metadatabankCard, "\n")
+			fmt.Println("Process your bank card...")
+			c.SendCacheData()
 
-				if cvc != "" {
-					cvcEncrypted, initVector, err = c.Crypto.EncryptData(cvc)
-				}
-				certPath, envExists := os.LookupEnv("CERT_PATH")
-				if !(envExists) {
-					certPath = "../../test_certs/"
-				}
-
-				connection, err := c.ClientConnection(certPath)
+			if cvc != "" {
+				cvcEncrypted, initVector, err = c.Crypto.EncryptData(cvc)
 				if err != nil {
-					c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
+					c.ClientLogger.Errorf("Error while encrypting cvc code for bank card %s: %s", cardNumber, err)
+					fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+					return
 				}
+			}
+			certPath, envExists := os.LookupEnv("CERT_PATH")
+			if !(envExists) {
+				certPath = "../../test_certs/"
+			}
 
-				clientGRPC := pb.NewGophkeeperClient(connection)
+			connection, err := c.ClientConnection(certPath)
+			if err != nil {
+				c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
+			}
 
-				md := metadata.New(map[string]string{"Authorization": JWTToken})
+			clientGRPC := pb.NewGophkeeperClient(connection)
 
-				ctx := metadata.NewOutgoingContext(context.Background(), md)
+			md := metadata.New(map[string]string{"Authorization": JWTToken})
 
-				uploadTime := (time.Now()).UTC()
-				opTime := uploadTime.Format(time.RFC3339)
+			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-				var retryCount = 1
+			uploadTime := (time.Now()).UTC()
+			opTime := uploadTime.Format(time.RFC3339)
+
+			var retryCount = 1
+			_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
+				CardNumber: cardNumber,
+				CvcCode:    cvc,
+				Data:       cardDate,
+				Bank:       bankName,
+				Metadata:   metadatabankCard,
+				UploadTime: opTime,
+			})
+
+			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
 					CardNumber: cardNumber,
 					CvcCode:    cvc,
@@ -501,49 +509,36 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 					Metadata:   metadatabankCard,
 					UploadTime: opTime,
 				})
+				retryCount++
+				time.Sleep(time.Duration(retryCount))
+			}
 
-				for err != nil && retryCount != 3 {
-					_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
-						CardNumber: cardNumber,
-						CvcCode:    cvc,
-						Data:       cardDate,
-						Bank:       bankName,
-						Metadata:   metadatabankCard,
-						UploadTime: opTime,
-					})
-					retryCount++
-					time.Sleep(time.Duration(retryCount))
-				}
+			uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
+			if uploadErr != nil {
+				c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
+			}
 
-				if err == nil {
-					fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
-					c.SendCacheData()
-				} else {
-					fields := make([]string, 0)
-					if cvc != "" {
-						fields = append(fields, "cvc")
-					}
-					if cardDate != "" {
-						fields = append(fields, "date")
-					}
-					if bankName != "" {
-						fields = append(fields, "bank")
-					}
-					if metadatabankCard != "" {
-						fields = append(fields, "metadata")
-					}
-					err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Update, fields, opTime)
-					if err != nil {
-						c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
-					}
-				}
-				err = c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
-				}
-
+			if err == nil {
+				fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
 			} else {
-				fmt.Printf("Credentials for bank card %s does not exist in Gophleeper!", cardNumber)
+				fields := make([]string, 0)
+				if cvc != "" {
+					fields = append(fields, "cvc")
+				}
+				if cardDate != "" {
+					fields = append(fields, "date")
+				}
+				if bankName != "" {
+					fields = append(fields, "bank")
+				}
+				if metadatabankCard != "" {
+					fields = append(fields, "metadata")
+				}
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Update, fields, opTime)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
+				}
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 			}
 		},
 	}
