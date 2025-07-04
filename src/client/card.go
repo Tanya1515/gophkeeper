@@ -172,6 +172,13 @@ func (c *Client) SendBankCard() *cobra.Command {
 				Metadata:   metadatabankCard,
 				UploadTime: opTime,
 			})
+			if err != nil {
+				c.ClientLogger.Errorf("Error while sending bank card %s credentials: %s\n", cardNumber, err)
+				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+					fmt.Println("Please login to Gophkeeper!")
+					return
+				}
+			}
 
 			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UploadBankCard(ctx, &pb.BankCardMessage{
@@ -182,25 +189,34 @@ func (c *Client) SendBankCard() *cobra.Command {
 					Metadata:   metadatabankCard,
 					UploadTime: opTime,
 				})
+				if err != nil {
+					c.ClientLogger.Errorf("Error while sending bank card %s credentials: %s\n", cardNumber, err)
+
+				}
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, initVector)
-			if errUpload != nil {
-				c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
-			}
 			if err == nil {
+				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, initVector)
+				if errUpload != nil {
+					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
+				}
 				fmt.Println("Bank card credentials successfully have been uploaded!")
 				c.SendCacheData()
-			} else {
+				return
+			} else if CheckErrorType(err) {
+				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, initVector)
+				if errUpload != nil {
+					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
+				}
 				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Create, nil, opTime)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving info about bank card operation: %s\n", err)
 				}
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
-			}
 
+			}
+			fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 		},
 	}
 
@@ -275,10 +291,21 @@ func (c *Client) GetBankCard() *cobra.Command {
 					Identificator: cardNumber,
 				})
 
+				if err != nil {
+					c.ClientLogger.Errorf("Error while getting bank card %s credentials: %s", cardNumber, err)
+					if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+						fmt.Println("Please login to Gophkeeper!")
+						return
+					}
+				}
+
 				for err != nil && retryCount != 3 {
 					bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 						Identificator: cardNumber,
 					})
+					if err != nil {
+						c.ClientLogger.Errorf("Error while getting bank card %s credentials: %s", cardNumber, err)
+					}
 					retryCount++
 					time.Sleep(time.Duration(retryCount))
 				}
@@ -355,6 +382,13 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 				Identificator: cardNumber,
 			})
+			if err != nil {
+				c.ClientLogger.Errorf("Error while deleting bank card %s: %s", cardNumber, err)
+				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+					fmt.Println("Please login to Gophkeeper!")
+					return
+				}
+			}
 
 			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
@@ -362,21 +396,37 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 				})
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
+
+				if err != nil {
+					c.ClientLogger.Errorf("Error while deleting bank card %s: %s", cardNumber, err)
+				}
+			}
+
+			if err != nil && CheckErrorType(err) {
+				errLocal := c.ClientStorage.DeleteBankCard(cardNumber, User)
+				if errLocal != nil {
+					c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
+				}
+
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
+				if err != nil {
+					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
+				}
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+			} else if err != nil && strings.Contains(err.Error(), "no rows with bank card") {
+				fmt.Printf("Gophkeeper does not contain bank card %s\n", cardNumber)
+				return
+			} else if err != nil {
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				return
 			}
 
 			errLocal := c.ClientStorage.DeleteBankCard(cardNumber, User)
 			if errLocal != nil {
 				c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
 			}
-			if err == nil {
-				fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
-			} else {
-				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
-				if err != nil {
-					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
-				}
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
-			}
+
+			fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
 
 		},
 	}
@@ -499,6 +549,13 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				Metadata:   metadatabankCard,
 				UploadTime: opTime,
 			})
+			if err != nil {
+				c.ClientLogger.Errorf("Error while updating bank card %s credentials: %s", cardNumber, err)
+				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+					fmt.Println("Please login to Gophkeeper!")
+					return
+				}
+			}
 
 			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UpdateBankCardCreds(ctx, &pb.BankCardMessage{
@@ -509,18 +566,20 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 					Metadata:   metadatabankCard,
 					UploadTime: opTime,
 				})
+
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating bank card %s credentials: %s", cardNumber, err)
+				}
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
-			if uploadErr != nil {
-				c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
-			}
+			if err != nil && CheckErrorType(err) {
+				uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
+				if uploadErr != nil {
+					c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
+				}
 
-			if err == nil {
-				fmt.Printf("Your card credentials %s have been successfully updated!", cardNumber)
-			} else {
 				fields := make([]string, 0)
 				if cvc != "" {
 					fields = append(fields, "cvc")
@@ -539,7 +598,20 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 					c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
 				}
 				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				return
+			} else if err != nil && strings.Contains(err.Error(), "no rows with application") {
+				fmt.Printf("Gophkeeper does not contain bank card %s\n", cardNumber)
+				return
+			} else if err != nil {
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				return
 			}
+
+			uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
+			if uploadErr != nil {
+				c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
+			}
+			fmt.Printf("Your bank card %s has been successfully updated.\n", cardNumber)
 		},
 	}
 	return UpdateCard

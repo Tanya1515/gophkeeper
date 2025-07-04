@@ -17,7 +17,7 @@ import (
 )
 
 // SyncAllFiles - function for getting all files from server and saving them locally.
-func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient, files map[string]string) {
+func (c *Client) SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient) {
 	var fileName string
 	var fileToSave *os.File
 	md := metadata.New(map[string]string{"Authorization": JWTToken})
@@ -25,13 +25,13 @@ func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperC
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	stream, err := clientGRPC.SyncFiles(ctx, &emptypb.Empty{})
 	if err != nil {
-		fmt.Printf("Error while grpc connection set up: %s\n", err)
+		c.ClientLogger.Errorf("Error while grpc connection set up: %s\n", err)
 		return
 	}
 
 	file, err := stream.Recv()
 	if err != nil && err != io.EOF {
-		fmt.Printf("Error while recieving file chunk %s from gophkeeper: %s\n", file.FileName, err)
+		c.ClientLogger.Errorf("Error while recieving file chunk %s from gophkeeper: %s\n", file.FileName, err)
 		return
 	}
 
@@ -39,25 +39,24 @@ func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperC
 		fileName = file.FileName
 		fileToSave, err = os.Create("/tmp/" + fileName)
 		if err != nil {
-			fmt.Printf("Error while creating file with path %s: %s\n", "/tmp/"+fileName, err)
+			c.ClientLogger.Errorf("Error while creating file with path %s: %s\n", "/tmp/"+fileName, err)
 			return
 		}
 	}
 
 	_, err = fileToSave.Write(file.Content)
 	if err != nil {
-		fmt.Printf("Error while saving file %s: %s\n", fileName, err)
+		c.ClientLogger.Errorf("Error while saving file %s: %s\n", fileName, err)
 		return
 	}
 
 	for {
 		file, err := stream.Recv()
 		if err != nil && err != io.EOF {
-			fmt.Printf("Error while recieving file chunk %s from gophkeeper: %s\n", file.FileName, err)
+			c.ClientLogger.Errorf("Error while recieving file chunk %s from gophkeeper: %s\n", file.FileName, err)
 			return
 		}
 		if file.End {
-			files[fileName] = "/tmp/" + fileName
 			break
 		}
 
@@ -66,14 +65,14 @@ func SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperC
 			fileName = file.FileName
 			fileToSave, err = os.Create("/tmp/" + fileName)
 			if err != nil {
-				fmt.Printf("Error while creating file with path %s: %s\n", "/tmp/"+fileName, err)
+				c.ClientLogger.Errorf("Error while creating file with path %s: %s\n", "/tmp/"+fileName, err)
 				return
 			}
 		}
 
 		_, err = fileToSave.Write(file.Content)
 		if err != nil {
-			fmt.Printf("Error while saving file %s: %s\n", fileName, err)
+			c.ClientLogger.Errorf("Error while saving file %s: %s\n", fileName, err)
 			return
 		}
 
@@ -92,10 +91,10 @@ func (c *Client) GetUserData() *cobra.Command {
 			files := make(map[string]string, 100)
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
-				fmt.Print(err.Error())
+				c.ClientLogger.Error(err.Error())
 				return
 			} else if err != nil {
-				fmt.Printf("Error while getting user %s credentials: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
 				return
 			}
 
@@ -106,7 +105,7 @@ func (c *Client) GetUserData() *cobra.Command {
 
 			connection, err := c.ClientConnection(certPath)
 			if err != nil {
-				fmt.Println("Error while creating GRPC connection to server: ", err)
+				c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
 			}
 
 			clientGRPC := pb.NewGophkeeperClient(connection)
@@ -116,35 +115,42 @@ func (c *Client) GetUserData() *cobra.Command {
 
 			wg.Add(1)
 
-			go SyncAllFiles(&wg, JWTToken, clientGRPC, files)
+			go c.SyncAllFiles(&wg, JWTToken, clientGRPC, files)
 
 			sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
 			if err != nil {
-				fmt.Printf("Error while getting all sensetive data for User %s: %s\n", User, err)
+				c.ClientLogger.Errorf("Error while getting all sensetive data for User %s: %s\n", User, err)
 				return
 			}
-			fmt.Println("Yor passwords: ")
+
 			for _, passwordInfo := range sensetiveData.Passwords {
-				fmt.Printf("\n  Application: %s,\n   password: %s,\n   Metadata: %s\n", passwordInfo.Application, passwordInfo.Password, passwordInfo.MetaData)
+				encryptedPassword, initVector, err := c.EncryptData(passwordInfo.Password)
+				if err != nil {
+					c.ClientLogger.Errorln("Error while encrypt sensetive data for application %s: %s", passwordInfo.Application, err)
+					continue
+				}
+				err = c.ClientStorage.UploadPassword(passwordInfo.Application, encryptedPassword, passwordInfo.MetaData, passwordInfo.UploadTime, User, initVector)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while uploading sensetive data for application: %s: %s", passwordInfo.Application, err)
+					continue
+				}
+
 			}
 
-			fmt.Println("\nYour bank card credentials: ")
-			fmt.Println()
 			for _, bankCardCreds := range sensetiveData.BankCards {
-				fmt.Println("  Bank: ", bankCardCreds.Bank)
-				fmt.Println("    Card number: ", bankCardCreds.CardNumber)
-				fmt.Printf("    CVC: %s, date: %s\n", bankCardCreds.CvcCode, bankCardCreds.Data)
-				fmt.Printf("    Metada: %s\n\n", bankCardCreds.Metadata)
+				encryptedCvc, initVector, err := c.EncryptData(bankCardCreds.CvcCode)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while encrypt sensetive data for bank card %s: %s\n", bankCardCreds.CardNumber, err)
+					continue
+				}
+				err = c.ClientStorage.UploadBankCard(bankCardCreds.CardNumber, encryptedCvc, bankCardCreds.Data, bankCardCreds.Bank, bankCardCreds.Metadata, bankCardCreds.UploadTime, User, initVector)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while uploading credentials for bank card %s: %s\n", bankCardCreds.CardNumber, err)
+					continue
+				}
 			}
 
 			wg.Wait()
-			if len(files) != 0 {
-				fmt.Println("Your files: ")
-				for fileName, pathToFile := range files {
-					fmt.Printf("\n  File %s have been saved along the path: %s\n", fileName, pathToFile)
-				}
-				fmt.Println()
-			}
 
 			fmt.Printf("All data for User %s was synchronyzed\n", User)
 

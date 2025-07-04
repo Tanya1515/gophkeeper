@@ -3,8 +3,6 @@ package client
 import (
 	"bufio"
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -97,6 +95,13 @@ func (c *Client) SendPassword() *cobra.Command {
 				MetaData:    metadataPassword,
 				UploadTime:  opTime,
 			})
+			if err != nil {
+				c.ClientLogger.Errorf("Error while sending sensetive data for application %s: %s\n", application, err)
+				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+					fmt.Println("Please login to Gophkeeper!")
+					return
+				}
+			}
 
 			for err != nil && retryCount != 3 {
 				_, err = clientGRPC.UploadPassword(ctx, &pb.PasswordMessage{
@@ -109,20 +114,26 @@ func (c *Client) SendPassword() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			errUpload := c.ClientStorage.UploadPassword(application, encryptedPassword, metadataPassword, opTime, User, initVector)
-			if errUpload != nil {
-				c.ClientLogger.Errorln("Error while writting password data to SQLite: ", errUpload)
-			}
 			if err == nil {
+				errUpload := c.ClientStorage.UploadPassword(application, encryptedPassword, metadataPassword, opTime, User, initVector)
+				if errUpload != nil {
+					c.ClientLogger.Errorln("Error while writting password data to SQLite: ", errUpload)
+				}
 				c.SendCacheData()
 				fmt.Printf("Your password for application %s has been successfully uploaded!\n", application)
-			} else {
+				return
+			} else if CheckErrorType(err) {
+				errUpload := c.ClientStorage.UploadPassword(application, encryptedPassword, metadataPassword, opTime, User, initVector)
+				if errUpload != nil {
+					c.ClientLogger.Errorln("Error while writting password data to SQLite: ", errUpload)
+				}
 				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Create, nil, opTime)
 				if err != nil {
 					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 				}
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 			}
+
+			fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 
 		},
 	}
@@ -197,6 +208,10 @@ func (c *Client) GetPassword() *cobra.Command {
 				})
 				if err != nil {
 					c.ClientLogger.Errorf("Error while getting password for application %s: %s\n", application, err)
+					if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+						fmt.Println("Please login to Gophkeeper!")
+						return
+					}
 				}
 				for err != nil && retryCount != 3 {
 					passwordApp, err = clientGRPC.GetPassword(ctx, &pb.SensetiveDataMessage{
@@ -282,6 +297,10 @@ func (c *Client) DeletePassword() *cobra.Command {
 			})
 			if err != nil {
 				c.ClientLogger.Errorf("Error while deleting password in Gophkeeper for application %s: %s\n", application, err)
+				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+					fmt.Println("Please login to Gophkeeper!")
+					return
+				}
 			}
 
 			for err != nil && retryCount != 3 {
@@ -295,19 +314,31 @@ func (c *Client) DeletePassword() *cobra.Command {
 				time.Sleep(time.Duration(retryCount))
 			}
 
-			errLocal := c.ClientStorage.DeletePassword(application, User)
-			if errLocal != nil {
-				c.ClientLogger.Errorf("Error while deleting password for application %s from local storage: %s \n", application, err)
-			}
-			if err == nil || errors.Is(err, sql.ErrNoRows) {
-				fmt.Printf("All sensetive data regarding to application %s was successfully removed from gophkeeper", application)
-			} else {
+			if err != nil && CheckErrorType(err) {
+				errLocal := c.ClientStorage.DeletePassword(application, User)
+				if errLocal != nil {
+					c.ClientLogger.Errorf("Error while deleting password for application %s from local storage: %s \n", application, err)
+				}
 				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Delete, nil, opTime)
 				if err != nil {
 					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 				}
 				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				return
+			} else if err != nil && strings.Contains(err.Error(), "no rows with application") {
+				fmt.Printf("Gophkeeper does not contain application %s\n", application)
+				return
+			} else if err != nil {
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				return
 			}
+
+			errLocal := c.ClientStorage.DeletePassword(application, User)
+			if errLocal != nil {
+				c.ClientLogger.Errorf("Error while deleting password for application %s from local storage: %s \n", application, err)
+			}
+
+			fmt.Printf("All sensetive data regarding to application %s was successfully removed from gophkeeper", application)
 		},
 	}
 
@@ -398,6 +429,10 @@ func (c *Client) UpdatePassword() *cobra.Command {
 			})
 			if err != nil {
 				c.ClientLogger.Errorf("Error while updating password for application %s: %s\n", application, err)
+				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
+					fmt.Println("Please login to Gophkeeper!")
+					return
+				}
 			}
 
 			for err != nil && retryCount != 3 {
@@ -413,13 +448,12 @@ func (c *Client) UpdatePassword() *cobra.Command {
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
 			}
-			uploadErr := c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, User, initVector)
-			if uploadErr != nil {
-				c.ClientLogger.Errorf("Error while updating  password sensetive data for application %s: %s\n", application, err)
-			}
-			if err == nil {
-				fmt.Printf("Your password for application %s has been successfully updated!\n", application)
-			} else {
+
+			if err != nil && CheckErrorType(err) {
+				uploadErr := c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, User, initVector)
+				if uploadErr != nil {
+					c.ClientLogger.Errorf("Error while updating  password sensetive data for application %s: %s\n", application, err)
+				}
 				fields := make([]string, 0)
 				if newPassword != "" {
 					fields = append(fields, "password")
@@ -432,7 +466,19 @@ func (c *Client) UpdatePassword() *cobra.Command {
 					c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of application %s: %s\n", application, err)
 				}
 				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				return
+			} else if err != nil && strings.Contains(err.Error(), "no rows with application") {
+				fmt.Printf("Application %s does not exist in Gophkeeper\n", application)
+				return
+			} else if err != nil {
+				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				return
 			}
+			uploadErr := c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, User, initVector)
+			if uploadErr != nil {
+				c.ClientLogger.Errorf("Error while updating  password sensetive data for application %s: %s\n", application, err)
+			}
+			fmt.Printf("Your password for application %s has been successfully updated!\n", application)
 
 		},
 	}

@@ -20,9 +20,9 @@ type DataStorage interface {
 
 	CheckUserJWT(ctx context.Context, userLogin string) (string, error)
 
-	UploadPassword(ctx context.Context, passwrod, app, md string, updatedAt time.Time, initVector []byte) error
+	UploadPassword(ctx context.Context, password, app, md string, initVector []byte, updatedAt time.Time) error
 
-	UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, updatedAt time.Time, initVector []byte) error
+	UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte, updatedAt time.Time) error
 
 	UploadFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) (bool, error)
 
@@ -31,6 +31,12 @@ type DataStorage interface {
 	DeleteBankCard(ctx context.Context, cardNumber string) error
 
 	DeletePassword(ctx context.Context, application string) error
+
+	UpdateFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) (bool, error)
+
+	UpdateBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, updatedAt time.Time, initVector []byte) error
+
+	UpdatePassword(ctx context.Context, password, app, md string, updatedAt time.Time, initVector []byte) error
 
 	GetAllPasswords(ctx context.Context, passwordInfo *[]*pb.PasswordMessage) (map[string][]byte, error)
 

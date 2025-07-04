@@ -27,7 +27,7 @@ func (s *GophkeeperServer) UploadBankCard(ctx context.Context, bankCardData *pb.
 		s.Logger.Errorf("Error while parsing uploadTime to time.Time: %s", err)
 		return nil, fmt.Errorf("error while parsing uploadTime to time.Time: %w", err)
 	}
-	err = s.DataStorage.UploadBankCard(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, uploadAt, initVector)
+	err = s.DataStorage.UploadBankCard(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, initVector, uploadAt)
 	if err != nil {
 		s.Logger.Errorf("error while uploading bank card data for user %s for card number %s: %s", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)
 		return nil, fmt.Errorf("error while uploading bank card data for user %s for card number %s: %w", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)
@@ -93,7 +93,7 @@ func (s *GophkeeperServer) UpdateBankCardCreds(ctx context.Context, bankCardData
 		return nil, fmt.Errorf("error while parsing uploadTime to time.Time: %w", err)
 	}
 
-	err = s.DataStorage.UploadBankCard(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, uploadAt, initVector)
+	err = s.DataStorage.UpdateBankCard(ctxDB, bankCardData.CardNumber, cvcCode, bankCardData.Data, bankCardData.Bank, bankCardData.Metadata, uploadAt, initVector)
 	if err != nil {
 		s.Logger.Errorf("error while updating bank card data for user %s for card number %s: %s", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)
 		return nil, fmt.Errorf("error while updating bank card data for user %s for card number %s: %w", ctx.Value(ut.LoginKey), bankCardData.CardNumber, err)

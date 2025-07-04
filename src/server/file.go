@@ -183,16 +183,13 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 	fileName := chunkFile.FileName
 	fileMetadata := chunkFile.MetaData
 
-	if fileMetadata != "" {
-		upload, err = s.DataStorage.UploadFile(ctxDB, fileName, fileMetadata, uploadAt)
-		if err != nil {
-			s.Logger.Errorln("Error while updating file metadata: ", err)
-			return fmt.Errorf("error while updating file %s metadata: %w", fileName, err)
-		}
+	upload, err = s.DataStorage.UpdateFile(ctxDB, fileName, fileMetadata, uploadAt)
+	if err != nil {
+		s.Logger.Errorln("Error while updating file metadata: ", err)
+		return fmt.Errorf("error while updating file %s metadata: %w", fileName, err)
 	}
 
 	tempFileName := fileToSave.Name()
-	s.Logger.Error("UPLOAD: ", upload)
 	if len(chunkFile.Content) != 0 && upload {
 		_, err = fileToSave.Write(chunkFile.Content)
 		if err != nil {
