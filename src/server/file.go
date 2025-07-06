@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -16,12 +17,6 @@ import (
 
 // UploadFile - GRPC handler for upploading new file into file storage for current user.
 func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.FileMessage, emptypb.Empty]) error {
-
-	fileToSave, err := os.CreateTemp("/tmp/", "gophkeeper")
-	if err != nil {
-		s.Logger.Errorln("Error while creating temporary file: %s", err)
-		return fmt.Errorf("error while creating temporary file: %s", err)
-	}
 
 	ctx := inStream.Context()
 	chunkFile, err := inStream.Recv()
@@ -38,29 +33,6 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 
 	fileName := chunkFile.FileName
 	fileMetadata := chunkFile.MetaData
-	fileToSave.Write(chunkFile.Content)
-
-	for {
-		chunkFile, err = inStream.Recv()
-		if err != nil && err == io.EOF {
-			break
-		} else if err != nil {
-			s.Logger.Errorln("Error while recieving file chunk from GRPC stream: ", err)
-			return fmt.Errorf("error while recieving file chunk from GRPC stream: %w", err)
-		}
-
-		_, err = fileToSave.Write(chunkFile.Content)
-		if err != nil {
-			s.Logger.Errorln("Error while writting data to temporary file: ", err)
-			return fmt.Errorf("error while writing data from %s to temporary file: %w", fileName, err)
-		}
-	}
-	tempFileName := fileToSave.Name()
-	err = fileToSave.Close()
-	if err != nil {
-		s.Logger.Errorf("Error while closing temporary file %s: %s\n", tempFileName, err)
-		return fmt.Errorf("error while closing temporary file %s: %w", tempFileName, err)
-	}
 
 	ctxDB, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -70,8 +42,38 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 		s.Logger.Errorln(err)
 		return err
 	}
-
+	
 	if upload {
+		fileToSave, err := os.CreateTemp("/tmp/", "gophkeeper")
+		if err != nil {
+			s.Logger.Errorln("Error while creating temporary file: %s", err)
+			return fmt.Errorf("error while creating temporary file: %s", err)
+		}
+
+		fileToSave.Write(chunkFile.Content)
+
+		for {
+			chunkFile, err = inStream.Recv()
+			if err != nil && err == io.EOF {
+				break
+			} else if err != nil {
+				s.Logger.Errorln("Error while recieving file chunk from GRPC stream: ", err)
+				return fmt.Errorf("error while recieving file chunk from GRPC stream: %w", err)
+			}
+
+			_, err = fileToSave.Write(chunkFile.Content)
+			if err != nil {
+				s.Logger.Errorln("Error while writting data to temporary file: ", err)
+				return fmt.Errorf("error while writing data from %s to temporary file: %w", fileName, err)
+			}
+		}
+		tempFileName := fileToSave.Name()
+		err = fileToSave.Close()
+		if err != nil {
+			s.Logger.Errorf("Error while closing temporary file %s: %s\n", tempFileName, err)
+			return fmt.Errorf("error while closing temporary file %s: %w", tempFileName, err)
+		}
+
 		ctxFileStore, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
@@ -80,12 +82,12 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 			s.Logger.Errorln(err)
 			return err
 		}
-	}
 
-	err = os.Remove(tempFileName)
-	if err != nil {
-		s.Logger.Errorf("Error while removing temporary file %s: %s", tempFileName, err)
-		return fmt.Errorf("error while removing temporary file %s: %w", tempFileName, err)
+		err = os.Remove(tempFileName)
+		if err != nil {
+			s.Logger.Errorf("Error while removing temporary file %s: %s", tempFileName, err)
+			return fmt.Errorf("error while removing temporary file %s: %w", tempFileName, err)
+		}
 	}
 
 	return nil
@@ -123,10 +125,14 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 	ctxStore, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	ctxData, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	fileName := dataMessage.Identificator
 
-	fileMessage := pb.FileMessage{
-		FileName: fileName,
+	fileMessage, err := s.DataStorage.GetFile(ctxData, fileName)
+	if err != nil {
+		return err
 	}
 
 	fileByte, err := s.FileStorage.GetFile(ctxStore, fileName)
@@ -144,7 +150,7 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 		}
 		s.Logger.Infoln("send data: %s", string(buffer))
 		fileMessage.Content = buffer
-		err = fileStream.Send(&fileMessage)
+		err = fileStream.Send(fileMessage)
 		if err != nil {
 			s.Logger.Errorf("Error while sending file %s chunk: %s\n", fileName, err)
 			return err
@@ -190,6 +196,7 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 	}
 
 	tempFileName := fileToSave.Name()
+	defer fileToSave.Close()
 	if len(chunkFile.Content) != 0 && upload {
 		_, err = fileToSave.Write(chunkFile.Content)
 		if err != nil {
@@ -227,19 +234,10 @@ func (s *GophkeeperServer) UpdateFile(inStream grpc.ClientStreamingServer[pb.Fil
 			s.Logger.Errorln(err)
 			return err
 		}
+		return nil
+	} else if len(chunkFile.Content) == 0 && upload {
+		return nil
 	} else {
-		err = fileToSave.Close()
-		if err != nil {
-			s.Logger.Errorf("Error while closing temporary file %s: %s\n", tempFileName, err)
-			return fmt.Errorf("error while closing temporary file %s: %w", tempFileName, err)
-		}
+		return errors.New("no rows for file " + fileName + " has been affected")
 	}
-
-	err = os.Remove(tempFileName)
-	if err != nil {
-		s.Logger.Errorf("Error while removing temporary file %s: %s", tempFileName, err)
-		return fmt.Errorf("error while removing temporary file %s: %w", tempFileName, err)
-	}
-
-	return nil
 }

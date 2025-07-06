@@ -47,4 +47,6 @@ type DataStorage interface {
 	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, []byte, error)
 
 	GetBankCardCredentials(ctx context.Context, cardNumber string) (*pb.BankCardMessage, []byte, error)
+
+	GetFile(ctx context.Context, fileName string) (*pb.FileMessage, error)
 }

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/Tanya1515/gophkeeper.git/src/proto"
+	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
@@ -58,6 +58,10 @@ func (pg *PostgreSQLConnection) UploadFile(ctx context.Context, fileName, metaDa
 func (pg *PostgreSQLConnection) DeleteFile(ctx context.Context, fileName string) (err error) {
 	res, err := pg.dbConn.ExecContext(ctx, "DELETE FROM UserFiles WHERE fileName=$1 AND userID=$2 RETURNING fileName", fileName, ctx.Value(ut.IDKey))
 
+	if err != nil {
+		return fmt.Errorf("error while deleting file %s from PostgreSQL: %s", fileName, err)
+	}
+
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return
@@ -68,6 +72,22 @@ func (pg *PostgreSQLConnection) DeleteFile(ctx context.Context, fileName string)
 	}
 
 	return
+}
+
+// GetFile - function for getting data from PostgreSQL about users' file
+func (pg *PostgreSQLConnection) GetFile(ctx context.Context, fileName string) (*pb.FileMessage, error) {
+
+	var fileInfo pb.FileMessage
+
+	row := pg.dbConn.QueryRowContext(ctx, "SELECT metaData, updatedAt FROM UserFiles WHERE fileName=$1 AND userID=$2", fileName, ctx.Value(ut.IDKey))
+
+	err := row.Scan(&fileInfo.MetaData, &fileInfo.UploadTime)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting metdata and time for file %s: %w", fileName, err)
+	}
+
+	return &fileInfo, nil
+
 }
 
 // UpdateFile - function for updating file info for current user.

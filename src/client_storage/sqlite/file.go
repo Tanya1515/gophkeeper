@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
 	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
@@ -127,7 +129,6 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 // The function is also checks if data is up to date.
 func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile string, exists bool, fileContent []byte, err error) {
 	var lastUpdated, uploadTime string
-	var accessCount int
 	var pathToFile sql.NullString
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -146,9 +147,9 @@ func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile stri
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	row := db.QueryRowContext(ctxCache, "SELECT filePath, content, metadata, lastUpdated, accessCount, uploadTime FROM Files WHERE fileName=$1 AND userName=$2", fileName, userName)
+	row := db.QueryRowContext(ctxCache, "SELECT filePath, content, metadata, lastUpdated, uploadTime FROM Files WHERE fileName=$1 AND userName=$2", fileName, userName)
 
-	err = row.Scan(&pathToFile, &fileContent, &metadata, &lastUpdated, &accessCount, &uploadTime)
+	err = row.Scan(&pathToFile, &fileContent, &metadata, &lastUpdated, &uploadTime)
 	if err != nil {
 		return "", "", false, nil, fmt.Errorf("error while scanning all data about file %s: %w", fileName, err)
 	}
@@ -156,29 +157,27 @@ func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile stri
 	exists = true
 	pathFile = pathToFile.String
 
-	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
-
 	return
 }
 
 // UploadFile - function for updating existing file or insert new one to application cache.
-func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, userName string) error {
+func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, lastUpdated, userName string) error {
 
 	content := make([]byte, 0)
+
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
 		return fmt.Errorf("error while openning connection to update file %s or add new one: %w", fileName, err)
 	}
 
 	defer db.Close()
-
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
 		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
 		return fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
-	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctxCache, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if filePath != "" {
@@ -186,7 +185,6 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, userNa
 		if err != nil {
 			return fmt.Errorf("error while openning file %s: %w", filePath, err)
 		}
-
 		fileInfo, err := processedFile.Stat()
 		if err != nil {
 			return fmt.Errorf("error while getting info about file %s: %w", filePath, err)
@@ -196,15 +194,19 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, userNa
 			content := make([]byte, fileInfo.Size())
 
 			_, err = processedFile.Read(content)
-			if err != nil {
+			if err != nil && err != io.EOF {
 				return fmt.Errorf("error while reading data from file %s: %w", filePath, err)
 			}
 
 		} else {
-			err = os.Rename(filePath, "/tmp/"+fileName)
-			if err != nil {
-				return fmt.Errorf("error while moving file %s to /tmp/%s: %w", filePath, fileName, err)
+
+			if !strings.Contains(filePath, "/tmp/") {
+				err = os.Rename(filePath, "/tmp/"+fileName)
+				if err != nil {
+					return fmt.Errorf("error while moving file %s to /tmp/%s: %w", filePath, fileName, err)
+				}
 			}
+
 		}
 	}
 
@@ -214,8 +216,8 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, userNa
 		"filePath = CASE WHEN excluded.filePath <> '' THEN excluded.filePath ELSE filePath END, "+
 		"content = CASE WHEN excluded.content <> '' THEN excluded.content ELSE content END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
-		"lastUpdated = excluded.lastUpdated,"+
-		"accessCount = Files.accessCount + 1", fileName, filePath, content, metadata, uploadTime, uploadTime, userName)
+		"lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Files.lastUpdated END," + 
+		"uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Files.uploadTime END ", fileName, filePath, content, metadata, lastUpdated, uploadTime, userName)
 
 	if err != nil {
 		return fmt.Errorf("error while updating existing file %s or inserting new one with content: %w", filePath, err)
@@ -269,15 +271,14 @@ func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err 
 	return
 }
 
-func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.OperationInfo, error) {
+func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) ([]cs.OperationInfo, error) {
 	var field sql.NullString
-	var operationID string
-	var operationFilesInfo cs.OperationInfo
-	operationsFilesInfo := make(map[string]cs.OperationInfo, 20)
+	var operationFilesInfo, operationCardsInfoTemp cs.OperationInfo
+	operationsFilesInfo := make([]cs.OperationInfo, 0)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return operationsFilesInfo, fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
+		return nil, fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
 	}
 
 	defer db.Close()
@@ -285,7 +286,7 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
 		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
-		return operationsFilesInfo, fmt.Errorf("error while adding foreign_key extension: %w", err)
+		return nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -295,27 +296,35 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) (map[string]cs.
 		"FileOperations.operationID = OperationsFileDiff.operationID WHERE FileOperations.userName=$1 AND FileOperations.fileName=$2 ORDER BY FileOperations.operationUploadTime", user, fileName)
 
 	if err != nil {
-		return operationsFilesInfo, fmt.Errorf("error while getting operations info from SQLite: %w", err)
+		return nil, fmt.Errorf("error while getting operations info from SQLite: %w", err)
 	}
 
 	for rows.Next() {
-		err = rows.Scan(&operationID, &operationFilesInfo.OperationName, &operationFilesInfo.OperationTime, &field)
+		err = rows.Scan(&operationCardsInfoTemp.OperationID, &operationCardsInfoTemp.OperationName, &operationCardsInfoTemp.OperationTime, &field)
 		if err != nil {
-			return operationsFilesInfo, fmt.Errorf("error while getting info about operations of file %s: %w", fileName, err)
+			return nil, fmt.Errorf("error while getting info about operations of file %s: %w", fileName, err)
 		}
-		opInfo, exists := operationsFilesInfo[operationID]
-		if !exists {
-			operationsFilesInfo[operationID] = operationFilesInfo
+
+		if operationFilesInfo.OperationID == operationCardsInfoTemp.OperationID {
+			if field.Valid {
+				operationFilesInfo.Fields = append(operationFilesInfo.Fields, field.String)
+			}
+		} else {
+			operationsFilesInfo = append(operationsFilesInfo, operationFilesInfo)
+			operationFilesInfo = operationCardsInfoTemp
+			if field.Valid {
+				operationFilesInfo.Fields = append(operationFilesInfo.Fields, field.String)
+			}
 		}
-		if field.Valid {
-			opInfo.Fields = append(opInfo.Fields, field.String)
-		}
+
 	}
 
 	err = rows.Err()
 	if err != nil {
-		return operationsFilesInfo, fmt.Errorf("error while scanning info about operations of file %s: %w", fileName, err)
+		return nil, fmt.Errorf("error while scanning info about operations of file %s: %w", fileName, err)
 	}
+
+	operationsFilesInfo = append(operationsFilesInfo, operationFilesInfo)
 
 	return operationsFilesInfo, nil
 }

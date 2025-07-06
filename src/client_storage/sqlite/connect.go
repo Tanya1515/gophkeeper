@@ -41,7 +41,6 @@ func (cache *SQLite) Connect() error {
 		"userName TEXT, " +
 		"password TEXT, " +
 		"metadata TEXT, " +
-		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
 		"initVector BLOB, " +
@@ -60,7 +59,6 @@ func (cache *SQLite) Connect() error {
 		"date TEXT, " +
 		"bank TEXT, " +
 		"metadata TEXT, " +
-		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT," +
 		"initVector BLOB, " +
@@ -78,7 +76,6 @@ func (cache *SQLite) Connect() error {
 		"filePath TEXT, " +
 		"content BLOB, " +
 		"metadata TEXT, " +
-		"accessCount INTEGER DEFAULT 0, " +
 		"lastUpdated TEXT, " +
 		"uploadTime TEXT, " +
 		"PRIMARY KEY (fileName, userName), " +

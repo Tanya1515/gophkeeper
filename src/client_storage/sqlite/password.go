@@ -128,7 +128,6 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 // The function also checks, if the data is up to date.
 func (cache *SQLite) GetPassword(application, userName string) (password, uploadTime, metadata string, initVector []byte, exists bool, err error) {
 	var lastUpdated string
-	var accessCount int
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -146,23 +145,21 @@ func (cache *SQLite) GetPassword(application, userName string) (password, upload
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	row := db.QueryRowContext(ctxCache, "SELECT password, metadata, lastUpdated, initVector, accessCount, uploadTime FROM Passwords WHERE application=$1 AND userName=$2", application, userName)
+	row := db.QueryRowContext(ctxCache, "SELECT password, metadata, lastUpdated, initVector, uploadTime FROM Passwords WHERE application=$1 AND userName=$2", application, userName)
 
-	err = row.Scan(&password, &metadata, &lastUpdated, &initVector, &accessCount, &uploadTime)
+	err = row.Scan(&password, &metadata, &lastUpdated, &initVector, &uploadTime)
 	if err != nil {
 		return "", "", "", nil, false, fmt.Errorf("error while getting data for password of application %s: %w", application, err)
 	}
 
 	exists = true
-	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
-
-	// логика по рашисфровке пароля
+	
 	return
 }
 
 // UploadPassword - function for updating existing password and data about it or
 // inserting new one.
-func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime, userName string, initVector []byte) (err error) {
+func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime, lastUpdated, userName string, initVector []byte) (err error) {
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -187,9 +184,9 @@ func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime,
             password = CASE WHEN excluded.password <> '' THEN excluded.password ELSE Passwords.password END,
             metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE Passwords.metadata END,
 			initVector = CASE WHEN excluded.initVector <> '' THEN excluded.initVector ELSE Passwords.initVector END,
-            lastUpdated = excluded.lastUpdated,
-            accessCount = Passwords.accessCount + 1
-    `, application, password, metadata, uploadTime, uploadTime, userName, initVector)
+            lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Passwords.lastUpdated END,
+			uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Passwords.uploadTime END
+    `, application, password, metadata, lastUpdated, uploadTime, userName, initVector)
 	if err != nil {
 		return fmt.Errorf("error while updating existing application %s or inserting new one: %w", application, err)
 	}
@@ -241,17 +238,16 @@ func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, 
 	return
 }
 
-func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[string]cs.OperationInfo, error) {
+func (cache *SQLite) GetPasswordOperationsInfo(user, application string) ([]cs.OperationInfo, error) {
 
 	var field sql.NullString
-	var operationID string
 
-	var operationPasswordsInfo cs.OperationInfo
-	operationsPasswordsInfo := make(map[string]cs.OperationInfo, 20)
+	var operationPasswordsInfo, operationPasswordsInfoTemp cs.OperationInfo
+	operationsPasswordsInfo := make([]cs.OperationInfo, 20)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return operationsPasswordsInfo, fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
+		return nil, fmt.Errorf("error while openning connection to get operations info with passwords: %w", err)
 	}
 
 	defer db.Close()
@@ -271,16 +267,20 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[st
 		return operationsPasswordsInfo, fmt.Errorf("error while getting all data about password operations: %w", err)
 	}
 	for rows.Next() {
-		err = rows.Scan(&operationID, &operationPasswordsInfo.OperationName, &operationPasswordsInfo.OperationTime, &field)
+		err = rows.Scan(&operationPasswordsInfoTemp.OperationID, &operationPasswordsInfoTemp.OperationName, &operationPasswordsInfoTemp.OperationTime, &field)
 		if err != nil {
 			return operationsPasswordsInfo, fmt.Errorf("error while getting info about operations of application %s: %w", application, err)
 		}
-		opInfo, exists := operationsPasswordsInfo[operationID]
-		if !exists {
-			operationsPasswordsInfo[operationID] = operationPasswordsInfo
-		}
-		if field.Valid {
-			opInfo.Fields = append(opInfo.Fields, field.String)
+		if operationPasswordsInfo.OperationID == operationPasswordsInfoTemp.OperationID {
+			if field.Valid {
+				operationPasswordsInfo.Fields = append(operationPasswordsInfo.Fields, field.String)
+			}
+		} else {
+			operationsPasswordsInfo = append(operationsPasswordsInfo, operationPasswordsInfo)
+			operationPasswordsInfo = operationPasswordsInfoTemp
+			if field.Valid {
+				operationPasswordsInfo.Fields = append(operationPasswordsInfo.Fields, field.String)
+			}
 		}
 
 	}
@@ -289,6 +289,8 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) (map[st
 	if err != nil {
 		return operationsPasswordsInfo, fmt.Errorf("error while scanning password data: %w", err)
 	}
+
+	operationsPasswordsInfo = append(operationsPasswordsInfo, operationPasswordsInfo)
 
 	return operationsPasswordsInfo, nil
 

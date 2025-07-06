@@ -24,7 +24,7 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 		if err != nil {
 			c.ClientLogger.Errorln(err)
 		}
-		for operationID, opInfo := range operationsInfo {
+		for _, opInfo := range operationsInfo {
 			fileToExecute := &pb.FileMessage{FileName: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "content" {
@@ -40,9 +40,9 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 				c.ClientLogger.Infof("Execute %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
 				err = c.ExecuteFilesOperations(opInfo.OperationName, d.JWTtoken, filePath, fileToExecute)
 				if err != nil {
-					operationResult = OperationResult{operationID: operationID, result: err.Error()}
+					operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
 				} else {
-					operationResult = OperationResult{operationID: operationID, result: "Success"}
+					operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
 				}
 				resultFile <- operationResult
 				c.ClientLogger.Infof("Successfuly completed %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
@@ -75,7 +75,7 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 		if err != nil {
 			c.ClientLogger.Errorln(err)
 		}
-		for operationID, opInfo := range operationsInfo {
+		for _, opInfo := range operationsInfo {
 			bankCardToExecute := &pb.BankCardMessage{CardNumber: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "cvc" {
@@ -95,9 +95,9 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 				c.ClientLogger.Infof("Execute %s operation with bank card %s", opInfo.OperationName, d.dataIdentificator)
 				err = c.ExecuteCardsOperations(opInfo.OperationName, d.JWTtoken, bankCardToExecute)
 				if err != nil {
-					operationResult = OperationResult{operationID: operationID, result: err.Error()}
+					operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
 				} else {
-					operationResult = OperationResult{operationID: operationID, result: "Success"}
+					operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
 				}
 				resultCard <- operationResult
 				c.ClientLogger.Infof("Successfuly completed %s operation with bank card %s\n", opInfo.OperationName, d.dataIdentificator)
@@ -134,7 +134,7 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 		if err != nil {
 			c.ClientLogger.Errorln(err)
 		}
-		for operationID, opInfo := range operationsInfo {
+		for _, opInfo := range operationsInfo {
 			passwordToExecute := &pb.PasswordMessage{Application: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
 				if value == "password" {
@@ -150,9 +150,9 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 				c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
 				err = c.ExecutePasswordsOperation(opInfo.OperationName, d.JWTtoken, passwordToExecute)
 				if err != nil {
-					operationResult = OperationResult{operationID: operationID, result: err.Error()}
+					operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
 				} else {
-					operationResult = OperationResult{operationID: operationID, result: "Success"}
+					operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
 				}
 				resultPassword <- operationResult
 				c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)

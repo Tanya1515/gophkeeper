@@ -6,6 +6,7 @@ type Operation string
 // OperationInfo - struct, that containts necessary information
 // for executing operation again.
 type OperationInfo struct {
+	OperationID   string    // Operation identificator
 	OperationName Operation // Operation name
 	OperationTime string    // Time, at which the operation was performed
 	Fields        []string  // Data, that are going to be changed after performing the request

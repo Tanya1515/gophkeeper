@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
@@ -17,8 +18,9 @@ import (
 )
 
 // SyncAllFiles - function for getting all files from server and saving them locally.
-func (c *Client) SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient) {
-	var fileName string
+func (c *Client) SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb.GophkeeperClient, user string) {
+	var fileName, fileMetadata, uploadTime string
+	var wgFileSave *sync.WaitGroup
 	var fileToSave *os.File
 	md := metadata.New(map[string]string{"Authorization": JWTToken})
 
@@ -42,6 +44,8 @@ func (c *Client) SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb
 			c.ClientLogger.Errorf("Error while creating file with path %s: %s\n", "/tmp/"+fileName, err)
 			return
 		}
+		fileMetadata = file.MetaData
+		uploadTime = file.UploadTime
 	}
 
 	_, err = fileToSave.Write(file.Content)
@@ -61,8 +65,23 @@ func (c *Client) SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb
 		}
 
 		if fileName != file.FileName {
-			files[fileName] = "/tmp/" + fileName
+			err = fileToSave.Close()
+			if err != nil {
+				c.ClientLogger.Errorf("Error while closing file %s\n", "/tmp/"+fileName)
+			}
+			wgFileSave.Add(1)
+			go func() {
+				defer wgFileSave.Done()
+				syncTime := (time.Now()).UTC()
+				opTime := syncTime.Format(time.RFC3339)
+
+				err := c.ClientStorage.UploadFile(fileName, "/tmp/"+fileName, fileMetadata, uploadTime, opTime, User)
+				if err != nil {
+					c.ClientLogger.Errorln(err)
+				}
+			}()
 			fileName = file.FileName
+			fileMetadata = file.MetaData
 			fileToSave, err = os.Create("/tmp/" + fileName)
 			if err != nil {
 				c.ClientLogger.Errorf("Error while creating file with path %s: %s\n", "/tmp/"+fileName, err)
@@ -88,13 +107,13 @@ func (c *Client) GetUserData() *cobra.Command {
 		Short: "Get description of all User sensetive data",
 		Run: func(cmd *cobra.Command, args []string) {
 			var wg sync.WaitGroup
-			files := make(map[string]string, 100)
 			JWTToken, err := ut.GetJWT(User)
 			if err != nil && strings.Contains(err.Error(), "please login or register") {
 				c.ClientLogger.Error(err.Error())
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
 				return
 			}
 
@@ -115,7 +134,7 @@ func (c *Client) GetUserData() *cobra.Command {
 
 			wg.Add(1)
 
-			go c.SyncAllFiles(&wg, JWTToken, clientGRPC, files)
+			go c.SyncAllFiles(&wg, JWTToken, clientGRPC, User)
 
 			sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
 			if err != nil {
@@ -129,7 +148,9 @@ func (c *Client) GetUserData() *cobra.Command {
 					c.ClientLogger.Errorln("Error while encrypt sensetive data for application %s: %s", passwordInfo.Application, err)
 					continue
 				}
-				err = c.ClientStorage.UploadPassword(passwordInfo.Application, encryptedPassword, passwordInfo.MetaData, passwordInfo.UploadTime, User, initVector)
+				syncTime := (time.Now()).UTC()
+				opTime := syncTime.Format(time.RFC3339)
+				err = c.ClientStorage.UploadPassword(passwordInfo.Application, encryptedPassword, passwordInfo.MetaData, passwordInfo.UploadTime, opTime, User, initVector)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while uploading sensetive data for application: %s: %s", passwordInfo.Application, err)
 					continue
@@ -143,7 +164,9 @@ func (c *Client) GetUserData() *cobra.Command {
 					c.ClientLogger.Errorf("Error while encrypt sensetive data for bank card %s: %s\n", bankCardCreds.CardNumber, err)
 					continue
 				}
-				err = c.ClientStorage.UploadBankCard(bankCardCreds.CardNumber, encryptedCvc, bankCardCreds.Data, bankCardCreds.Bank, bankCardCreds.Metadata, bankCardCreds.UploadTime, User, initVector)
+				syncTime := (time.Now()).UTC()
+				opTime := syncTime.Format(time.RFC3339)
+				err = c.ClientStorage.UploadBankCard(bankCardCreds.CardNumber, encryptedCvc, bankCardCreds.Data, bankCardCreds.Bank, bankCardCreds.Metadata, bankCardCreds.UploadTime, opTime, User, initVector)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while uploading credentials for bank card %s: %s\n", bankCardCreds.CardNumber, err)
 					continue

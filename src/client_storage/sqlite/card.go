@@ -22,7 +22,6 @@ func (cache *SQLite) DeleteBankCard(cardNumber, userName string) error {
 
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
-		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
 		return fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
@@ -55,7 +54,6 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
-		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
 		return fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
@@ -128,7 +126,6 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 // The function also checks if data is up to date.
 func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date string, bankName string, metadatabankCard string, initVector []byte, exists bool, err error) {
 	var lastUpdated, uploadTime string
-	var accessCount int
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -140,24 +137,20 @@ func (cache *SQLite) GetBankCard(cardNumber, userName string) (cvc string, date 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	row := db.QueryRowContext(ctxCache, "SELECT cvcCode, date, bank, metadata, initVector, lastUpdated, accessCount, uploadTime FROM Cards WHERE cardNumber=$1 AND userName=$2", cardNumber, userName)
+	row := db.QueryRowContext(ctxCache, "SELECT cvcCode, date, bank, metadata, initVector, lastUpdated, uploadTime FROM Cards WHERE cardNumber=$1 AND userName=$2", cardNumber, userName)
 
-	err = row.Scan(&cvc, &date, &bankName, &metadatabankCard, &initVector, &lastUpdated, &accessCount, &uploadTime)
+	err = row.Scan(&cvc, &date, &bankName, &metadatabankCard, &initVector, &lastUpdated, &uploadTime)
 	if err != nil {
 		return "", "", "", "", nil, false, fmt.Errorf("error while getting data for bank Card %s: %w", cardNumber, err)
 	}
 
 	exists = true
 
-	// проверка актуальности данных (lastUpdated + accessCount), увеличиваем accessCount
-
-	// логика по рашисфровке cvc
-
 	return
 }
 
 // UploadBankCard - function, that update existing bank card or insert new one.
-func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, userName string, initVector []byte) (err error) {
+func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, userName, lastUpdated string, initVector []byte) (err error) {
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
 		return fmt.Errorf("error while openning connection to update data about bank card %s or add new one: %w", cardNumber, err)
@@ -175,9 +168,10 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 		"date = CASE WHEN excluded.date <> '' THEN excluded.date ELSE date END, "+
 		"bank = CASE WHEN excluded.bank <> '' THEN excluded.bank ELSE bank END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
-		"lastUpdated = excluded.lastUpdated, "+
-		"initVector = CASE WHEN excluded.initVector <> '' THEN excluded.initVector ELSE Cards.initVector END, "+
-		"accessCount = Cards.accessCount + 1", cardNumber, cvc, date, bankName, metadatabankCard, initVector, uploadTime, uploadTime, userName)
+		"lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Card.lastUpdated END, "+
+		"uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Card.uploadTime END, " +
+		"initVector = CASE WHEN excluded.initVector <> '' THEN excluded.initVector ELSE Cards.initVector END, " + 
+		" ", cardNumber, cvc, date, bankName, metadatabankCard, initVector, lastUpdated, uploadTime, userName)
 
 	if err != nil {
 		return fmt.Errorf("error while updating existing bank card %s or inserting new one: %w", cardNumber, err)
@@ -200,7 +194,6 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
-		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
 		return nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
@@ -231,23 +224,22 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 	return
 }
 
-func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]cs.OperationInfo, error) {
-	var operationID string
+func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) ([]cs.OperationInfo, error) {
 	var field sql.NullString
-	var operationCardsInfo cs.OperationInfo
-	operationsCardsInfo := make(map[string]cs.OperationInfo, 20)
+	var operationCardsInfoTemp, operationCardsInfo cs.OperationInfo
+
+	operationsCardsInfo := make([]cs.OperationInfo, 0)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
-		return operationsCardsInfo, fmt.Errorf("error while openning connection to get operations info with bank card %s: %w", cardNumber, err)
+		return nil, fmt.Errorf("error while openning connection to get operations info with bank card %s: %w", cardNumber, err)
 	}
 
 	defer db.Close()
 
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
-		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
-		return operationsCardsInfo, fmt.Errorf("error while adding foreign_key extension: %w", err)
+		return nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -260,26 +252,29 @@ func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) (map[string]
 		return operationsCardsInfo, fmt.Errorf("error while reading data about bank card opearions: %w", err)
 	}
 	for rows.Next() {
-		err = rows.Scan(&operationID, &operationCardsInfo.OperationName, &operationCardsInfo.OperationTime, &field)
+		err = rows.Scan(&operationCardsInfoTemp.OperationID, &operationCardsInfoTemp.OperationName, &operationCardsInfoTemp.OperationTime, &field)
 		if err != nil {
 			return operationsCardsInfo, fmt.Errorf("error while getting info about operations of application %s: %w", cardNumber, err)
 		}
-		opInfo, exists := operationsCardsInfo[operationID]
-		fmt.Println(operationID)
-		fmt.Println(operationCardsInfo)
-		if !exists {
-			operationsCardsInfo[operationID] = operationCardsInfo
+		if operationCardsInfo.OperationID == operationCardsInfoTemp.OperationID {
+			if field.Valid {
+				operationCardsInfo.Fields = append(operationCardsInfo.Fields, field.String)
+			}
+		} else {
+			operationsCardsInfo = append(operationsCardsInfo, operationCardsInfo)
+			operationCardsInfo = operationCardsInfoTemp
+			if field.Valid {
+				operationCardsInfo.Fields = append(operationCardsInfo.Fields, field.String)
+			}
 		}
-		if field.Valid {
-			opInfo.Fields = append(opInfo.Fields, field.String)
-		}
-
 	}
 
 	err = rows.Err()
 	if err != nil {
 		return operationsCardsInfo, fmt.Errorf("error while scanning operations info about bank card %s: %w", cardNumber, err)
 	}
+
+	operationsCardsInfo = append(operationsCardsInfo, operationCardsInfo)
 
 	return operationsCardsInfo, nil
 }

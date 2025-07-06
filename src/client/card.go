@@ -97,6 +97,8 @@ func (c *Client) SendBankCard() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
+				return
 			}
 
 			fmt.Print("Please enter card number: ")
@@ -198,15 +200,22 @@ func (c *Client) SendBankCard() *cobra.Command {
 			}
 
 			if err == nil {
-				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, initVector)
+				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, opTime, User, initVector)
 				if errUpload != nil {
 					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
 				}
 				fmt.Println("Bank card credentials successfully have been uploaded!")
 				c.SendCacheData()
 				return
+			} else if err != nil && strings.Contains(err.Error(), "no rows with bank card") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while inserting sensetive data for bank card %s: %s", cardNumber, err)
+				}
+				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
+				return
 			} else if CheckErrorType(err) {
-				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, initVector)
+				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, "", User, initVector)
 				if errUpload != nil {
 					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
 				}
@@ -214,8 +223,9 @@ func (c *Client) SendBankCard() *cobra.Command {
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving info about bank card operation: %s\n", err)
 				}
-
+				return
 			}
+
 			fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 		},
 	}
@@ -239,6 +249,8 @@ func (c *Client) GetBankCard() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
+				return
 			}
 
 			fmt.Print("Please enter card number: ")
@@ -271,6 +283,12 @@ func (c *Client) GetBankCard() *cobra.Command {
 				if err != nil {
 					c.ClientLogger.Errorf("Error while getting bank card %s credentials from local storage for user %s: %w", cardNumber, User, err)
 				}
+
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while getting sensetive data for bank card %s: %s", cardNumber, err)
+				}
+
 				certPath, envExists := os.LookupEnv("CERT_PATH")
 				if !(envExists) {
 					certPath = "../../test_certs/"
@@ -316,6 +334,16 @@ func (c *Client) GetBankCard() *cobra.Command {
 					fmt.Printf("Card date: %s\n", bankCard.Data)
 					fmt.Printf("Card bank: %s\n", bankCard.Bank)
 					fmt.Printf("Additioanl information: %s\n", bankCard.Metadata)
+					uploadTime := (time.Now()).UTC()
+					opTime := uploadTime.Format(time.RFC3339)
+					encryptedCvc, initVector, err := c.EncryptData(bankCard.CvcCode)
+					if err != nil {
+						c.ClientLogger.Errorln("Error while encrypt sensetive data for bank card %s: %s", cardNumber, err)
+					}
+					err = c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, bankCard.Data, bankCard.Bank, bankCard.Metadata, bankCard.UploadTime, opTime, User, initVector)
+					if err != nil {
+						c.ClientLogger.Errorf("Error while uploading bank card %s credentials: %s", cardNumber, err)
+					}
 				} else if strings.Contains(strings.Split(err.Error(), "desc")[1], "no rows in result") {
 					fmt.Printf("Sensetive data for bank card %s do not exist\n", cardNumber)
 				} else {
@@ -346,6 +374,8 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
+				return
 			}
 
 			fmt.Print("Please enter card number, that is going to be deleted: ")
@@ -412,7 +442,6 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 				if err != nil {
 					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 				}
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 			} else if err != nil && strings.Contains(err.Error(), "no rows with bank card") {
 				fmt.Printf("Gophkeeper does not contain bank card %s\n", cardNumber)
 				return
@@ -425,7 +454,10 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			if errLocal != nil {
 				c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
 			}
-
+			errLocal = c.ClientStorage.DeleteBankCard(cardNumber, User)
+			if errLocal != nil {
+				c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
+			}
 			fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
 
 		},
@@ -456,6 +488,8 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
+				return
 			}
 
 			fmt.Print("Please enter card number you would like to change: ")
@@ -575,7 +609,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 			}
 
 			if err != nil && CheckErrorType(err) {
-				uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
+				uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, "", User, initVector)
 				if uploadErr != nil {
 					c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
 				}
@@ -597,17 +631,20 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
 				}
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				return
-			} else if err != nil && strings.Contains(err.Error(), "no rows with application") {
-				fmt.Printf("Gophkeeper does not contain bank card %s\n", cardNumber)
+			} else if err != nil && strings.Contains(err.Error(), "no rows with bank card") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while  updating cache miss while updating sensetive data for bank card %s: %s", cardNumber, err)
+				}
+				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if err != nil {
 				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				return
 			}
 
-			uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, initVector)
+			uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, opTime, User, initVector)
 			if uploadErr != nil {
 				c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
 			}
@@ -642,13 +679,6 @@ func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT string, 
 		_, err = clientGRPC.UploadBankCard(ctx, bankCard)
 		if err != nil {
 			return fmt.Errorf("error while uploading bank card: %w", err)
-		}
-	case cs.Get:
-		bankCard, err = clientGRPC.GetBankCardCredentials(ctx, &pb.SensetiveDataMessage{
-			Identificator: bankCard.CardNumber,
-		})
-		if err != nil {
-			return fmt.Errorf("error while getting bank card credentials: %w", err)
 		}
 	case cs.Update:
 		_, err = clientGRPC.UpdateBankCardCreds(ctx, bankCard)

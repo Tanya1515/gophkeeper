@@ -31,19 +31,30 @@ func (pg *PostgreSQLConnection) UploadBankCard(ctx context.Context, cardNumber, 
 		return fmt.Errorf("error while sensetive data for bank card %s: %w", cardNumber, err)
 	}
 
-	_, err = tx.ExecContext(ctx, "INSERT INTO BankCards (userID, cardNumber, cvcCode, date, bank, metaData, initVector, updatedAt) VALUES ($1,$2,$3,TO_DATE($4, 'MM/YY'),$5,$6,$7,$8) "+
+	res, err := tx.ExecContext(ctx, "INSERT INTO BankCards (userID, cardNumber, cvcCode, date, bank, metaData, initVector, updatedAt) VALUES ($1,$2,$3,TO_DATE($4, 'MM/YY'),$5,$6,$7,$8) "+
 		" ON CONFLICT (cardNumber, userID) DO "+
 		"UPDATE SET cvcCode= $3, "+
-		"date=CASE $4, "+
+		"date= TO_DATE($4, 'MM/YY'), "+
 		"bank=$5, "+
 		"metaData=$6, "+
 		"initVector =$7::bytea, "+
 		"updatedAt = $8 "+
-		"WHERE BankCards.updatedAt <= excluded.updatedAt", ctx.Value(ut.IDKey), cardNumber, cvc, date, bank, md, initVector, updatedAt)
+		"WHERE BankCards.updatedAt <= excluded.updatedAt RETURNING cardNumber", ctx.Value(ut.IDKey), cardNumber, cvc, date, bank, md, initVector, updatedAt)
 
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error while updating/inserting bank card credentials for card number %s: %w", cardNumber, err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return errors.New("no rows with bank card " + cardNumber + " has been affected.")
+	}
+
+	if rowsAffected == 0 {
+		tx.Rollback()
+		return errors.New("no rows with bank card " + cardNumber + " has been affected.")
 	}
 
 	err = tx.Commit()
@@ -80,9 +91,9 @@ func (pg *PostgreSQLConnection) GetBankCardCredentials(ctx context.Context, card
 	var err error
 	var cardCreds pb.BankCardMessage
 	var initVector []byte
-	row := pg.dbConn.QueryRowContext(ctx, "SELECT cvcCode, date, bank, metadata, initVector FROM BankCards WHERE cardNumber=$1 AND userID=$2", cardNumber, ctx.Value(ut.IDKey))
+	row := pg.dbConn.QueryRowContext(ctx, "SELECT cvcCode, date, bank, metadata, initVector, updatedAt FROM BankCards WHERE cardNumber=$1 AND userID=$2", cardNumber, ctx.Value(ut.IDKey))
 
-	err = row.Scan(&cardCreds.CvcCode, &date, &cardCreds.Bank, &cardCreds.Metadata, &initVector)
+	err = row.Scan(&cardCreds.CvcCode, &date, &cardCreds.Bank, &cardCreds.Metadata, &initVector, &cardCreds.UploadTime)
 	if err != nil {
 		return &cardCreds, initVector, err
 	}
@@ -118,13 +129,24 @@ func (pg *PostgreSQLConnection) UpdateBankCard(ctx context.Context, cardNumber, 
 		return fmt.Errorf("error while sensetive data for bank card %s: %w", cardNumber, err)
 	}
 
-	_, err = tx.ExecContext(ctx, "UPDATE BankCards SET cvcCode=CASE WHEN $3 <> '' THEN $3 ELSE BankCards.cvcCode END, "+
+	res, err := tx.ExecContext(ctx, "UPDATE BankCards SET cvcCode=CASE WHEN $3 <> '' THEN $3 ELSE BankCards.cvcCode END, "+
 		"date=CASE WHEN $4 <> '' THEN TO_DATE($4, 'MM/YY') ELSE BankCards.date END, "+
 		"bank=CASE WHEN $5 <> '' THEN $5 ELSE BankCards.bank END, "+
 		"metaData=CASE WHEN $6 <> '' THEN $6 ELSE BankCards.metaData END, "+
 		"initVector = CASE WHEN $7::bytea IS NOT NULL THEN $7::bytea ELSE BankCards.initVector END, "+
 		"updatedAt = $8 "+
-		"WHERE BankCards.updatedAt <= $8 AND cardNumber=$2 AND userID=$1", ctx.Value(ut.IDKey), cardNumber, cvc, date, bank, md, initVector, updatedAt)
+		"WHERE BankCards.updatedAt <= $8 AND cardNumber=$2 AND userID=$1 RETURNING cardNumber", ctx.Value(ut.IDKey), cardNumber, cvc, date, bank, md, initVector, updatedAt)
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return errors.New("no rows with bank card " + cardNumber + " has been affected.")
+	}
+
+	if rowsAffected == 0 {
+		tx.Rollback()
+		return errors.New("no rows with bank card " + cardNumber + " has been affected.")
+	}
 
 	if err != nil {
 		tx.Rollback()

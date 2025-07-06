@@ -35,6 +35,7 @@ func (c *Client) SendFile() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
 				return
 			}
 
@@ -54,7 +55,7 @@ func (c *Client) SendFile() *cobra.Command {
 			file, err := os.Open(filePath)
 			if err != nil {
 				c.ClientLogger.Errorf("Failed to open file: %v\n", err)
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+				fmt.Println("Internal server error, please contact Gophkeeper administrator, and please check ypur file path: ", filePath)
 				return
 			}
 			defer file.Close()
@@ -75,14 +76,10 @@ func (c *Client) SendFile() *cobra.Command {
 			md := metadata.New(map[string]string{"Authorization": JWTToken})
 
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
-			// не работает
+
 			stream, err := clientGRPC.UploadFile(ctx)
 			if err != nil {
 				c.ClientLogger.Errorf("error while openning GRPC stream to send file: %s\n", err)
-				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
-					fmt.Println("Please login to Gophkeeper!")
-					return
-				}
 			}
 			uploadTime := (time.Now()).UTC()
 			opTime := uploadTime.Format(time.RFC3339)
@@ -94,9 +91,6 @@ func (c *Client) SendFile() *cobra.Command {
 				}
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
-			}
-			if err == nil {
-				defer stream.CloseAndRecv()
 			}
 
 			const chunkSize = 64 * 1024
@@ -132,24 +126,39 @@ func (c *Client) SendFile() *cobra.Command {
 					time.Sleep(time.Duration(retryCount))
 				}
 			}
-
 			if err == nil {
-				err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Create, nil, opTime, filePath)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while saving info about create operation for file %s: %s\n", fileName, err)
+				_, err = stream.CloseAndRecv()
+			}
+
+			if err == nil || err == io.EOF {
+				saveErr := c.ClientStorage.UploadFile(fileName, filePath, metadataFile, opTime, opTime, User)
+				if saveErr != nil {
+					c.ClientLogger.Errorf("Error while saving file %s to local client storage: %s\n", fileName, err)
 				}
 				fmt.Printf("File with name %s was successfully sent.", fileName)
+				return
+			} else if strings.Contains(err.Error(), "error while processing JWT token: ") {
+				fmt.Println("Please login to Gophkeeper!")
+				return
+			} else if strings.Contains(err.Error(), "no rows with file") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while inserting file %s: %s", fileName, err)
+				}
+				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if CheckErrorType(err) {
 				err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Create, nil, opTime, filePath)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving info about create operation for file %s: %s\n", fileName, err)
 				}
-				saveErr := c.ClientStorage.UploadFile(fileName, filePath, metadataFile, opTime, User)
+				saveErr := c.ClientStorage.UploadFile(fileName, filePath, metadataFile, opTime, "", User)
 				if saveErr != nil {
 					c.ClientLogger.Errorf("Error while saving file %s to local client storage: %s\n", fileName, err)
 				}
+				return
 			}
+
 			fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 		},
 	}
@@ -166,6 +175,7 @@ func (c *Client) GetFile() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			var fileName string
 			var filePath string
+			var uploadTime string
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -175,6 +185,8 @@ func (c *Client) GetFile() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
+				return
 			}
 
 			for filePath == "" {
@@ -221,6 +233,10 @@ func (c *Client) GetFile() *cobra.Command {
 					if err != nil {
 						c.ClientLogger.Errorf("Error while getting file %s from local storage for user %s: %w", fileName, User, err)
 					}
+					err = c.ClientStorage.UpdateCacheMiss(User, 1)
+					if err != nil {
+						c.ClientLogger.Errorf("Error while updating cache miss while getting file %s: %s", fileName, err)
+					}
 					_, err = fileToSave.Write(fileContent)
 					if err != nil {
 						c.ClientLogger.Errorf("Error while writting content of file %s to path %s: %s\n", fileName, filePath, err)
@@ -251,10 +267,6 @@ func (c *Client) GetFile() *cobra.Command {
 				})
 				if err != nil {
 					c.ClientLogger.Errorf("Error while getting file %s: %s\n", fileName, err)
-					if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
-						fmt.Println("Please login to Gophkeeper!")
-						return
-					}
 				}
 				for err != nil && retryCount != 3 {
 					fileGetter, err = clientGRPC.GetFile(ctx, &pb.SensetiveDataMessage{
@@ -281,6 +293,12 @@ func (c *Client) GetFile() *cobra.Command {
 					} else if err == io.EOF {
 						break
 					}
+					if metadataFile == "" {
+						metadataFile = chunkFile.MetaData
+					}
+					if uploadTime == "" {
+						uploadTime = chunkFile.UploadTime
+					}
 
 					_, err = fileToSave.Write(chunkFile.Content)
 					if err != nil {
@@ -291,11 +309,22 @@ func (c *Client) GetFile() *cobra.Command {
 				}
 
 				defer fileToSave.Close()
-				if err != nil {
+
+				if strings.Contains(err.Error(), "error while processing JWT token: ") {
+					fmt.Println("Please login to Gophkeeper!")
+					return
+				} else if err != nil && err != io.EOF {
 					fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 					return
 				}
+				syncTime := (time.Now()).UTC()
+				opTime := syncTime.Format(time.RFC3339)
+				err = c.ClientStorage.UploadFile(fileName, filePath, metadataFile, uploadTime, opTime, User)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while uploading file %s to local user storage: %s", fileName, err)
+				}
 				fmt.Printf("File %s was successfully recieved!\n", fileName)
+				fmt.Println("File metadata is: ", metadataFile)
 				c.ClientLogger.Infof("File %s was successfully recieved!\n", fileName)
 			}
 
@@ -324,6 +353,8 @@ func (c *Client) UpdateFile() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
+				return
 			}
 
 			for fileName == "" {
@@ -332,7 +363,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 				fileName = strings.TrimRight(fileName, "\n")
 			}
 
-			for filePath != "" && fileMetadata != "" {
+			for filePath == "" && fileMetadata == "" {
 				fmt.Print("Please enter path where new content is: ")
 				filePath, _ = reader.ReadString('\n')
 				filePath = strings.TrimRight(filePath, "\n")
@@ -367,10 +398,6 @@ func (c *Client) UpdateFile() *cobra.Command {
 			stream, err := clientGRPC.UpdateFile(ctx)
 			if err != nil {
 				c.ClientLogger.Errorf("error while openning GRPC stream to update file: %s\n", err)
-				if strings.Contains(err.Error(), "error while processing JWT token: token is expired") {
-					fmt.Println("Please login to Gophkeeper!")
-					return
-				}
 			}
 
 			for err != nil && retryCount != 3 {
@@ -380,10 +407,6 @@ func (c *Client) UpdateFile() *cobra.Command {
 				}
 				retryCount++
 				time.Sleep(time.Duration(retryCount))
-			}
-
-			if err == nil {
-				defer stream.CloseAndRecv()
 			}
 
 			if filePath != "" && err == nil {
@@ -463,14 +486,11 @@ func (c *Client) UpdateFile() *cobra.Command {
 					time.Sleep(time.Duration(retryCount))
 				}
 			}
-
-			uploadErr := c.ClientStorage.UploadFile(fileName, filePath, fileMetadata, opTime, User)
-			if uploadErr != nil {
-				c.ClientLogger.Errorf("Error while uploading file %s to local storage: %s", fileName, err)
-				return
+			if err == nil {
+				_, err = stream.CloseAndRecv()
 			}
 
-			if err != nil {
+			if CheckErrorType(err) {
 				fields := make([]string, 0)
 				if fileMetadata != "" {
 					fields = append(fields, "metadata")
@@ -483,7 +503,32 @@ func (c *Client) UpdateFile() *cobra.Command {
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving info about create operation for file %s: %s\n", fileName, err)
 				}
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
+
+				uploadErr := c.ClientStorage.UploadFile(fileName, filePath, fileMetadata, opTime, "", User)
+				if uploadErr != nil {
+					c.ClientLogger.Errorf("Error while uploading file %s to local storage: %s", fileName, err)
+					return
+				}
+				return
+			} else if strings.Contains(err.Error(), "no rows with file") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while updating file %s: %s", fileName, err)
+				}
+				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
+				return
+			} else if err != nil && strings.Contains(err.Error(), "error while processing JWT token: ") {
+				fmt.Println("Please login to Gophkeeper!")
+				return
+			} else if err != nil && err != io.EOF {
+				c.ClientLogger.Errorln("Error while updating file in Gophkeeper: ", err)
+				fmt.Println("Internal Gophkeeper server error, please contact your administrator!")
+				return
+			}
+
+			uploadErr := c.ClientStorage.UploadFile(fileName, filePath, fileMetadata, opTime, opTime, User)
+			if uploadErr != nil && err != io.EOF {
+				c.ClientLogger.Errorf("Error while uploading file %s to local storage: %s", fileName, err)
 				return
 			}
 
@@ -512,6 +557,8 @@ func (c *Client) DeleteFile() *cobra.Command {
 				return
 			} else if err != nil {
 				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
+				fmt.Println("Please login or register to Gophkeeper.")
+				return
 			}
 
 			for fileName == "" {
@@ -573,7 +620,6 @@ func (c *Client) DeleteFile() *cobra.Command {
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving delete operation about file %s: %s\n", fileName, err)
 				}
-				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				return
 			} else if err != nil && strings.Contains(err.Error(), "no rows with file name") {
 				fmt.Printf("Gophkeeper does not contain file %s\n", fileName)
@@ -581,6 +627,10 @@ func (c *Client) DeleteFile() *cobra.Command {
 			} else if err != nil {
 				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				return
+			}
+			errLocal := c.ClientStorage.DeleteFile(fileName, User)
+			if errLocal != nil {
+				c.ClientLogger.Errorf("Error while deleting file %s from local storage: %s \n", fileName, err)
 			}
 			fmt.Printf("File with name %s was successfully removed from gophkeeper", fileName)
 		},
@@ -643,41 +693,9 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, filePat
 				return fmt.Errorf("error while sending file %s: %w", file.FileName, err)
 			}
 		}
-
 		_, err = stream.CloseAndRecv()
 		if err != nil {
 			return fmt.Errorf("error while closing connection to gophkeeper: %w", err)
-		}
-	case cs.Get:
-		fileGetter, err := clientGRPC.GetFile(ctx, &pb.SensetiveDataMessage{
-			Identificator: file.FileName,
-		})
-		if err != nil {
-			return fmt.Errorf("error while getting file from gophkeeper: %w", err)
-		}
-
-		fileToSave, err := os.Create(filePath)
-		if err != nil {
-			return fmt.Errorf("error while creating file with path %s: %w", filePath, err)
-		}
-		var chunkFile *pb.FileMessage
-		for {
-			chunkFile, err = fileGetter.Recv()
-			if err != nil && err != io.EOF {
-				break
-			} else if err == io.EOF {
-				return fmt.Errorf("error while recieving content for file %s: %w", file.FileName, err)
-			}
-
-			_, err = fileToSave.Write(chunkFile.Content)
-			if err != nil {
-				return fmt.Errorf("error while writting chunk of file %s: %w", filePath, err)
-			}
-		}
-
-		err = fileToSave.Close()
-		if err != nil {
-			return fmt.Errorf("error while closing file with path %s: %w", file.FileName, err)
 		}
 	case cs.Update:
 

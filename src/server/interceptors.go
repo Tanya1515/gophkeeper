@@ -33,7 +33,7 @@ func (s *GophkeeperServer) InterceptorCheckJWTtoken(ctx context.Context, req any
 			userJWT := md.Get("Authorization")
 			userLogin, err := ut.ProcessJWTToken(userJWT[0])
 			if err != nil {
-				s.Logger.Errorln("Error while processing JWT token: %s", err)
+				s.Logger.Errorf("Error while processing JWT token: %s\n", err)
 				return "", fmt.Errorf("error while processing JWT token: %w", err)
 			}
 
@@ -68,7 +68,7 @@ func (s *GophkeeperServer) StreamInterceptorCheckJWTToken(srv any, ss grpc.Serve
 		userJWT := md.Get("Authorization")
 		userLogin, err := ut.ProcessJWTToken(userJWT[0])
 		if err != nil {
-			s.Logger.Errorln("Error while processing JWT token: %s", err)
+			s.Logger.Errorf("Error while processing JWT token: %s\n", err)
 			return fmt.Errorf("error while processing JWT token: %w", err)
 		}
 
