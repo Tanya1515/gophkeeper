@@ -50,6 +50,7 @@ func (c *Client) RegisterClient() *cobra.Command {
 
 			if err != nil {
 				c.ClientLogger.Errorln("Error while sending request to grpc server ", err)
+				fmt.Printf("Error while register user %s, please contact Gophkeeper administrator or try again.\n", User)
 				return
 			}
 
@@ -62,12 +63,14 @@ func (c *Client) RegisterClient() *cobra.Command {
 
 			if err != nil {
 				c.ClientLogger.Errorln("Error while checking if OTP is correct")
+				fmt.Printf("One time password is incorrect for user %s, please contact Gophkeeper administrator or try again.\n", User)
 				return
 			}
 
 			err = ut.SaveJWT(result.JWTtoken, login)
 			if err != nil {
 				c.ClientLogger.Errorf("Error while saving user %s JWTToken %s", login, err)
+				fmt.Printf("Error while register user %s, please contact Gophkeeper administrator or try again.\n", User)
 				return
 			}
 

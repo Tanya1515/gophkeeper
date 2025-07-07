@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 	"github.com/google/uuid"
 )
 
@@ -44,7 +44,7 @@ func (cache *SQLite) DeleteFile(fileName, userName string) error {
 }
 
 // SaveFileOperation - function, that saves operations with file if server is unavailable.
-func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.Operation, fields []string, opTime, filePath string) error {
+func (cache *SQLite) SaveFileOperation(fileName, userName string, operation ut.Operation, fields []string, opTime, filePath string) error {
 	var operationName string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -71,7 +71,7 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 	}
 	for rows.Next() {
 		rows.Scan(&operationName)
-		if operationName == string(cs.Delete) {
+		if operationName == string(ut.Delete) {
 			return nil
 		}
 	}
@@ -81,7 +81,7 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 		return fmt.Errorf("error after scanning all operations for file %s: %w", fileName, err)
 	}
 
-	if operation == cs.Delete {
+	if operation == ut.Delete {
 		ctxCacheDelete, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -100,7 +100,7 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 		return fmt.Errorf("error while adding new operation %s with file %s: %w", operation, fileName, err)
 	}
 
-	if operation == cs.Update {
+	if operation == ut.Update {
 		for _, field := range fields {
 			fieldID := uuid.New()
 			_, err = db.ExecContext(ctxCache, "INSERT INTO OperationsFileDiff (diffID, operationID, field) VALUES ($1,$2,$3)"+
@@ -114,7 +114,7 @@ func (cache *SQLite) SaveFileOperation(fileName, userName string, operation cs.O
 		_, err = db.ExecContext(ctxCache, "DELETE FROM FileOperations "+
 			"WHERE NOT EXISTS "+
 			"(SELECT 1 FROM OperationsFileDiff WHERE OperationsFileDiff.operationID = FileOperations.operationID) "+
-			"AND fileName = $1 AND userName = $2 AND operationName = $3", fileName, userName, cs.Update)
+			"AND fileName = $1 AND userName = $2 AND operationName = $3", fileName, userName, ut.Update)
 
 		if err != nil {
 			return fmt.Errorf("error while deleting all operations without fields to update: %w", err)
@@ -177,9 +177,8 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, lastUp
 		return fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
-	ctxCache, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctxCache, cancel := context.WithTimeout(context.Background(), 1000*time.Second)
 	defer cancel()
-
 	if filePath != "" {
 		processedFile, err := os.Open(filePath)
 		if err != nil {
@@ -199,7 +198,6 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, lastUp
 			}
 
 		} else {
-
 			if !strings.Contains(filePath, "/tmp/") {
 				err = os.Rename(filePath, "/tmp/"+fileName)
 				if err != nil {
@@ -216,7 +214,7 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, lastUp
 		"filePath = CASE WHEN excluded.filePath <> '' THEN excluded.filePath ELSE filePath END, "+
 		"content = CASE WHEN excluded.content <> '' THEN excluded.content ELSE content END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
-		"lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Files.lastUpdated END," + 
+		"lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Files.lastUpdated END,"+
 		"uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Files.uploadTime END ", fileName, filePath, content, metadata, lastUpdated, uploadTime, userName)
 
 	if err != nil {
@@ -271,10 +269,10 @@ func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err 
 	return
 }
 
-func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) ([]cs.OperationInfo, error) {
+func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) ([]ut.OperationInfo, error) {
 	var field sql.NullString
-	var operationFilesInfo, operationCardsInfoTemp cs.OperationInfo
-	operationsFilesInfo := make([]cs.OperationInfo, 0)
+	var operationFilesInfo, operationCardsInfoTemp ut.OperationInfo
+	operationsFilesInfo := make([]ut.OperationInfo, 0)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -293,7 +291,7 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) ([]cs.Operation
 	defer cancel()
 
 	rows, err := db.QueryContext(ctxCache, "SELECT FileOperations.operationID, FileOperations.operationName, FileOperations.operationUploadTime, OperationsFileDiff.Field FROM FileOperations LEFT JOIN OperationsFileDiff ON "+
-		"FileOperations.operationID = OperationsFileDiff.operationID WHERE FileOperations.userName=$1 AND FileOperations.fileName=$2 ORDER BY FileOperations.operationUploadTime", user, fileName)
+		"FileOperations.operationID = OperationsFileDiff.operationID WHERE FileOperations.userName=$1 AND FileOperations.fileName=$2 ", user, fileName)
 
 	if err != nil {
 		return nil, fmt.Errorf("error while getting operations info from SQLite: %w", err)

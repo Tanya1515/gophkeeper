@@ -4,6 +4,8 @@
 // if server is not available.
 package client_storage
 
+import ut "github.com/Tanya1515/gophkeeper.git/src/utils"
+
 // ClientStorage - interface for describeng storage for caching
 // sensetive data on client side.
 type ClientStorage interface {
@@ -24,17 +26,17 @@ type ClientStorage interface {
 	UploadFile(fileName, filePath, metadata, uploadTime, lastUpdated, userName string) error
 	UploadPassword(application, password, metadata, uploadTime, lastUpdated, userName string, initVector []byte) error
 
-	SaveCardOperation(cardNumber, userName string, operation Operation, fields []string, time string) error
-	SaveFileOperation(fileName, userName string, operation Operation, fields []string, time, filePath string) error
-	SavePasswordOperation(application, userName string, operation Operation, fields []string, time string) error
+	SaveCardOperation(cardNumber, userName string, operation ut.Operation, fields []string, time string) error
+	SaveFileOperation(fileName, userName string, operation ut.Operation, fields []string, time, filePath string) error
+	SavePasswordOperation(application, userName string, operation ut.Operation, fields []string, time string) error
 
 	GetAllCardWithOperation() (map[string][]string, error)
 	GetAllFileWithOperation() (map[string][]string, error)
 	GetAllPasswordWithOperation() (map[string][]string, error)
 
-	GetPasswordOperationsInfo(user, application string) ([]OperationInfo, error)
-	GetCardOperationsInfo(user, cardNumber string) ([]OperationInfo, error)
-	GetFileOpearionsInfo(user, fileName string) ([]OperationInfo, error)
+	GetPasswordOperationsInfo(user, application string) ([]ut.OperationInfo, error)
+	GetCardOperationsInfo(user, cardNumber string) ([]ut.OperationInfo, error)
+	GetFileOpearionsInfo(user, fileName string) ([]ut.OperationInfo, error)
 
 	DeleteOperaionByID(operationID, dataType string) error
 }

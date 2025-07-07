@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
-	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
@@ -126,7 +125,7 @@ func (c *Client) SendPassword() *cobra.Command {
 			} else if err != nil && strings.Contains(err.Error(), "no rows with application") {
 				err = c.ClientStorage.UpdateCacheMiss(User, 1)
 				if err != nil {
-					c.ClientLogger.Errorf("Error while  updating cache miss while inserting sensetive data for application %s: %s", application, err)
+					c.ClientLogger.Errorf("Error while updating cache miss while inserting sensetive data for application %s: %s", application, err)
 				}
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
@@ -135,7 +134,7 @@ func (c *Client) SendPassword() *cobra.Command {
 				if errUpload != nil {
 					c.ClientLogger.Errorln("Error while writting password data to SQLite: ", errUpload)
 				}
-				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Create, nil, opTime)
+				err = c.ClientStorage.SavePasswordOperation(application, User, ut.Create, nil, opTime)
 				if err != nil {
 					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 				}
@@ -347,7 +346,7 @@ func (c *Client) DeletePassword() *cobra.Command {
 				if errLocal != nil {
 					c.ClientLogger.Errorf("Error while deleting password for application %s from local storage: %s \n", application, err)
 				}
-				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Delete, nil, opTime)
+				err = c.ClientStorage.SavePasswordOperation(application, User, ut.Delete, nil, opTime)
 				if err != nil {
 					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 				}
@@ -490,7 +489,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 				if passwordMetadata != "" {
 					fields = append(fields, "metadata")
 				}
-				err = c.ClientStorage.SavePasswordOperation(application, User, cs.Update, fields, opTime)
+				err = c.ClientStorage.SavePasswordOperation(application, User, ut.Update, fields, opTime)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of application %s: %s\n", application, err)
 				}
@@ -519,7 +518,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 }
 
 // ExecutePasswordsOperation - function for executing old operations with sensetive data for application.
-func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT string, password *pb.PasswordMessage) error {
+func (c *Client) ExecutePasswordsOperation(operation ut.Operation, userJWT string, password *pb.PasswordMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
@@ -538,21 +537,39 @@ func (c *Client) ExecutePasswordsOperation(operation cs.Operation, userJWT strin
 	clientGRPC := pb.NewGophkeeperClient(connection)
 
 	switch operation {
-	case cs.Create:
+	case ut.Create:
 		_, err = clientGRPC.UploadPassword(ctx, password)
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows with application") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while inserting sensetive data for application %s: %s", password.Application, err)
+				}
+				return nil
+			}
 			return fmt.Errorf("error while uploading password: %w", err)
 		}
-	case cs.Update:
+	case ut.Update:
 		_, err = clientGRPC.UpdatePassword(ctx, password)
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows with application") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while updating sensetive data for application %s: %s", password.Application, err)
+				}
+				return nil
+			}
 			return fmt.Errorf("error while updating password: %w", err)
 		}
-	case cs.Delete:
+	case ut.Delete:
 		_, err = clientGRPC.DeletePassword(ctx, &pb.SensetiveDataMessage{
 			Identificator: password.Application,
 		})
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows with application") {
+				c.ClientLogger.Errorf("Gophkeeper does not contain application %s\n", password.Application)
+				return nil
+			}
 			return fmt.Errorf("error while deleting password: %w", err)
 		}
 	}

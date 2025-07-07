@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 // DeletePassword - function, that deletes application, password and other data from application cache.
@@ -42,7 +42,7 @@ func (cache *SQLite) DeletePassword(application, userName string) error {
 }
 
 // SavePasswordOperation - function for saving all operations with password for the application, if server is unavailable.
-func (cache *SQLite) SavePasswordOperation(application, userName string, operation cs.Operation, fields []string, opTime string) error {
+func (cache *SQLite) SavePasswordOperation(application, userName string, operation ut.Operation, fields []string, opTime string) error {
 	var operationName string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -69,7 +69,7 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 	}
 	for rows.Next() {
 		rows.Scan(&operationName)
-		if operationName == string(cs.Delete) {
+		if operationName == string(ut.Delete) {
 			return nil
 		}
 	}
@@ -79,7 +79,7 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 		return fmt.Errorf("error after scanning all operations for application %s: %w", application, err)
 	}
 
-	if operation == cs.Delete {
+	if operation == ut.Delete {
 		ctxCacheDelete, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -98,7 +98,7 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 		return fmt.Errorf("error while adding new operation %s with password for application %s: %w", operation, application, err)
 	}
 
-	if operation == cs.Update {
+	if operation == ut.Update {
 		for _, field := range fields {
 			fieldID := uuid.New()
 			_, err = db.ExecContext(ctxCache, "INSERT INTO OperationPasswordDiff (diffID, operationID, field) VALUES ($1,$2,$3)"+
@@ -114,7 +114,7 @@ func (cache *SQLite) SavePasswordOperation(application, userName string, operati
 				"WHERE NOT EXISTS "+
 				"(SELECT 1 FROM OperationPasswordDiff WHERE OperationPasswordDiff.operationID = PasswordOperations.operationID) "+
 				"AND PasswordOperations.application = $1 AND PasswordOperations.userName = $2 AND PasswordOperations.operationName = $3",
-			application, userName, cs.Update)
+			application, userName, ut.Update)
 		if err != nil {
 			return fmt.Errorf("error while deleting all operations without fields to update: %w", err)
 		}
@@ -153,7 +153,7 @@ func (cache *SQLite) GetPassword(application, userName string) (password, upload
 	}
 
 	exists = true
-	
+
 	return
 }
 
@@ -238,12 +238,12 @@ func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, 
 	return
 }
 
-func (cache *SQLite) GetPasswordOperationsInfo(user, application string) ([]cs.OperationInfo, error) {
+func (cache *SQLite) GetPasswordOperationsInfo(user, application string) ([]ut.OperationInfo, error) {
 
 	var field sql.NullString
 
-	var operationPasswordsInfo, operationPasswordsInfoTemp cs.OperationInfo
-	operationsPasswordsInfo := make([]cs.OperationInfo, 20)
+	var operationPasswordsInfo, operationPasswordsInfoTemp ut.OperationInfo
+	operationsPasswordsInfo := make([]ut.OperationInfo, 0)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -262,7 +262,7 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) ([]cs.O
 	defer cancel()
 
 	rows, err := db.QueryContext(ctxCache, "SELECT PasswordOperations.operationID, PasswordOperations.operationName, PasswordOperations.operationUploadTime, OperationPasswordDiff.Field FROM PasswordOperations LEFT JOIN OperationPasswordDiff ON "+
-		"PasswordOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordOperations.userName=$1 AND PasswordOperations.application=$2 ORDER BY PasswordOperations.operationUploadTime", user, application)
+		"PasswordOperations.operationID = OperationPasswordDiff.operationID WHERE PasswordOperations.userName=$1 AND PasswordOperations.application=$2 ", user, application)
 	if err != nil {
 		return operationsPasswordsInfo, fmt.Errorf("error while getting all data about password operations: %w", err)
 	}

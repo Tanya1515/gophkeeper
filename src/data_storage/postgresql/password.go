@@ -37,7 +37,7 @@ func (pg *PostgreSQLConnection) UploadPassword(ctx context.Context, password, ap
 		"metaData = $4, "+
 		"initVector = $5::bytea, "+
 		"updatedAt = $6 "+
-		"WHERE Credentials.updatedAt <= excluded.updatedAt RETUNING application", ctx.Value(ut.IDKey), password, app, md, initVector, updatedAt)
+		"WHERE Credentials.updatedAt <= excluded.updatedAt RETURNING application", ctx.Value(ut.IDKey), password, app, md, initVector, updatedAt)
 
 	if err != nil {
 		tx.Rollback()

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 	"github.com/google/uuid"
 )
 
@@ -42,7 +42,7 @@ func (cache *SQLite) DeleteBankCard(cardNumber, userName string) error {
 
 // SaveCardOperation - function for saving all new operations for bank card to application cache,
 // because server is unavailable.
-func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs.Operation, fields []string, opTime string) error {
+func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation ut.Operation, fields []string, opTime string) error {
 	var operationName string
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -68,7 +68,7 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 	}
 	for rows.Next() {
 		rows.Scan(&operationName)
-		if operationName == string(cs.Delete) {
+		if operationName == string(ut.Delete) {
 			return nil
 		}
 	}
@@ -78,7 +78,7 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 		return fmt.Errorf("error after scanning all operations for bank card with number %s: %w", cardNumber, err)
 	}
 
-	if operation == cs.Delete {
+	if operation == ut.Delete {
 		ctxCacheDelete, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -97,7 +97,7 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 		return fmt.Errorf("error while adding new operation %s with bank card %s: %w", operation, cardNumber, err)
 	}
 
-	if operation == cs.Update {
+	if operation == ut.Update {
 		for _, field := range fields {
 			fieldID := uuid.New()
 			_, err = db.ExecContext(ctxCache, "INSERT INTO OperationBankCardDiff (diffID, operationID, field) VALUES ($1,$2,$3)"+
@@ -111,7 +111,7 @@ func (cache *SQLite) SaveCardOperation(cardNumber, userName string, operation cs
 		_, err = db.ExecContext(ctxCache, "DELETE FROM CardOperations "+
 			"WHERE NOT EXISTS "+
 			"(SELECT 1 FROM OperationBankCardDiff WHERE OperationBankCardDiff.operationID=CardOperations.operationID) "+
-			"AND cardNumber = $1 AND userName = $2 AND operationName = $3", cardNumber, userName, cs.Update)
+			"AND cardNumber = $1 AND userName = $2 AND operationName = $3", cardNumber, userName, ut.Update)
 
 		if err != nil {
 			return fmt.Errorf("error while deleting all operations without fields to update: %w", err)
@@ -168,10 +168,9 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 		"date = CASE WHEN excluded.date <> '' THEN excluded.date ELSE date END, "+
 		"bank = CASE WHEN excluded.bank <> '' THEN excluded.bank ELSE bank END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
-		"lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Card.lastUpdated END, "+
-		"uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Card.uploadTime END, " +
-		"initVector = CASE WHEN excluded.initVector <> '' THEN excluded.initVector ELSE Cards.initVector END, " + 
-		" ", cardNumber, cvc, date, bankName, metadatabankCard, initVector, lastUpdated, uploadTime, userName)
+		"lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Cards.lastUpdated END, "+
+		"uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Cards.uploadTime END, "+
+		"initVector = CASE WHEN excluded.initVector <> '' THEN excluded.initVector ELSE Cards.initVector END ", cardNumber, cvc, date, bankName, metadatabankCard, initVector, lastUpdated, uploadTime, userName)
 
 	if err != nil {
 		return fmt.Errorf("error while updating existing bank card %s or inserting new one: %w", cardNumber, err)
@@ -224,11 +223,11 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 	return
 }
 
-func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) ([]cs.OperationInfo, error) {
+func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) ([]ut.OperationInfo, error) {
 	var field sql.NullString
-	var operationCardsInfoTemp, operationCardsInfo cs.OperationInfo
+	var operationCardsInfoTemp, operationCardsInfo ut.OperationInfo
 
-	operationsCardsInfo := make([]cs.OperationInfo, 0)
+	operationsCardsInfo := make([]ut.OperationInfo, 0)
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -246,7 +245,7 @@ func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) ([]cs.Operat
 	defer cancel()
 
 	rows, err := db.QueryContext(ctxCache, "SELECT CardOperations.operationID, CardOperations.operationName, CardOperations.operationUploadTime, OperationBankCardDiff.Field FROM CardOperations LEFT JOIN OperationBankCardDiff ON "+
-		"CardOperations.operationID = OperationBankCardDiff.operationID WHERE CardOperations.userName=$1 AND CardOperations.cardNumber=$2 ORDER BY CardOperations.operationUploadTime", user, cardNumber)
+		"CardOperations.operationID = OperationBankCardDiff.operationID WHERE CardOperations.userName=$1 AND CardOperations.cardNumber=$2 ", user, cardNumber)
 
 	if err != nil {
 		return operationsCardsInfo, fmt.Errorf("error while reading data about bank card opearions: %w", err)

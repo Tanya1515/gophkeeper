@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
-	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
@@ -219,7 +218,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 				if errUpload != nil {
 					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
 				}
-				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Create, nil, opTime)
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, ut.Create, nil, opTime)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving info about bank card operation: %s\n", err)
 				}
@@ -438,7 +437,7 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 					c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
 				}
 
-				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Delete, nil, opTime)
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, ut.Delete, nil, opTime)
 				if err != nil {
 					c.ClientLogger.Errorln("Error while saving info about password operation: ", err)
 				}
@@ -627,7 +626,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				if metadatabankCard != "" {
 					fields = append(fields, "metadata")
 				}
-				err = c.ClientStorage.SaveCardOperation(cardNumber, User, cs.Update, fields, opTime)
+				err = c.ClientStorage.SaveCardOperation(cardNumber, User, ut.Update, fields, opTime)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving information about update operation for sensetive data of bank card %s: %s\n", cardNumber, err)
 				}
@@ -656,7 +655,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 }
 
 // ExecuteCardsOperations - function for executing old operations with bank card credentials.
-func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT string, bankCard *pb.BankCardMessage) error {
+func (c *Client) ExecuteCardsOperations(operation ut.Operation, userJWT string, bankCard *pb.BankCardMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
@@ -675,21 +674,39 @@ func (c *Client) ExecuteCardsOperations(operation cs.Operation, userJWT string, 
 	clientGRPC := pb.NewGophkeeperClient(connection)
 
 	switch operation {
-	case cs.Create:
+	case ut.Create:
 		_, err = clientGRPC.UploadBankCard(ctx, bankCard)
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows with bank card") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while inserting sensetive data for bank card %s: %s", bankCard.CardNumber, err)
+				}
+				return nil
+			}
 			return fmt.Errorf("error while uploading bank card: %w", err)
 		}
-	case cs.Update:
+	case ut.Update:
 		_, err = clientGRPC.UpdateBankCardCreds(ctx, bankCard)
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows with bank card") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while updating sensetive data for bank card %s: %s", bankCard.CardNumber, err)
+				}
+				return nil
+			}
 			return fmt.Errorf("error while updating bank card credentials: %w", err)
 		}
-	case cs.Delete:
+	case ut.Delete:
 		_, err = clientGRPC.DeleteBankCardCredentials(ctx, &pb.SensetiveDataMessage{
 			Identificator: bankCard.CardNumber,
 		})
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows with bank card") {
+				c.ClientLogger.Errorf("Gophkeeper does not contain bank card %s\n", bankCard.CardNumber)
+				return nil
+			}
 			return fmt.Errorf("error while deleting bank card credentials: %w", err)
 		}
 	}

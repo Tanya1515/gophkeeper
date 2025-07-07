@@ -1,5 +1,5 @@
-//Server - package for storing clients' sensetive data
-// such as passwords, bank cards, files. 
+// Server - package for storing clients' sensetive data
+// such as passwords, bank cards, files.
 package server
 
 import (
@@ -84,13 +84,14 @@ func (s *GophkeeperServer) SyncFiles(empt *emptypb.Empty, fileStream grpc.Server
 		return err
 	}
 
-	for fileName, metadata := range files {
+	for fileName, fileInfo := range files {
 		ctxStore, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
 		fileMessage := pb.FileMessage{
-			FileName: fileName,
-			MetaData: metadata,
+			FileName:   fileName,
+			MetaData:   fileInfo.FileMetadata,
+			UploadTime: fileInfo.UploadTime,
 		}
 
 		fileByte, err := s.FileStorage.GetFile(ctxStore, fileName)

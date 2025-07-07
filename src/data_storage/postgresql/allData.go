@@ -18,7 +18,7 @@ func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords *
 
 	passwordVector := make(map[string][]byte, 100)
 
-	rows, err := pg.dbConn.QueryContext(ctx, "SELECT password, metaData, initVector, application FROM Credentials WHERE userID=$1", ctx.Value(ut.IDKey))
+	rows, err := pg.dbConn.QueryContext(ctx, "SELECT password, metaData, initVector, application, updatedAt FROM Credentials WHERE userID=$1", ctx.Value(ut.IDKey))
 	if err != nil {
 		return nil, fmt.Errorf("error while getting data about all passwords for user with id %s: %w", ctx.Value(ut.IDKey), err)
 	}
@@ -27,7 +27,7 @@ func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords *
 	for rows.Next() {
 		var initVector []byte
 		var passwordInfo pb.PasswordMessage
-		err = rows.Scan(&passwordInfo.Password, &passwordInfo.MetaData, &initVector, &passwordInfo.Application)
+		err = rows.Scan(&passwordInfo.Password, &passwordInfo.MetaData, &initVector, &passwordInfo.Application, &passwordInfo.UploadTime)
 		if err != nil {
 			return nil, fmt.Errorf("error while scanning password data for user with id %s: %w", ctx.Value(ut.IDKey), err)
 		}
@@ -47,7 +47,7 @@ func (pg *PostgreSQLConnection) GetAllPasswords(ctx context.Context, passwords *
 func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bankCards *[]*pb.BankCardMessage) (map[string][]byte, error) {
 	cvcVector := make(map[string][]byte, 100)
 
-	rows, err := pg.dbConn.QueryContext(ctx, "SELECT cardNumber, cvcCode, date, bank, metadata, initVector FROM BankCards WHERE userID=$1", ctx.Value(ut.IDKey))
+	rows, err := pg.dbConn.QueryContext(ctx, "SELECT cardNumber, cvcCode, date, bank, metadata, initVector, updatedAt FROM BankCards WHERE userID=$1", ctx.Value(ut.IDKey))
 	if err != nil {
 		return nil, fmt.Errorf("error while getting bank credentials for user with id %s: %w", ctx.Value(ut.IDKey), err)
 	}
@@ -57,7 +57,7 @@ func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bank
 		var initVector []byte
 		var bankCardInfo pb.BankCardMessage
 		var date string
-		err = rows.Scan(&bankCardInfo.CardNumber, &bankCardInfo.CvcCode, &date, &bankCardInfo.Bank, &bankCardInfo.Metadata, &initVector)
+		err = rows.Scan(&bankCardInfo.CardNumber, &bankCardInfo.CvcCode, &date, &bankCardInfo.Bank, &bankCardInfo.Metadata, &initVector, &bankCardInfo.UploadTime)
 		if err != nil {
 			return nil, fmt.Errorf("error while scanning card credentials data for user with id %s: %w", ctx.Value(ut.IDKey), err)
 		}
@@ -82,24 +82,25 @@ func (pg *PostgreSQLConnection) GetAllCardsCredentials(ctx context.Context, bank
 }
 
 // GetAllFilesInfo - function for getting info about all files for user.
-func (pg *PostgreSQLConnection) GetAllFilesInfo(ctx context.Context) (map[string]string, error) {
-	fileInfo := make(map[string]string, 100)
+func (pg *PostgreSQLConnection) GetAllFilesInfo(ctx context.Context) (map[string]ut.FileInfo, error) {
 
-	rows, err := pg.dbConn.QueryContext(ctx, "SELECT fileName, metaData FROM UserFiles WHERE userID=$1", ctx.Value(ut.IDKey))
+	fileInfo := make(map[string]ut.FileInfo, 100)
+
+	rows, err := pg.dbConn.QueryContext(ctx, "SELECT fileName, metaData, updatedAt FROM UserFiles WHERE userID=$1", ctx.Value(ut.IDKey))
 	if err != nil {
 		return nil, fmt.Errorf("error while getting data about files for user with id %s: %w", ctx.Value(ut.IDKey), err)
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		var fileName, metaData string
+		var fileName, metaData, uploadTime string
 
-		err = rows.Scan(&fileName, &metaData)
+		err = rows.Scan(&fileName, &metaData, &uploadTime)
 		if err != nil {
 			return nil, fmt.Errorf("error while scanning file info for user with id %s: %w", ctx.Value(ut.IDKey), err)
 		}
 
-		fileInfo[fileName] = metaData
+		fileInfo[fileName] = ut.FileInfo{FileMetadata: metaData, UploadTime: uploadTime}
 	}
 
 	err = rows.Err()

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
+	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
 // DataStorage - interface for describing storage for saving
@@ -42,7 +43,7 @@ type DataStorage interface {
 
 	GetAllCardsCredentials(ctx context.Context, bankCardsInfo *[]*pb.BankCardMessage) (map[string][]byte, error)
 
-	GetAllFilesInfo(ctx context.Context) (map[string]string, error)
+	GetAllFilesInfo(ctx context.Context) (map[string]ut.FileInfo, error)
 
 	GetPassword(ctx context.Context, application string) (pb.PasswordMessage, []byte, error)
 

@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/metadata"
 
-	cs "github.com/Tanya1515/gophkeeper.git/src/client_storage"
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
@@ -148,7 +147,7 @@ func (c *Client) SendFile() *cobra.Command {
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if CheckErrorType(err) {
-				err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Create, nil, opTime, filePath)
+				err = c.ClientStorage.SaveFileOperation(fileName, User, ut.Create, nil, opTime, filePath)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving info about create operation for file %s: %s\n", fileName, err)
 				}
@@ -499,7 +498,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 					fields = append(fields, "content")
 				}
 
-				err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Update, fields, opTime, filePath)
+				err = c.ClientStorage.SaveFileOperation(fileName, User, ut.Update, fields, opTime, filePath)
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving info about create operation for file %s: %s\n", fileName, err)
 				}
@@ -616,7 +615,7 @@ func (c *Client) DeleteFile() *cobra.Command {
 					c.ClientLogger.Errorf("Error while deleting file %s from local storage: %s \n", fileName, err)
 				}
 
-				err = c.ClientStorage.SaveFileOperation(fileName, User, cs.Delete, nil, opTime, "")
+				err = c.ClientStorage.SaveFileOperation(fileName, User, ut.Delete, nil, opTime, "")
 				if err != nil {
 					c.ClientLogger.Errorf("Error while saving delete operation about file %s: %s\n", fileName, err)
 				}
@@ -640,7 +639,7 @@ func (c *Client) DeleteFile() *cobra.Command {
 }
 
 // ExecuteFilesOperations - function for executing old operations with user files.
-func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, filePath string, file *pb.FileMessage) error {
+func (c *Client) ExecuteFilesOperations(operation ut.Operation, userJWT, filePath string, file *pb.FileMessage) error {
 
 	md := metadata.New(map[string]string{"Authorization": userJWT})
 
@@ -659,7 +658,7 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, filePat
 	clientGRPC := pb.NewGophkeeperClient(connection)
 
 	switch operation {
-	case cs.Create:
+	case ut.Create:
 		stream, err := clientGRPC.UploadFile(ctx)
 		if err != nil {
 			return fmt.Errorf("error while openning GRPC stream to send file: %w", err)
@@ -694,10 +693,17 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, filePat
 			}
 		}
 		_, err = stream.CloseAndRecv()
-		if err != nil {
+		if err != nil && err != io.EOF {
+			if strings.Contains(err.Error(), "no rows with file") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while creating file %s: %s", file.FileName, err)
+				}
+				return nil
+			}
 			return fmt.Errorf("error while closing connection to gophkeeper: %w", err)
 		}
-	case cs.Update:
+	case ut.Update:
 
 		stream, err := clientGRPC.UpdateFile(ctx)
 		if err != nil {
@@ -735,13 +741,24 @@ func (c *Client) ExecuteFilesOperations(operation cs.Operation, userJWT, filePat
 
 		_, err = stream.CloseAndRecv()
 		if err != nil && err != io.EOF {
+			if strings.Contains(err.Error(), "no rows with file") {
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while updating file %s: %s", file.FileName, err)
+				}
+				return nil
+			}
 			return fmt.Errorf("error while closing stream for updating file: %w", err)
 		}
-	case cs.Delete:
+	case ut.Delete:
 		_, err = clientGRPC.DeleteFile(ctx, &pb.SensetiveDataMessage{
 			Identificator: file.FileName,
 		})
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows with file name") {
+				c.ClientLogger.Errorf("No such file %s on Gophkeeper server side", file.FileName)
+				return nil
+			}
 			return fmt.Errorf("error while deleting file: %w", err)
 		}
 	}

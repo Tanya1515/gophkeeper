@@ -2,17 +2,31 @@ package client
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	pb "github.com/Tanya1515/gophkeeper.git/src/proto"
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+func SortOperationsByTime(operations *[]ut.OperationInfo) {
+	sort.Slice(*operations, func(i, j int) bool {
+		t1, err1 := time.Parse(time.RFC3339, (*operations)[i].OperationTime)
+		t2, err2 := time.Parse(time.RFC3339, (*operations)[j].OperationTime)
+
+		if err1 != nil || err2 != nil {
+			return false
+		}
+
+		return t1.Before(t2)
+	})
+}
+
 // FileWorker - function for getting all info about missed operations with files and execute them.
 func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationResult, processFile *sync.WaitGroup) {
 	var operationResult OperationResult
-	var wg sync.WaitGroup
 	defer processFile.Done()
 	for d := range data {
 		c.ClientLogger.Infoln("Start processing file ", d.dataIdentificator)
@@ -24,6 +38,7 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 		if err != nil {
 			c.ClientLogger.Errorln(err)
 		}
+		SortOperationsByTime(&operationsInfo)
 		for _, opInfo := range operationsInfo {
 			fileToExecute := &pb.FileMessage{FileName: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
@@ -34,27 +49,21 @@ func (c *Client) FileWorker(data <-chan UserData, resultFile chan<- OperationRes
 				}
 			}
 			fileToExecute.UploadTime = opInfo.OperationTime
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				c.ClientLogger.Infof("Execute %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
-				err = c.ExecuteFilesOperations(opInfo.OperationName, d.JWTtoken, filePath, fileToExecute)
-				if err != nil {
-					operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
-				} else {
-					operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
-				}
-				resultFile <- operationResult
-				c.ClientLogger.Infof("Successfuly completed %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
-			}()
+			c.ClientLogger.Infof("Execute %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
+			err = c.ExecuteFilesOperations(opInfo.OperationName, d.JWTtoken, filePath, fileToExecute)
+			if err != nil {
+				operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
+			} else {
+				operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
+			}
+			resultFile <- operationResult
+			c.ClientLogger.Infof("Successfuly completed %s operation with file %s\n", opInfo.OperationName, d.dataIdentificator)
 		}
 	}
-	wg.Wait()
 }
 
 // CardWorker - function for getting all info about missed operations with cards and execute them.
 func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationResult, processCard *sync.WaitGroup) {
-	var wg sync.WaitGroup
 	var operationResult OperationResult
 	var cvcDecrypted string
 
@@ -75,6 +84,7 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 		if err != nil {
 			c.ClientLogger.Errorln(err)
 		}
+		SortOperationsByTime(&operationsInfo)
 		for _, opInfo := range operationsInfo {
 			bankCardToExecute := &pb.BankCardMessage{CardNumber: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
@@ -89,23 +99,18 @@ func (c *Client) CardWorker(data <-chan UserData, resultCard chan<- OperationRes
 				}
 			}
 			bankCardToExecute.UploadTime = opInfo.OperationTime
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				c.ClientLogger.Infof("Execute %s operation with bank card %s", opInfo.OperationName, d.dataIdentificator)
-				err = c.ExecuteCardsOperations(opInfo.OperationName, d.JWTtoken, bankCardToExecute)
-				if err != nil {
-					operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
-				} else {
-					operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
-				}
-				resultCard <- operationResult
-				c.ClientLogger.Infof("Successfuly completed %s operation with bank card %s\n", opInfo.OperationName, d.dataIdentificator)
-			}()
+			c.ClientLogger.Infof("Execute %s operation with bank card %s", opInfo.OperationName, d.dataIdentificator)
+			err = c.ExecuteCardsOperations(opInfo.OperationName, d.JWTtoken, bankCardToExecute)
+			if err != nil {
+				operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
+			} else {
+				operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
+			}
+			resultCard <- operationResult
+			c.ClientLogger.Infof("Successfuly completed %s operation with bank card %s\n", opInfo.OperationName, d.dataIdentificator)
 
 		}
 	}
-	wg.Wait()
 }
 
 // PasswordWorker - function for getting all info about missed operations with passwords and execute them.
@@ -113,7 +118,6 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 	var password, metadata, decryptedPassword string
 	var err error
 	var operationResult OperationResult
-	var wg sync.WaitGroup
 	var initVector []byte
 
 	defer processPassword.Done()
@@ -134,6 +138,7 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 		if err != nil {
 			c.ClientLogger.Errorln(err)
 		}
+		SortOperationsByTime(&operationsInfo)
 		for _, opInfo := range operationsInfo {
 			passwordToExecute := &pb.PasswordMessage{Application: d.dataIdentificator}
 			for _, value := range opInfo.Fields {
@@ -144,22 +149,17 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 				}
 			}
 			passwordToExecute.UploadTime = opInfo.OperationTime
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
-				err = c.ExecutePasswordsOperation(opInfo.OperationName, d.JWTtoken, passwordToExecute)
-				if err != nil {
-					operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
-				} else {
-					operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
-				}
-				resultPassword <- operationResult
-				c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
-			}()
+			c.ClientLogger.Infof("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
+			err = c.ExecutePasswordsOperation(opInfo.OperationName, d.JWTtoken, passwordToExecute)
+			if err != nil {
+				operationResult = OperationResult{operationID: opInfo.OperationID, result: err.Error()}
+			} else {
+				operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
+			}
+			resultPassword <- operationResult
+			c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
 		}
 	}
-	wg.Wait()
 }
 
 // SendCacheData - function that executes all missed operations with sensetive data for every user:
