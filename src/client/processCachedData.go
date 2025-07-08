@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -309,4 +310,45 @@ func (c *Client) SendCacheData() {
 	}()
 
 	wg.Wait()
+}
+
+func (c *Client) ClearData(userName string) {
+	var wgSyncClear sync.WaitGroup
+
+	wgSyncClear.Add(1)
+	go func() {
+		defer wgSyncClear.Done()
+		errClear := c.ClientStorage.ClearPasswordsByDate(User)
+		if errClear != nil {
+			c.ClientLogger.Errorln(errClear)
+		}
+	}()
+
+	wgSyncClear.Add(1)
+	go func() {
+		defer wgSyncClear.Done()
+		filesPath, errClear := c.ClientStorage.ClearFilesByDate(User)
+		if errClear != nil {
+			c.ClientLogger.Errorln(errClear)
+			return
+		}
+		for _, filePath := range filesPath {
+			errClear = os.Remove(filePath)
+			if errClear != nil {
+				c.ClientLogger.Errorln("Error while removing file with path %s: %s", filePath, errClear)
+			}
+		}
+	}()
+
+	wgSyncClear.Add(1)
+	go func() {
+		defer wgSyncClear.Done()
+		errClear := c.ClientStorage.ClearCardsByDate(User)
+		if errClear != nil {
+			c.ClientLogger.Errorln(errClear)
+		}
+	}()
+
+	wgSyncClear.Wait()
+
 }

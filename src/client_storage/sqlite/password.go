@@ -295,3 +295,35 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) ([]ut.O
 	return operationsPasswordsInfo, nil
 
 }
+
+func (cache *SQLite) ClearPasswordsByDate(userName string) error {
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return fmt.Errorf("error while openning connection to clear sensetive data about applications for user %s: %w", userName, err)
+	}
+
+	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	currantTime := (time.Now()).UTC()
+	currantTimeStr := currantTime.Format(time.RFC3339)
+
+	_, err = db.ExecContext(ctxCache, "DELETE FROM Passwords WHERE DATETIME(uploadTime) < DATETIME($1, '-1 month') AND "+
+		" AND DATETIME(lastUpdated) < DATETIME($, '-14 days') AND NOT EXISTS "+
+		"(SELECT 1 FROM PasswordOperations WHERE PasswordOperations.application = Passwords.application) ", currantTimeStr)
+
+	if err != nil {
+		return fmt.Errorf("error while removing all sensetive data for applications for user %s: %w", userName, err)
+	}
+
+	return nil
+}

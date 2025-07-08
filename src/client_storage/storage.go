@@ -13,13 +13,14 @@ type ClientStorage interface {
 
 	CreateUser(userName string) error
 	UpdateCacheMiss(userName string, cacheMiss int) error
+	GetCacheMiss(userName string) (int, error)
 
 	GetBankCard(cardNumber, userName string) (cvc, date, bankName, metadatabankCard string, initVector []byte, exists bool, err error)
 	GetFile(fileName, userName string) (string, string, bool, []byte, error)
 	GetPassword(application, userName string) (password, metadata, uploadTime string, initVector []byte, exists bool, err error)
 
 	DeleteBankCard(cardNumber, userName string) error
-	DeleteFile(fileName, userName string) error
+	DeleteFile(fileName, userName string) (string, error)
 	DeletePassword(application, userName string) error
 
 	UploadBankCard(cardNumber, cvc, date, bankName, metadatabankCard, uploadTime, lastUpdated, userName string, initVector []byte) error
@@ -37,6 +38,10 @@ type ClientStorage interface {
 	GetPasswordOperationsInfo(user, application string) ([]ut.OperationInfo, error)
 	GetCardOperationsInfo(user, cardNumber string) ([]ut.OperationInfo, error)
 	GetFileOpearionsInfo(user, fileName string) ([]ut.OperationInfo, error)
+
+	ClearPasswordsByDate(userName string) error
+	ClearFilesByDate(userName string) ([]string, error)
+	ClearCardsByDate(userName string) error
 
 	DeleteOperaionByID(operationID, dataType string) error
 }

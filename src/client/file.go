@@ -23,8 +23,7 @@ func (c *Client) SendFile() *cobra.Command {
 		Short: "Save file",
 		Long:  `Save file with sensetive data to gophkeeper!`,
 		Run: func(cmd *cobra.Command, args []string) {
-			var filePath string
-			var metadataFile string
+			var filePath, metadataFile string
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -50,6 +49,20 @@ func (c *Client) SendFile() *cobra.Command {
 
 			fmt.Println("Start processing file with sensetive data...")
 			c.SendCacheData()
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
 
 			file, err := os.Open(filePath)
 			if err != nil {
@@ -140,10 +153,6 @@ func (c *Client) SendFile() *cobra.Command {
 				fmt.Println("Please login to Gophkeeper!")
 				return
 			} else if strings.Contains(err.Error(), "no rows with file") {
-				err = c.ClientStorage.UpdateCacheMiss(User, 1)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while updating cache miss while inserting file %s: %s", fileName, err)
-				}
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if CheckErrorType(err) {
@@ -172,9 +181,7 @@ func (c *Client) GetFile() *cobra.Command {
 		Use:   "file",
 		Short: "Get file from Gophkeeper",
 		Run: func(cmd *cobra.Command, args []string) {
-			var fileName string
-			var filePath string
-			var uploadTime string
+			var fileName, filePath, uploadTime string
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -202,6 +209,22 @@ func (c *Client) GetFile() *cobra.Command {
 
 			fmt.Println("Start processing file with sensetive data...")
 			c.SendCacheData()
+
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
+
 			metadataFile, pathToFile, exists, fileContent, err := c.ClientStorage.GetFile(fileName, User)
 			if exists {
 				fileToSave, err := os.Create(filePath)
@@ -229,13 +252,6 @@ func (c *Client) GetFile() *cobra.Command {
 					}
 					defer fileExists.Close()
 				} else {
-					if err != nil {
-						c.ClientLogger.Errorf("Error while getting file %s from local storage for user %s: %w", fileName, User, err)
-					}
-					err = c.ClientStorage.UpdateCacheMiss(User, 1)
-					if err != nil {
-						c.ClientLogger.Errorf("Error while updating cache miss while getting file %s: %s", fileName, err)
-					}
 					_, err = fileToSave.Write(fileContent)
 					if err != nil {
 						c.ClientLogger.Errorf("Error while writting content of file %s to path %s: %s\n", fileName, filePath, err)
@@ -246,6 +262,13 @@ func (c *Client) GetFile() *cobra.Command {
 				fmt.Printf("File %s was successfully recieved!\n", fileName)
 				fmt.Println("File metadata: ", metadataFile)
 			} else {
+				if err != nil {
+					c.ClientLogger.Errorf("Error while getting file %s from local storage for user %s: %w", fileName, User, err)
+				}
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while updating cache miss while getting file %s: %s", fileName, err)
+				}
 				certPath, envExists := os.LookupEnv("CERT_PATH")
 				if !(envExists) {
 					certPath = "../../test_certs/"
@@ -340,9 +363,7 @@ func (c *Client) UpdateFile() *cobra.Command {
 		Use:   "file",
 		Short: "Update existing file with sensetive data in gophkeeper",
 		Run: func(cmd *cobra.Command, args []string) {
-			var fileName string
-			var filePath string
-			var fileMetadata string
+			var fileName, fileMetadata, filePath string
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -374,6 +395,21 @@ func (c *Client) UpdateFile() *cobra.Command {
 
 			fmt.Println("Start processing file with sensetive data...")
 			c.SendCacheData()
+
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
 
 			certPath, envExists := os.LookupEnv("CERT_PATH")
 			if !(envExists) {
@@ -510,10 +546,6 @@ func (c *Client) UpdateFile() *cobra.Command {
 				}
 				return
 			} else if strings.Contains(err.Error(), "no rows with file") {
-				err = c.ClientStorage.UpdateCacheMiss(User, 1)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while updating cache miss while updating file %s: %s", fileName, err)
-				}
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if err != nil && strings.Contains(err.Error(), "error while processing JWT token: ") {
@@ -569,6 +601,21 @@ func (c *Client) DeleteFile() *cobra.Command {
 			fmt.Println("Start processing file with sensetive data...")
 			c.SendCacheData()
 
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
+
 			certPath, envExists := os.LookupEnv("CERT_PATH")
 			if !(envExists) {
 				certPath = "../../test_certs/"
@@ -610,9 +657,14 @@ func (c *Client) DeleteFile() *cobra.Command {
 			}
 
 			if err != nil && CheckErrorType(err) {
-				errLocal := c.ClientStorage.DeleteFile(fileName, User)
+				filePath, errLocal := c.ClientStorage.DeleteFile(fileName, User)
 				if errLocal != nil {
 					c.ClientLogger.Errorf("Error while deleting file %s from local storage: %s \n", fileName, err)
+				}
+
+				errLocal = os.Remove(filePath)
+				if errLocal != nil {
+					c.ClientLogger.Errorf("Error while removing file with path %s: %s", filePath, err)
 				}
 
 				err = c.ClientStorage.SaveFileOperation(fileName, User, ut.Delete, nil, opTime, "")
@@ -627,10 +679,16 @@ func (c *Client) DeleteFile() *cobra.Command {
 				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				return
 			}
-			errLocal := c.ClientStorage.DeleteFile(fileName, User)
+			filePath, errLocal := c.ClientStorage.DeleteFile(fileName, User)
 			if errLocal != nil {
 				c.ClientLogger.Errorf("Error while deleting file %s from local storage: %s \n", fileName, err)
 			}
+
+			errLocal = os.Remove(filePath)
+			if errLocal != nil {
+				c.ClientLogger.Errorf("Error while removing file with path %s: %s", filePath, err)
+			}
+
 			fmt.Printf("File with name %s was successfully removed from gophkeeper", fileName)
 		},
 	}

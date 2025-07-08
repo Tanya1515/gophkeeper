@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
 	"time"
 
 	"github.com/spf13/cobra"
@@ -160,6 +161,23 @@ func (c *Client) SendBankCard() *cobra.Command {
 
 			fmt.Println("Process your bank card...")
 
+			c.SendCacheData()
+
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
+
 			var retryCount = 1
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
@@ -204,13 +222,8 @@ func (c *Client) SendBankCard() *cobra.Command {
 					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
 				}
 				fmt.Println("Bank card credentials successfully have been uploaded!")
-				c.SendCacheData()
 				return
 			} else if err != nil && strings.Contains(err.Error(), "no rows with bank card") {
-				err = c.ClientStorage.UpdateCacheMiss(User, 1)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while updating cache miss while inserting sensetive data for bank card %s: %s", cardNumber, err)
-				}
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if CheckErrorType(err) {
@@ -224,7 +237,6 @@ func (c *Client) SendBankCard() *cobra.Command {
 				}
 				return
 			}
-
 			fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 		},
 	}
@@ -265,6 +277,22 @@ func (c *Client) GetBankCard() *cobra.Command {
 			}
 			fmt.Println("Process your bank card...")
 			c.SendCacheData()
+
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
+
 			cvc, date, bankName, metadataCard, initVector, exists, err := c.ClientStorage.GetBankCard(cardNumber, User)
 			if exists {
 				cvcDecrypted, err := c.Crypto.DecryptData(cvc, initVector)
@@ -281,11 +309,6 @@ func (c *Client) GetBankCard() *cobra.Command {
 			} else {
 				if err != nil {
 					c.ClientLogger.Errorf("Error while getting bank card %s credentials from local storage for user %s: %w", cardNumber, User, err)
-				}
-
-				err = c.ClientStorage.UpdateCacheMiss(User, 1)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while updating cache miss while getting sensetive data for bank card %s: %s", cardNumber, err)
 				}
 
 				certPath, envExists := os.LookupEnv("CERT_PATH")
@@ -328,6 +351,10 @@ func (c *Client) GetBankCard() *cobra.Command {
 				}
 
 				if err == nil {
+					err = c.ClientStorage.UpdateCacheMiss(User, 1)
+					if err != nil {
+						c.ClientLogger.Errorf("Error while updating cache miss while getting sensetive data for bank card %s: %s", cardNumber, err)
+					}
 					fmt.Printf("Card number: %s\n", cardNumber)
 					fmt.Printf("Card cvc code: %s\n", bankCard.CvcCode)
 					fmt.Printf("Card date: %s\n", bankCard.Data)
@@ -344,6 +371,10 @@ func (c *Client) GetBankCard() *cobra.Command {
 						c.ClientLogger.Errorf("Error while uploading bank card %s credentials: %s", cardNumber, err)
 					}
 				} else if strings.Contains(strings.Split(err.Error(), "desc")[1], "no rows in result") {
+					err = c.ClientStorage.UpdateCacheMiss(User, 1)
+					if err != nil {
+						c.ClientLogger.Errorf("Error while updating cache miss while getting sensetive data for bank card %s: %s", cardNumber, err)
+					}
 					fmt.Printf("Sensetive data for bank card %s do not exist\n", cardNumber)
 				} else {
 					fmt.Println("Internal server error, please contact Gophkeeper administrator.")
@@ -390,6 +421,22 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			}
 			fmt.Println("Process your bank card...")
 			c.SendCacheData()
+
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
+
 			certPath, envExists := os.LookupEnv("CERT_PATH")
 			if !(envExists) {
 				certPath = "../../test_certs/"
@@ -457,8 +504,8 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 			if errLocal != nil {
 				c.ClientLogger.Errorf("Error while deleting sensetive data for bank %s from local storage: %s \n", cardNumber, err)
 			}
-			fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
 
+			fmt.Printf("All sensetive data regarding to bank card %s was successfully removed from gophkeeper\n", cardNumber)
 		},
 	}
 
@@ -472,11 +519,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 		Use:   "card",
 		Short: "Update bank card credentials",
 		Run: func(cmd *cobra.Command, args []string) {
-			var cardNumber string
-			var cvc string
-			var cardDate string
-			var bankName string
-			var metadatabankCard, cvcEncrypted string
+			var metadatabankCard, cvcEncrypted, bankName, cardDate, cvc, cardNumber string
 			var initVector []byte
 
 			reader := bufio.NewReader(os.Stdin)
@@ -545,6 +588,21 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 			metadatabankCard = strings.TrimRight(metadatabankCard, "\n")
 			fmt.Println("Process your bank card...")
 			c.SendCacheData()
+
+			c.ClearData(User)
+
+			cacheMiss, err := c.ClientStorage.GetCacheMiss(User)
+			if err != nil {
+				c.ClientLogger.Errorln(err)
+			} else {
+				if cacheMiss >= 20 {
+					c.SyncData(User)
+					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					if err != nil {
+						c.ClientLogger.Errorln(err)
+					}
+				}
+			}
 
 			if cvc != "" {
 				cvcEncrypted, initVector, err = c.Crypto.EncryptData(cvc)
@@ -632,10 +690,6 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				}
 				return
 			} else if err != nil && strings.Contains(err.Error(), "no rows with bank card") {
-				err = c.ClientStorage.UpdateCacheMiss(User, 1)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while  updating cache miss while updating sensetive data for bank card %s: %s", cardNumber, err)
-				}
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if err != nil {
@@ -647,6 +701,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 			if uploadErr != nil {
 				c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
 			}
+
 			fmt.Printf("Your bank card %s has been successfully updated.\n", cardNumber)
 		},
 	}

@@ -14,8 +14,8 @@ import (
 )
 
 // DeleteFile - function for deleting file from cache
-func (cache *SQLite) DeleteFile(fileName, userName string) error {
-
+func (cache *SQLite) DeleteFile(fileName, userName string) (string, error) {
+	var filePath string
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
 		fmt.Printf("Error while openning connection to SQLite to delete file %s: %s\n", fileName, err)
@@ -26,21 +26,26 @@ func (cache *SQLite) DeleteFile(fileName, userName string) error {
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
 		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
-		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+		return "", fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	statement, err := db.Prepare("DELETE from Files WHERE fileName=? AND userName=?")
+	statement, err := db.Prepare("DELETE from Files WHERE fileName=? AND userName=? RETURNING filePath")
 	if err != nil {
-		return fmt.Errorf("error while making request for deleting file with name %s: %w", fileName, err)
+		return "", fmt.Errorf("error while making request for deleting file with name %s: %w", fileName, err)
 	}
-	_, err = statement.ExecContext(ctxCache, fileName, userName)
+	res, err := statement.QueryContext(ctxCache, fileName, userName)
 	if err != nil {
-		return fmt.Errorf("error while deleting file with name %s: %w", fileName, err)
+		return "", fmt.Errorf("error while deleting file with name %s: %w", fileName, err)
 	}
-	return nil
+
+	err = res.Scan(&filePath)
+	if err != nil {
+		return "", fmt.Errorf("error while scanning file path %s from delete request: %w", filePath, err)
+	}
+	return filePath, nil
 }
 
 // SaveFileOperation - function, that saves operations with file if server is unavailable.
@@ -325,4 +330,48 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) ([]ut.Operation
 	operationsFilesInfo = append(operationsFilesInfo, operationFilesInfo)
 
 	return operationsFilesInfo, nil
+}
+
+func (cache *SQLite) ClearFilesByDate(userName string) ([]string, error) {
+	var filePath sql.NullString
+	filesPath := make([]string, 0)
+
+	db, err := sql.Open("sqlite3", "./data_cache.db")
+	if err != nil {
+		return nil, fmt.Errorf("error while openning connection to clear data about files for user %s: %w", userName, err)
+	}
+
+	defer db.Close()
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		fmt.Println("Error while adding an opportunity to use foreign keys: ", err)
+		return nil, fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
+	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	currantTime := (time.Now()).UTC()
+	currantTimeStr := currantTime.Format(time.RFC3339)
+
+	rows, err := db.QueryContext(ctxCache, "DELETE FROM Files WHERE DATETIME(uploadTime) < DATETIME($1, '-1 month') AND "+
+		" AND DATETIME(lastUpdated) < DATETIME($, '-14 days') AND NOT EXISTS "+
+		"(SELECT 1 FROM FileOperations WHERE FileOperations.fileName = Files.fileName) RETURNING filePath", currantTimeStr)
+
+	if err != nil {
+		return nil, fmt.Errorf("error while removing all sensetive data for files for user %s: %w", userName, err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&filePath)
+		if err != nil {
+			return nil, fmt.Errorf("error while getting info about deleted files : %w", err)
+		}
+		if filePath.Valid {
+			filesPath = append(filesPath, filePath.String)
+		}
+	}
+
+	return filesPath, nil
 }

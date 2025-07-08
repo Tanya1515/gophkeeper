@@ -99,6 +99,80 @@ func (c *Client) SyncAllFiles(wg *sync.WaitGroup, JWTToken string, clientGRPC pb
 	defer wg.Done()
 }
 
+func (c *Client) SyncData(userName string) {
+	var wg sync.WaitGroup
+	JWTToken, err := ut.GetJWT(userName)
+	if err != nil && strings.Contains(err.Error(), "please login or register") {
+		c.ClientLogger.Error(err.Error())
+		return
+	} else if err != nil {
+		c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", userName, err)
+		fmt.Println("Please login or register to Gophkeeper.")
+		return
+	}
+
+	certPath, envExists := os.LookupEnv("CERT_PATH")
+	if !(envExists) {
+		certPath = "../../test_certs/"
+	}
+
+	connection, err := c.ClientConnection(certPath)
+	if err != nil {
+		c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
+	}
+
+	clientGRPC := pb.NewGophkeeperClient(connection)
+	md := metadata.New(map[string]string{"Authorization": JWTToken})
+
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	wg.Add(1)
+
+	go c.SyncAllFiles(&wg, JWTToken, clientGRPC, userName)
+
+	sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
+	if err != nil {
+		c.ClientLogger.Errorf("Error while getting all sensetive data for User %s: %s\n", userName, err)
+		return
+	}
+
+	for _, passwordInfo := range sensetiveData.Passwords {
+		encryptedPassword, initVector, err := c.EncryptData(passwordInfo.Password)
+		if err != nil {
+			c.ClientLogger.Errorln("Error while encrypt sensetive data for application %s: %s", passwordInfo.Application, err)
+			continue
+		}
+		syncTime := (time.Now()).UTC()
+		opTime := syncTime.Format(time.RFC3339)
+		err = c.ClientStorage.UploadPassword(passwordInfo.Application, encryptedPassword, passwordInfo.MetaData, passwordInfo.UploadTime, opTime, userName, initVector)
+		if err != nil {
+			c.ClientLogger.Errorf("Error while uploading sensetive data for application: %s: %s", passwordInfo.Application, err)
+			continue
+		}
+
+	}
+
+	for _, bankCardCreds := range sensetiveData.BankCards {
+		encryptedCvc, initVector, err := c.EncryptData(bankCardCreds.CvcCode)
+		if err != nil {
+			c.ClientLogger.Errorf("Error while encrypt sensetive data for bank card %s: %s\n", bankCardCreds.CardNumber, err)
+			continue
+		}
+		syncTime := (time.Now()).UTC()
+		opTime := syncTime.Format(time.RFC3339)
+		err = c.ClientStorage.UploadBankCard(bankCardCreds.CardNumber, encryptedCvc, bankCardCreds.Data, bankCardCreds.Bank, bankCardCreds.Metadata, bankCardCreds.UploadTime, opTime, userName, initVector)
+		if err != nil {
+			c.ClientLogger.Errorf("Error while uploading credentials for bank card %s: %s\n", bankCardCreds.CardNumber, err)
+			continue
+		}
+	}
+
+	wg.Wait()
+
+	fmt.Printf("All data for User %s was synchronyzed\n", userName)
+
+}
+
 // GetUserData creates handler for processing cli command, that gets all sensetive data for current user.
 func (c *Client) GetUserData() *cobra.Command {
 
@@ -106,77 +180,7 @@ func (c *Client) GetUserData() *cobra.Command {
 		Use:   "all",
 		Short: "Get description of all User sensetive data",
 		Run: func(cmd *cobra.Command, args []string) {
-			var wg sync.WaitGroup
-			JWTToken, err := ut.GetJWT(User)
-			if err != nil && strings.Contains(err.Error(), "please login or register") {
-				c.ClientLogger.Error(err.Error())
-				return
-			} else if err != nil {
-				c.ClientLogger.Errorf("Error while getting user %s credentials: %s\n", User, err)
-				fmt.Println("Please login or register to Gophkeeper.")
-				return
-			}
-
-			certPath, envExists := os.LookupEnv("CERT_PATH")
-			if !(envExists) {
-				certPath = "../../test_certs/"
-			}
-
-			connection, err := c.ClientConnection(certPath)
-			if err != nil {
-				c.ClientLogger.Errorln("Error while creating GRPC connection to server: ", err)
-			}
-
-			clientGRPC := pb.NewGophkeeperClient(connection)
-			md := metadata.New(map[string]string{"Authorization": JWTToken})
-
-			ctx := metadata.NewOutgoingContext(context.Background(), md)
-
-			wg.Add(1)
-
-			go c.SyncAllFiles(&wg, JWTToken, clientGRPC, User)
-
-			sensetiveData, err := clientGRPC.Sync(ctx, &emptypb.Empty{})
-			if err != nil {
-				c.ClientLogger.Errorf("Error while getting all sensetive data for User %s: %s\n", User, err)
-				return
-			}
-
-			for _, passwordInfo := range sensetiveData.Passwords {
-				encryptedPassword, initVector, err := c.EncryptData(passwordInfo.Password)
-				if err != nil {
-					c.ClientLogger.Errorln("Error while encrypt sensetive data for application %s: %s", passwordInfo.Application, err)
-					continue
-				}
-				syncTime := (time.Now()).UTC()
-				opTime := syncTime.Format(time.RFC3339)
-				err = c.ClientStorage.UploadPassword(passwordInfo.Application, encryptedPassword, passwordInfo.MetaData, passwordInfo.UploadTime, opTime, User, initVector)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while uploading sensetive data for application: %s: %s", passwordInfo.Application, err)
-					continue
-				}
-
-			}
-
-			for _, bankCardCreds := range sensetiveData.BankCards {
-				encryptedCvc, initVector, err := c.EncryptData(bankCardCreds.CvcCode)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while encrypt sensetive data for bank card %s: %s\n", bankCardCreds.CardNumber, err)
-					continue
-				}
-				syncTime := (time.Now()).UTC()
-				opTime := syncTime.Format(time.RFC3339)
-				err = c.ClientStorage.UploadBankCard(bankCardCreds.CardNumber, encryptedCvc, bankCardCreds.Data, bankCardCreds.Bank, bankCardCreds.Metadata, bankCardCreds.UploadTime, opTime, User, initVector)
-				if err != nil {
-					c.ClientLogger.Errorf("Error while uploading credentials for bank card %s: %s\n", bankCardCreds.CardNumber, err)
-					continue
-				}
-			}
-
-			wg.Wait()
-
-			fmt.Printf("All data for User %s was synchronyzed\n", User)
-
+			c.SyncData(User)
 		},
 	}
 
