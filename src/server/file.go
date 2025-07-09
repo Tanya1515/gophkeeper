@@ -42,7 +42,7 @@ func (s *GophkeeperServer) UploadFile(inStream grpc.ClientStreamingServer[pb.Fil
 		s.Logger.Errorln(err)
 		return err
 	}
-	
+
 	if upload {
 		fileToSave, err := os.CreateTemp("/tmp/", "gophkeeper")
 		if err != nil {
@@ -148,7 +148,7 @@ func (s *GophkeeperServer) GetFile(dataMessage *pb.SensetiveDataMessage, fileStr
 		} else {
 			buffer = fileByte[i : i+1024]
 		}
-		s.Logger.Infoln("send data: %s", string(buffer))
+
 		fileMessage.Content = buffer
 		err = fileStream.Send(fileMessage)
 		if err != nil {

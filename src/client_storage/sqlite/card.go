@@ -158,6 +158,11 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		return fmt.Errorf("error while adding foreign_key extension: %w", err)
+	}
+
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -179,6 +184,7 @@ func (cache *SQLite) UploadBankCard(cardNumber, cvc, date, bankName, metadataban
 	return nil
 }
 
+// GetAllCardWithOperation - function, that returns list of cardNumbers, with which some of operations were not performed.
 func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err error) {
 
 	var userName, cardNumber string
@@ -223,6 +229,7 @@ func (cache *SQLite) GetAllCardWithOperation() (result map[string][]string, err 
 	return
 }
 
+// GetCardOperationsInfo - function, that returns all info about opearions with user card.
 func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) ([]ut.OperationInfo, error) {
 	var field sql.NullString
 	var operationCardsInfoTemp, operationCardsInfo ut.OperationInfo
@@ -278,6 +285,7 @@ func (cache *SQLite) GetCardOperationsInfo(user, cardNumber string) ([]ut.Operat
 	return operationsCardsInfo, nil
 }
 
+// ClearCardsByDate - function that clear all credentials for bank cards
 func (cache *SQLite) ClearCardsByDate(userName string) error {
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -298,8 +306,8 @@ func (cache *SQLite) ClearCardsByDate(userName string) error {
 	currantTime := (time.Now()).UTC()
 	currantTimeStr := currantTime.Format(time.RFC3339)
 
-	_, err = db.ExecContext(ctxCache, "DELETE FROM Cards WHERE DATETIME(uploadTime) < DATETIME($1, '-1 month') AND "+
-		" AND DATETIME(lastUpdated) < DATETIME($, '-14 days') AND NOT EXISTS "+
+	_, err = db.ExecContext(ctxCache, "DELETE FROM Cards WHERE DATETIME(uploadTime) < DATETIME($1, '-1 month') "+
+		" AND DATETIME(lastUpdated) < DATETIME($1, '-14 days') AND NOT EXISTS "+
 		"(SELECT 1 FROM CardOperations WHERE CardOperations.cardNumber = Cards.cardNumber) ", currantTimeStr)
 
 	if err != nil {

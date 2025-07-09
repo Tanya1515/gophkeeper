@@ -35,6 +35,7 @@ func (cache *SQLite) CreateUser(userName string) error {
 	return nil
 }
 
+// UpdateCacheMiss - function for updating cache miss for the user.
 func (cache *SQLite) UpdateCacheMiss(userName string, cacheMiss int) error {
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
@@ -54,17 +55,17 @@ func (cache *SQLite) UpdateCacheMiss(userName string, cacheMiss int) error {
 	defer cancel()
 
 	_, err = db.ExecContext(ctxCache, "UPDATE Users SET "+
-		"cache_miss = CASE WHEN $2 = 0 THEN 0 ELSE Users.cache_miss + 1 END "+
-		"WHERE userName=$1", userName, cacheMiss)
+		"cache_miss = CASE WHEN $1 <> 0 THEN cache_miss + $1 ELSE 0 END WHERE userName == $2", cacheMiss, userName)
 
 	if err != nil {
-		return fmt.Errorf("error while updating cache miss for user %s: %w", userName, err)
+		return fmt.Errorf("error while updating cache miss for user %s : %w", userName, err)
 	}
 
 	return nil
 
 }
 
+// GetCacheMiss - function, that returns cache miss for the user.
 func (cache *SQLite) GetCacheMiss(userName string) (int, error) {
 	var cacheMiss int
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -84,7 +85,7 @@ func (cache *SQLite) GetCacheMiss(userName string) (int, error) {
 	ctxCache, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	row, err := db.QueryContext(ctxCache, "SELECT cache_miss FROM Users WHERE userName=$1", userName)
+	row := db.QueryRowContext(ctxCache, "SELECT cache_miss FROM Users WHERE userName=$1", userName)
 	if err != nil {
 		return 0, fmt.Errorf("error while selecting cache miss for user %s: %w", userName, err)
 	}

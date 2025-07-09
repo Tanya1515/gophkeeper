@@ -187,6 +187,7 @@ func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime,
             lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Passwords.lastUpdated END,
 			uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Passwords.uploadTime END
     `, application, password, metadata, lastUpdated, uploadTime, userName, initVector)
+
 	if err != nil {
 		return fmt.Errorf("error while updating existing application %s or inserting new one: %w", application, err)
 	}
@@ -194,6 +195,7 @@ func (cache *SQLite) UploadPassword(application, password, metadata, uploadTime,
 	return
 }
 
+// GetAllPasswordWithOperation - function, that gets list of applications, with which some of operations were not performed.
 func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, err error) {
 	var userName, application string
 	result = make(map[string][]string, 10)
@@ -238,6 +240,7 @@ func (cache *SQLite) GetAllPasswordWithOperation() (result map[string][]string, 
 	return
 }
 
+// GetPasswordOperationsInfo - function for getting info about operations with password.
 func (cache *SQLite) GetPasswordOperationsInfo(user, application string) ([]ut.OperationInfo, error) {
 
 	var field sql.NullString
@@ -296,6 +299,7 @@ func (cache *SQLite) GetPasswordOperationsInfo(user, application string) ([]ut.O
 
 }
 
+// ClearPasswordsByDate - function, that clear all outdated sensetive data for application.
 func (cache *SQLite) ClearPasswordsByDate(userName string) error {
 
 	db, err := sql.Open("sqlite3", "./data_cache.db")
@@ -317,8 +321,8 @@ func (cache *SQLite) ClearPasswordsByDate(userName string) error {
 	currantTime := (time.Now()).UTC()
 	currantTimeStr := currantTime.Format(time.RFC3339)
 
-	_, err = db.ExecContext(ctxCache, "DELETE FROM Passwords WHERE DATETIME(uploadTime) < DATETIME($1, '-1 month') AND "+
-		" AND DATETIME(lastUpdated) < DATETIME($, '-14 days') AND NOT EXISTS "+
+	_, err = db.ExecContext(ctxCache, "DELETE FROM Passwords WHERE DATETIME(uploadTime) < DATETIME($1, '-1 month')"+
+		" AND DATETIME(lastUpdated) < DATETIME($1, '-14 days') AND NOT EXISTS "+
 		"(SELECT 1 FROM PasswordOperations WHERE PasswordOperations.application = Passwords.application) ", currantTimeStr)
 
 	if err != nil {

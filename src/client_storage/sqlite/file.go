@@ -36,10 +36,7 @@ func (cache *SQLite) DeleteFile(fileName, userName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error while making request for deleting file with name %s: %w", fileName, err)
 	}
-	res, err := statement.QueryContext(ctxCache, fileName, userName)
-	if err != nil {
-		return "", fmt.Errorf("error while deleting file with name %s: %w", fileName, err)
-	}
+	res := statement.QueryRowContext(ctxCache, fileName, userName)
 
 	err = res.Scan(&filePath)
 	if err != nil {
@@ -169,12 +166,10 @@ func (cache *SQLite) GetFile(fileName, userName string) (metadata, pathFile stri
 func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, lastUpdated, userName string) error {
 
 	content := make([]byte, 0)
-
 	db, err := sql.Open("sqlite3", "./data_cache.db")
 	if err != nil {
 		return fmt.Errorf("error while openning connection to update file %s or add new one: %w", fileName, err)
 	}
-
 	defer db.Close()
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
@@ -182,42 +177,53 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, lastUp
 		return fmt.Errorf("error while adding foreign_key extension: %w", err)
 	}
 
-	ctxCache, cancel := context.WithTimeout(context.Background(), 1000*time.Second)
-	defer cancel()
 	if filePath != "" {
+
 		processedFile, err := os.Open(filePath)
 		if err != nil {
 			return fmt.Errorf("error while openning file %s: %w", filePath, err)
 		}
+
 		fileInfo, err := processedFile.Stat()
 		if err != nil {
 			return fmt.Errorf("error while getting info about file %s: %w", filePath, err)
 		}
 
 		if fileInfo.Size() <= 102400 {
-			content := make([]byte, fileInfo.Size())
+			content = make([]byte, fileInfo.Size())
 
-			_, err = processedFile.Read(content)
+			_, err := processedFile.Read(content)
 			if err != nil && err != io.EOF {
 				return fmt.Errorf("error while reading data from file %s: %w", filePath, err)
 			}
+			os.Remove(filePath)
+			filePath = ""
 
 		} else {
 			if !strings.Contains(filePath, "/tmp/") {
-				err = os.Rename(filePath, "/tmp/"+fileName)
+				destFile, err := os.Create("/tmp/" + fileName)
 				if err != nil {
-					return fmt.Errorf("error while moving file %s to /tmp/%s: %w", filePath, fileName, err)
+					return fmt.Errorf("error while creating destination file with path /tmp/%s: %w", fileName, err)
 				}
+
+				_, err = io.Copy(destFile, processedFile)
+				if err != nil {
+					return fmt.Errorf("error while copying data from source file %s to destination file /tmp/%s: %w", filePath, fileName, err)
+				}
+
+				os.Remove(filePath)
+				filePath = "/tmp/" + fileName
 			}
 
 		}
+		processedFile.Close()
 	}
 
-	_, err = db.ExecContext(ctxCache, "INSERT INTO Files (fileName, filePath, content, metadata, lastUpdated, uploadTime, userName) VALUES ($1,$2,$3,$4,$5,$6,$7) "+
+	_, err = db.Exec("INSERT INTO Files (fileName, filePath, content, metadata, lastUpdated, uploadTime, userName) VALUES ($1,$2,$3,$4,$5,$6,$7) "+
 		"ON CONFLICT (fileName, userName) DO "+
 		"UPDATE SET "+
-		"filePath = CASE WHEN excluded.filePath <> '' THEN excluded.filePath ELSE filePath END, "+
-		"content = CASE WHEN excluded.content <> '' THEN excluded.content ELSE content END, "+
+		"filePath = CASE WHEN LENGTH(excluded.content) > 0 OR excluded.filePath <> '' THEN excluded.filePath ELSE filePath END, "+
+		"content = CASE WHEN LENGTH(excluded.content) > 0 OR excluded.filePath <> '' THEN excluded.content ELSE content END, "+
 		"metadata = CASE WHEN excluded.metadata <> '' THEN excluded.metadata ELSE metadata END, "+
 		"lastUpdated = CASE WHEN excluded.lastUpdated <> '' THEN excluded.lastUpdated ELSE Files.lastUpdated END,"+
 		"uploadTime = CASE WHEN excluded.uploadTime <> '' THEN excluded.uploadTime ELSE Files.uploadTime END ", fileName, filePath, content, metadata, lastUpdated, uploadTime, userName)
@@ -229,6 +235,7 @@ func (cache *SQLite) UploadFile(fileName, filePath, metadata, uploadTime, lastUp
 	return nil
 }
 
+// GetAllFileWithOperation - function for getting list of files, with which some of operations were not performed.
 func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err error) {
 
 	var userName, fileName string
@@ -274,6 +281,7 @@ func (cache *SQLite) GetAllFileWithOperation() (result map[string][]string, err 
 	return
 }
 
+// GetFileOpearionsInfo - function for getting info about operations with files.
 func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) ([]ut.OperationInfo, error) {
 	var field sql.NullString
 	var operationFilesInfo, operationCardsInfoTemp ut.OperationInfo
@@ -332,6 +340,7 @@ func (cache *SQLite) GetFileOpearionsInfo(user, fileName string) ([]ut.Operation
 	return operationsFilesInfo, nil
 }
 
+// ClearFilesByDate - function for clear files info by date.
 func (cache *SQLite) ClearFilesByDate(userName string) ([]string, error) {
 	var filePath sql.NullString
 	filesPath := make([]string, 0)
@@ -356,7 +365,7 @@ func (cache *SQLite) ClearFilesByDate(userName string) ([]string, error) {
 	currantTimeStr := currantTime.Format(time.RFC3339)
 
 	rows, err := db.QueryContext(ctxCache, "DELETE FROM Files WHERE DATETIME(uploadTime) < DATETIME($1, '-1 month') AND "+
-		" AND DATETIME(lastUpdated) < DATETIME($, '-14 days') AND NOT EXISTS "+
+		"DATETIME(lastUpdated) < DATETIME($1, '-14 days') AND NOT EXISTS "+
 		"(SELECT 1 FROM FileOperations WHERE FileOperations.fileName = Files.fileName) RETURNING filePath", currantTimeStr)
 
 	if err != nil {

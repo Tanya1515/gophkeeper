@@ -11,6 +11,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// UploadBankCard - function for saving bank card credentials.
 func (pg *PostgreSQLConnection) UploadBankCard(ctx context.Context, cardNumber, cvc, date, bank, md string, initVector []byte, updatedAt time.Time) error {
 
 	var cvcCodeGet, dateGet, bankGet, metaDataGet string
@@ -66,6 +67,7 @@ func (pg *PostgreSQLConnection) UploadBankCard(ctx context.Context, cardNumber, 
 	return nil
 }
 
+// DeleteBankCard - function for deleting bank card credentials.
 func (pg *PostgreSQLConnection) DeleteBankCard(ctx context.Context, cardNumber string) (err error) {
 
 	res, err := pg.dbConn.ExecContext(ctx, "DELETE FROM BankCards WHERE cardNumber=$1 AND userID=$2 RETURNING cardNumber", cardNumber, ctx.Value(ut.IDKey))

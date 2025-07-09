@@ -170,10 +170,12 @@ func (c *Client) SendBankCard() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -217,7 +219,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 			}
 
 			if err == nil {
-				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, opTime, User, initVector)
+				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, opTime, initVector)
 				if errUpload != nil {
 					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
 				}
@@ -227,7 +229,7 @@ func (c *Client) SendBankCard() *cobra.Command {
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if CheckErrorType(err) {
-				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, "", User, initVector)
+				errUpload := c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, date, bankName, metadatabankCard, opTime, User, "", initVector)
 				if errUpload != nil {
 					c.ClientLogger.Errorf("Error while writting bank card to SQLite: %s\n", errUpload)
 				}
@@ -285,10 +287,12 @@ func (c *Client) GetBankCard() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -308,7 +312,12 @@ func (c *Client) GetBankCard() *cobra.Command {
 				fmt.Printf("Additioanl information: %s\n", metadataCard)
 			} else {
 				if err != nil {
-					c.ClientLogger.Errorf("Error while getting bank card %s credentials from local storage for user %s: %w", cardNumber, User, err)
+					c.ClientLogger.Errorf("Error while getting bank card %s credentials from local storage for user %s: %s", cardNumber, User, err)
+				}
+
+				err = c.ClientStorage.UpdateCacheMiss(User, 1)
+				if err != nil {
+					c.ClientLogger.Errorf("Error while  updating cache miss while getting sensetive data for bank card %s: %s", cardNumber, err)
 				}
 
 				certPath, envExists := os.LookupEnv("CERT_PATH")
@@ -366,12 +375,12 @@ func (c *Client) GetBankCard() *cobra.Command {
 					if err != nil {
 						c.ClientLogger.Errorln("Error while encrypt sensetive data for bank card %s: %s", cardNumber, err)
 					}
-					err = c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, bankCard.Data, bankCard.Bank, bankCard.Metadata, bankCard.UploadTime, opTime, User, initVector)
+					err = c.ClientStorage.UploadBankCard(cardNumber, encryptedCvc, bankCard.Data, bankCard.Bank, bankCard.Metadata, bankCard.UploadTime, User, opTime, initVector)
 					if err != nil {
 						c.ClientLogger.Errorf("Error while uploading bank card %s credentials: %s", cardNumber, err)
 					}
 				} else if strings.Contains(strings.Split(err.Error(), "desc")[1], "no rows in result") {
-					err = c.ClientStorage.UpdateCacheMiss(User, 1)
+					err = c.ClientStorage.UpdateCacheMiss(User, -1)
 					if err != nil {
 						c.ClientLogger.Errorf("Error while updating cache miss while getting sensetive data for bank card %s: %s", cardNumber, err)
 					}
@@ -429,10 +438,12 @@ func (c *Client) DeleteBankCard() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -596,10 +607,12 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -666,7 +679,7 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 			}
 
 			if err != nil && CheckErrorType(err) {
-				uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, "", User, initVector)
+				uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, "", initVector)
 				if uploadErr != nil {
 					c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
 				}
@@ -697,9 +710,9 @@ func (c *Client) UpdateBankCard() *cobra.Command {
 				return
 			}
 
-			uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, opTime, User, initVector)
+			uploadErr := c.ClientStorage.UploadBankCard(cardNumber, cvcEncrypted, cardDate, bankName, metadatabankCard, opTime, User, opTime, initVector)
 			if uploadErr != nil {
-				c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, err)
+				c.ClientLogger.Errorf("Error while updating sensetive data for bank card %s: %s\n", cardNumber, uploadErr)
 			}
 
 			fmt.Printf("Your bank card %s has been successfully updated.\n", cardNumber)

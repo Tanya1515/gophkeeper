@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// ClientConnection - function for openning client grpc connection to server.
 func (c *Client) ClientConnection(certPath string) (*grpc.ClientConn, error) {
 	certFile, err := filepath.Abs(certPath + "ca.crt")
 	if err != nil {

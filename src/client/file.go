@@ -56,10 +56,12 @@ func (c *Client) SendFile() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -217,10 +219,12 @@ func (c *Client) GetFile() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -403,10 +407,12 @@ func (c *Client) UpdateFile() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -608,10 +614,12 @@ func (c *Client) DeleteFile() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -681,12 +689,17 @@ func (c *Client) DeleteFile() *cobra.Command {
 			}
 			filePath, errLocal := c.ClientStorage.DeleteFile(fileName, User)
 			if errLocal != nil {
-				c.ClientLogger.Errorf("Error while deleting file %s from local storage: %s \n", fileName, err)
+				c.ClientLogger.Errorf("Error while deleting file %s from local storage: %s \n", fileName, errLocal)
 			}
 
-			errLocal = os.Remove(filePath)
-			if errLocal != nil {
-				c.ClientLogger.Errorf("Error while removing file with path %s: %s", filePath, err)
+			if filePath != "" {
+
+			}
+			if filePath != "" {
+				errLocal = os.Remove(filePath)
+				if errLocal != nil {
+					c.ClientLogger.Errorf("Error while removing file with path %s: %s", filePath, errLocal)
+				}
 			}
 
 			fmt.Printf("File with name %s was successfully removed from gophkeeper", fileName)

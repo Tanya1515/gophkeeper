@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// DeleteOperaionByID - function, that removes operations by its' identificator.
 func (cache *SQLite) DeleteOperaionByID(operationID, dataType string) error {
 
 	var tableName string

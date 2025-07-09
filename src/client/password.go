@@ -85,10 +85,12 @@ func (c *Client) SendPassword() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, 0)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -142,7 +144,7 @@ func (c *Client) SendPassword() *cobra.Command {
 				fmt.Printf("Your data is not up to date, please sync the Gophkeeper")
 				return
 			} else if CheckErrorType(err) {
-				errUpload := c.ClientStorage.UploadPassword(application, encryptedPassword, metadataPassword, opTime, User, "", initVector)
+				errUpload := c.ClientStorage.UploadPassword(application, encryptedPassword, metadataPassword, opTime, "", User, initVector)
 				if errUpload != nil {
 					c.ClientLogger.Errorln("Error while writting password data to SQLite: ", errUpload)
 				}
@@ -200,10 +202,12 @@ func (c *Client) GetPassword() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -222,7 +226,7 @@ func (c *Client) GetPassword() *cobra.Command {
 				fmt.Printf("Additioanl information: %s\n", metadataPassword)
 			} else {
 				if err != nil {
-					c.ClientLogger.Errorf("Error while getting application %s credentials from local storage for user %s: %w", application, User, err)
+					c.ClientLogger.Errorf("Error while getting application %s credentials from local storage for user %s: %s", application, User, err)
 				}
 
 				err = c.ClientStorage.UpdateCacheMiss(User, 1)
@@ -281,6 +285,10 @@ func (c *Client) GetPassword() *cobra.Command {
 						c.ClientLogger.Errorf("Error while uploading sensetive data for application %s : %s", application, err)
 					}
 				} else if strings.Contains(strings.Split(err.Error(), "desc")[1], "no rows in result") {
+					err = c.ClientStorage.UpdateCacheMiss(User, -1)
+					if err != nil {
+						c.ClientLogger.Errorf("Error while  updating cache miss while getting sensetive data for application %s: %s", application, err)
+					}
 					fmt.Printf("Sensetive data for application %s do not exist\n", application)
 				} else {
 					fmt.Println("Internal server error, please contact Gophkeeper administrator.")
@@ -334,10 +342,12 @@ func (c *Client) DeletePassword() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
+					err = c.SyncData(User)
 					if err != nil {
-						c.ClientLogger.Errorln(err)
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -451,10 +461,12 @@ func (c *Client) UpdatePassword() *cobra.Command {
 				c.ClientLogger.Errorln(err)
 			} else {
 				if cacheMiss >= 20 {
-					c.SyncData(User)
-					err = c.ClientStorage.UpdateCacheMiss(User, cacheMiss)
-					if err != nil {
-						c.ClientLogger.Errorln(err)
+					err = c.SyncData(User)
+					if err == nil {
+						err = c.ClientStorage.UpdateCacheMiss(User, 0)
+						if err != nil {
+							c.ClientLogger.Errorln(err)
+						}
 					}
 				}
 			}
@@ -534,7 +546,7 @@ func (c *Client) UpdatePassword() *cobra.Command {
 			}
 
 			if err != nil && CheckErrorType(err) {
-				uploadErr := c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, User, "", initVector)
+				uploadErr := c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, "", User, initVector)
 				if uploadErr != nil {
 					c.ClientLogger.Errorf("Error while updating  password sensetive data for application %s: %s\n", application, err)
 				}
@@ -557,9 +569,9 @@ func (c *Client) UpdatePassword() *cobra.Command {
 				fmt.Println("Internal server error, please contact Gophkeeper administrator.")
 				return
 			}
-			uploadErr := c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, User, opTime, initVector)
+			uploadErr := c.ClientStorage.UploadPassword(application, encryptedPassword, passwordMetadata, opTime, opTime, User, initVector)
 			if uploadErr != nil {
-				c.ClientLogger.Errorf("Error while updating  password sensetive data for application %s: %s\n", application, err)
+				c.ClientLogger.Errorf("Error while updating  password sensetive data for application %s: %s\n", application, uploadErr)
 			}
 
 			fmt.Printf("Your password for application %s has been successfully updated!\n", application)

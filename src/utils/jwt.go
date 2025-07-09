@@ -54,8 +54,6 @@ func ProcessJWTToken(JWTToken string) (userLogin string, err error) {
 		return "", err
 	}
 
-	fmt.Println(claims.UserLogin)
-
 	return claims.UserLogin, err
 
 }

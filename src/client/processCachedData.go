@@ -12,6 +12,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// SortOperationsByTime - function, that sorts operationd for data type and current user by time.
 func SortOperationsByTime(operations *[]ut.OperationInfo) {
 	sort.Slice(*operations, func(i, j int) bool {
 		t1, err1 := time.Parse(time.RFC3339, (*operations)[i].OperationTime)
@@ -158,7 +159,7 @@ func (c *Client) PasswordWorker(data <-chan UserData, resultPassword chan<- Oper
 				operationResult = OperationResult{operationID: opInfo.OperationID, result: "Success"}
 			}
 			resultPassword <- operationResult
-			c.ClientLogger.Infoln("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
+			c.ClientLogger.Infof("Execute %s operation Info for application %s\n", opInfo.OperationName, d.dataIdentificator)
 		}
 	}
 }
@@ -312,6 +313,7 @@ func (c *Client) SendCacheData() {
 	wg.Wait()
 }
 
+// ClearData - function, that clear all outdated data for the user.
 func (c *Client) ClearData(userName string) {
 	var wgSyncClear sync.WaitGroup
 

@@ -5,14 +5,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type CustomError struct {
-	message string
-}
-
-func (e *CustomError) Error() string {
-	return e.message
-}
-
+// CheckErrorType - function for checking, if error is
 func CheckErrorType(err error) bool {
 	if s, ok := status.FromError(err); ok {
 		if s.Code() == codes.Unavailable || s.Code() == codes.DeadlineExceeded || s.Code() == codes.Canceled {

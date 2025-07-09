@@ -11,6 +11,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// UploadFile - function for uploading file with sensetive data in Gophkeeper.
 func (pg *PostgreSQLConnection) UploadFile(ctx context.Context, fileName, metaData string, updatedAt time.Time) (bool, error) {
 
 	var fileNameGet, metaDataGet string
@@ -31,7 +32,7 @@ func (pg *PostgreSQLConnection) UploadFile(ctx context.Context, fileName, metaDa
 	}
 
 	_, err = tx.ExecContext(ctx, "INSERT INTO UserFiles (userID, fileName, metaData, updatedAt) VALUES ($1, $2, $3, $4)"+
-		" ON CONFLICT (fileName, userID) DO UPDATE SET metaData= $3,"+
+		" ON CONFLICT (fileName, userID) DO UPDATE SET metaData= CASE WHEN $3 <> '' THEN $3 ELSE UserFiles.metaData END,"+
 		" updatedAt = $4 "+
 		" WHERE UserFiles.updatedAt <= excluded.updatedAt", ctx.Value(ut.IDKey), fileName, metaData, updatedAt)
 
@@ -110,7 +111,7 @@ func (pg *PostgreSQLConnection) UpdateFile(ctx context.Context, fileName, metaDa
 		return false, fmt.Errorf("error while getting sensetive data for file %s: %w", fileName, err)
 	}
 
-	_, err = tx.ExecContext(ctx, "UPDATE UserFiles SET metaData= $3,"+
+	_, err = tx.ExecContext(ctx, "UPDATE UserFiles SET metaData= CASE WHEN $3 <> '' THEN $3 ELSE UserFiles.metaData END,"+
 		" updatedAt = $4 "+
 		" WHERE UserFiles.updatedAt <= $4 AND fileName=$2 AND userID=$1", ctx.Value(ut.IDKey), fileName, metaData, updatedAt)
 

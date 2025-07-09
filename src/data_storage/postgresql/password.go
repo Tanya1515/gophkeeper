@@ -11,6 +11,7 @@ import (
 	ut "github.com/Tanya1515/gophkeeper.git/src/utils"
 )
 
+// UploadPassword - function for uploading sensetive data with application.
 func (pg *PostgreSQLConnection) UploadPassword(ctx context.Context, password, app, md string, initVector []byte, updatedAt time.Time) error {
 
 	var passwordGet, metaDataGet string
