@@ -1,0 +1,3 @@
+./deploy/docker/minio_data
+./cmd/client/client
+./cmd/client/.configs

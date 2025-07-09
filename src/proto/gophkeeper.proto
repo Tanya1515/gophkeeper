@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package github.com.Tanya1515.gophkeeper.git.proto;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "cmd/proto";
+
+message User {
+    string login = 1;
+    string password = 2;
+    string email = 3;
+}
+
+message Result {
+    string status = 1;
+    string JWTtoken = 2;
+}
+
+message Verify {
+    string oneTimePass = 1;
+    string login = 2;
+}
+
+message PasswordMessage {
+    string password = 1;
+    string application = 2;
+    string metaData = 3;
+    string uploadTime = 4;
+}
+
+message FileMessage {
+    string fileName = 1;
+    bytes content = 2;
+    string metaData = 3;
+    string uploadTime = 4;
+    bool end = 5;
+}
+
+message BankCardMessage {
+    string cardNumber = 1;
+    string cvcCode = 2;
+    string data = 3; 
+    string bank = 4;
+    string metadata = 5;
+    string uploadTime = 6;
+}
+
+message SensetiveDataMessage {
+    string identificator = 1;
+}
+
+message DataMessage {
+    repeated PasswordMessage passwords = 1;
+    repeated BankCardMessage bankCards = 2;
+}
+
+service Gophkeeper {
+  rpc LoginUser(User) returns (google.protobuf.Empty) {};
+  rpc RegisterUser(User) returns (google.protobuf.Empty) {};
+  rpc VerificationApprove(Verify) returns (Result);
+
+  rpc UploadPassword(PasswordMessage) returns (google.protobuf.Empty) {};
+  rpc UploadBankCard(BankCardMessage) returns (google.protobuf.Empty) {};
+  rpc UploadFile(stream FileMessage) returns (google.protobuf.Empty) {};
+
+  rpc DeletePassword(SensetiveDataMessage) returns (google.protobuf.Empty) {};
+  rpc DeleteFile(SensetiveDataMessage) returns (google.protobuf.Empty) {};
+  rpc DeleteBankCardCredentials(SensetiveDataMessage) returns (google.protobuf.Empty) {};
+
+  rpc GetPassword(SensetiveDataMessage) returns (PasswordMessage);
+  rpc GetBankCardCredentials(SensetiveDataMessage) returns (BankCardMessage);
+  rpc GetFile(SensetiveDataMessage) returns (stream FileMessage);
+ 
+  rpc UpdatePassword(PasswordMessage) returns (google.protobuf.Empty) {};
+  rpc UpdateBankCardCreds(BankCardMessage) returns (google.protobuf.Empty) {};
+  rpc UpdateFile(stream FileMessage) returns (google.protobuf.Empty) {};
+
+  rpc Sync(google.protobuf.Empty) returns (DataMessage);
+  rpc SyncFiles(google.protobuf.Empty) returns (stream FileMessage);
+  
+} 
